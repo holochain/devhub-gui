@@ -1,0 +1,42 @@
+{
+  "name": "devhub-gui",
+  "version": "0.1.0",
+  "description": "The official web-based UI that works with Holochain's collection of DevHub DNAs",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack",
+    "webpack": "webpack --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holochain/devhub-gui.git"
+  },
+  "author": "Matthew Brisebois",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/holochain/devhub-gui/issues"
+  },
+  "homepage": "https://github.com/holochain/devhub-gui#readme",
+  "dependencies": {
+    "@holochain/conductor-api": "0.0.4",
+    "notyf": "^3.9.0",
+    "vue": "^2.6.12",
+    "vue-router": "^3.5.1",
+    "vuex": "^3.6.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.3",
+    "@babel/plugin-transform-runtime": "^7.14.3",
+    "@babel/polyfill": "^7.12.1",
+    "@babel/preset-env": "^7.14.2",
+    "@holo-host/holo-cli": "file:../holo-cli",
+    "@whi/stdlog": "^0.3.4",
+    "babel-loader": "^8.2.2",
+    "copy-webpack-plugin": "^8.1.1",
+    "faker": "^5.5.3",
+    "html-loader": "^2.1.2",
+    "js-yaml": "^4.1.0",
+    "webpack": "^5.37.0",
+    "webpack-cli": "^4.7.0"
+  }
+}
