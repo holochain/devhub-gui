@@ -32,12 +32,13 @@ function random_dna () {
 let version_counters = {};
 function increment_version ( key ) {
     if ( version_counters[key] === undefined )
-	version_counters[key]		= 0;
+	version_counters[key]		= 1;
     return version_counters[key]++;
 }
 function random_dna_version ( dna_hash ) {
     return {
 	"version": increment_version( dna_hash ),
+	"changelog": faker.lorem.paragraph(50),
 	"bytes": random_dna_bytes(),
     };
 }
@@ -53,7 +54,7 @@ function random_dna_bytes () {
     });
 
     try {
-	let my_dnas			= await DevHub.myDNAs();
+	let my_dnas			= await DevHub.myDNAs( true );
 	console.log("My DNAs:", JSON.stringify(my_dnas,null,4) );
 	for (let hash in my_dnas) {
 	    let versions		= await my_dnas[hash].versions();

@@ -19,8 +19,10 @@
   "homepage": "https://github.com/holochain/devhub-gui#readme",
   "dependencies": {
     "@holochain/conductor-api": "0.0.4",
+    "buffer": "^6.0.3",
     "notyf": "^3.9.0",
     "vue": "^2.6.12",
+    "vue-moment": "^4.1.0",
     "vue-router": "^3.5.1",
     "vuex": "^3.6.2"
   },

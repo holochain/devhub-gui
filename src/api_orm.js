@@ -2,6 +2,18 @@
 const { AppWebsocket }			= require('@holochain/conductor-api');
 
 
+function EntryHash (hash) {
+    if ( hash === undefined || hash === null )
+	throw new Error(`EntryHash input is missing: ${hash}`);
+
+    if ( typeof hash === "string" )
+	return Buffer.from(hash, "base64");
+    else if ( hash instanceof Uint8Array )
+	return hash;
+    else
+	throw new Error(`Unknown hash input: ${typeof hash} (${hash.constructor.name})`);
+}
+
 class ORM {
     constructor( conductor, agent, dna_hashes ) {
 	this.conductor			= conductor;
@@ -23,12 +35,12 @@ class ORM {
 	});
     }
 
-    async myDNAs () {
+    async myDNAs ( wrapped = false ) {
 	let dnas			= await this.callZome("dnas", "storage", "get_my_dnas" );
 
 	return dnas.reduce((result, [hash,dna]) => {
-	    let key			= hash.toString("base64");
-	    result[key]			= new Dna( this, dna, hash );
+	    let key			= Buffer.from(hash).toString("base64");
+	    result[key]			= wrapped === true ? new Dna( this, dna, hash ) : dna;
 	    return result;
 	}, {});
     }
@@ -36,6 +48,22 @@ class ORM {
     async createDNA ( input ) {
 	let [dna_hash, dna]		= await this.callZome("dnas", "storage", "create_dna", input );
 	return new Dna( this, dna, dna_hash );
+    }
+
+    async getDNA ( hash ) {
+	hash				= EntryHash(hash);
+	let dna_info			= await this.callZome("dnas", "storage", "get_dna", {
+	    "addr": hash,
+	});
+	return new Dna( this, dna_info, hash );
+    }
+
+    async getDNAVersion ( hash ) {
+	hash				= EntryHash(hash);
+	let version_info		= await this.callZome("dnas", "storage", "get_dna_version", {
+	    "addr": hash,
+	});
+	return new DnaVersion( this, version_info, hash );
     }
 
     async close () {
@@ -70,7 +98,7 @@ class Dna extends Entry {
 	super( client, dna_info, entry_hash );
     }
 
-    async versions () {
+    async versions ( wrapped = false ) {
 	let dna_hash			= this.hash();
 	console.log("Get versions for DNA hash:", dna_hash);
 	let versions			= await this.orm.callZome("dnas", "storage", "get_dna_versions", {
@@ -78,8 +106,8 @@ class Dna extends Entry {
 	});
 
 	return versions.reduce((result, [hash,dna_version]) => {
-	    let key			= hash.toString("base64");
-	    result[key]			= new DnaVersion( this.orm, dna_version, hash );
+	    let key			= Buffer.from(hash).toString("base64");
+	    result[key]			= wrapped === true ? new DnaVersion( this.orm, dna_version, hash ) : dna_version;
 	    return result;
 	}, {});
 	return versions;
@@ -108,6 +136,7 @@ class Dna extends Entry {
 	let [version_hash, version]	= await this.orm.callZome("dnas", "storage", "create_dna_version", {
 	    "for_dna":		this.hash(),
 	    "version":		input.version,
+	    "changelog":	input.changelog,
 	    "file_size":	dna_bytes.length,
 	    "chunk_addresses":	chunk_hashes,
 	});
@@ -127,7 +156,7 @@ class DnaVersion extends Entry {
 
 module.exports				= {
     async connect ( port, agent, dna_hashes ) {
-	const conductor			= await AppWebsocket.connect(`http://localhost:${port}`);
+	const conductor			= await AppWebsocket.connect(`ws://localhost:${port}`);
 	return new ORM( conductor, agent, dna_hashes );
     },
 };

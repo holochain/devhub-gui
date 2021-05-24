@@ -28,6 +28,7 @@ check-lair:
 #
 reset-hcc:
 	rm $(HC_DIR)/databases/ -rf
+	rm $(DNAREPO_HASH)
 conductor:		$(HC_DIR)/pid
 $(HC_DIR):
 	mkdir -p $(HC_DIR)
