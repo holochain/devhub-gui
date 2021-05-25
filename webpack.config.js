@@ -3,7 +3,6 @@ const webpack			= require('webpack');
 
 const Copy			= require('copy-webpack-plugin');
 
-
 module.exports = {
     target: 'web',
     mode: 'development', // production | development
@@ -44,6 +43,11 @@ module.exports = {
 		"./src/static/",
 		{ from: "./node_modules/notyf/notyf.min.css", to: "notyf" },
 	    ],
+	}),
+	new webpack.DefinePlugin({
+	    'process.env': {
+		'DNAREPO_HASH': JSON.stringify("hC0k2kZSwy5jal/it8azZbuewty/j862TsT1j9sd1QwDu87cntHh"),
+	    }
 	}),
     ],
     stats: {

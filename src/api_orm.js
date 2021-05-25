@@ -25,7 +25,8 @@ class ORM {
 
     async callZome (dna_nick, zome, fname, args = null ) {
 	const provenance		= this.agent;
-	return await this.conductor.callZome({
+	console.log(`DEBUG callZome '${dna_nick}->${zome}->${fname}':`, args );
+	let result			= await this.conductor.callZome({
 	    "cap":		null,
 	    "provenance":	provenance,
 	    "cell_id":		this.cells[dna_nick],
@@ -33,6 +34,9 @@ class ORM {
 	    "fn_name":		fname,
 	    "payload":		args,
 	});
+	console.log("DEBUG callZome result:", result );
+
+	return result;
     }
 
     async myDNAs ( wrapped = false ) {
@@ -58,12 +62,26 @@ class ORM {
 	return new Dna( this, dna_info, hash );
     }
 
+    async createDNAVersion ( input ) {
+	let dna_obj			= new Dna( this, {}, input.for_dna );
+	let dna_version			= await dna_obj.createVersion( input );
+	return dna_version.toJSON();
+    }
+
     async getDNAVersion ( hash ) {
 	hash				= EntryHash(hash);
 	let version_info		= await this.callZome("dnas", "storage", "get_dna_version", {
 	    "addr": hash,
 	});
 	return new DnaVersion( this, version_info, hash );
+    }
+
+    async getDNAChunk ( hash ) {
+	hash				= EntryHash(hash);
+	let chunk			= await this.callZome("dnas", "storage", "get_dna_chunk", {
+	    "addr": hash,
+	});
+	return new DnaChunk( this, chunk, hash );
     }
 
     async close () {
@@ -135,6 +153,7 @@ class Dna extends Entry {
 
 	let [version_hash, version]	= await this.orm.callZome("dnas", "storage", "create_dna_version", {
 	    "for_dna":		this.hash(),
+	    "published_at":	input.published_at,
 	    "version":		input.version,
 	    "changelog":	input.changelog,
 	    "file_size":	dna_bytes.length,
@@ -150,6 +169,13 @@ class Dna extends Entry {
 class DnaVersion extends Entry {
     constructor ( client, version_info, entry_hash ) {
 	super( client, version_info, entry_hash );
+    }
+}
+
+
+class DnaChunk extends Entry {
+    constructor ( client, chunk, entry_hash ) {
+	super( client, chunk, entry_hash );
     }
 }
 

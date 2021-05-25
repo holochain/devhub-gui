@@ -1,25 +1,32 @@
 <div id="home-page" class="px-4 pt-3 pb-5">
     <h1>My DNAs</h1>
 
-    <div v-for="(dna,id) in dnas"
-	 class="row border-top py-2"
-	 :entry-hash="id">
-	<div class="col pt-2">
-	    <div class="row">
-		<div class="col-8">
-		    <h3>{{ dna.name }}</h3>
+    <div v-if="dnas.length">
+	<div v-for="dna in dnas"
+	     class="row border-top py-2"
+	     :entry-hash="dna.hash">
+	    <div class="col pt-2">
+		<div class="row">
+		    <div class="col-8">
+			<h3>{{ dna.name }}</h3>
+		    </div>
+		    <div class="col-4 text-right">
+			<span class="badge badge-secondary">Created on {{ dna.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
+		    </div>
 		</div>
-		<div class="col-4 text-right">
-		    <span class="badge badge-secondary">Created on {{ dna.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
-		</div>
-	    </div>
 
-	    <p>{{ dna.description }}</p>
+		<p>{{ dna.description }}</p>
+	    </div>
+	    <div class="col-auto d-flex align-items-center">
+		<router-link :to="'/dna/' + encodeURIComponent(dna.hash)" class="btn btn-primary">
+		    More info
+		</router-link>
+	    </div>
 	</div>
-	<div class="col-auto d-flex align-items-center">
-	    <router-link :to="'/dna/' + encodeURIComponent(id)" class="btn btn-primary">
-		More info
-	    </router-link>
+    </div>
+    <div v-else class="card">
+	<div class="card-body text-center">
+	    No DNAs
 	</div>
     </div>
 

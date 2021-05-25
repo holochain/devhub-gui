@@ -16,11 +16,41 @@ Vue.use( Vuex );
 Vue.use( VueRouter );
 Vue.use( VueMoment );
 
+function b64 ( input ) {
+    return typeof input === "string"
+	? Buffer.from( input, "base64" )
+	: Buffer.from( input ).toString("base64");
+}
+
+function load_file ( file ) {
+    console.log( file );
+    return new Promise((f,r) => {
+	let reader			= new FileReader();
+
+	reader.readAsArrayBuffer( file );
+	reader.onerror			= function (err) {
+	    console.log("error:", err );
+
+	    r( err );
+	};
+	reader.onload			= function (evt) {
+	    console.log("load:", evt );
+	    let result			= new Uint8Array( evt.target.result );
+	    console.log( result );
+
+	    f( result );
+	};
+	reader.onprogress		= function (p) {
+	    console.log("progress:", p );
+	};
+    });
+}
+
 
 (async function(global) {
     const PORT					= 44001;
-    const AGENT_HASH				= Buffer.from("hCAkFic1hM2iG44c17eTdrp5mCQiys45qgGA8n3LS0UrcaslwwjN", "base64");
-    const DNAREPO_HASH				= Buffer.from("hC0kBLfCqccCaCO/+zCMrSQW6vsyLGvrDlum1QkqZiSfMB1uZASC", "base64");
+    const AGENT_HASH				= b64("hCAkFic1hM2iG44c17eTdrp5mCQiys45qgGA8n3LS0UrcaslwwjN");
+    const DNAREPO_HASH				= b64( process.env.DNAREPO_HASH );
 
     const DevHub				= await orm.connect( PORT, AGENT_HASH, {
 	"dnas": DNAREPO_HASH,
@@ -53,13 +83,25 @@ Vue.use( VueMoment );
 		console.log("Fetching my DNAs");
 		return await DevHub.myDNAs();
 	    },
+	    create_dna: async function ( ctx, input ) {
+		console.log("Create DNA:", input );
+		return await DevHub.createDNA( input );
+	    },
 	    get_dna: async function ( ctx, { hash } ) {
 		console.log("Fetching DNA:", hash );
 		return await DevHub.getDNA( hash );
 	    },
+	    create_dna_version: async function ( ctx, input ) {
+		console.log("Create DNA Version:", input );
+		return await DevHub.createDNAVersion( input );
+	    },
 	    get_dna_version: async function ( ctx, { hash } ) {
 		console.log("Fetching DNA Version:", hash );
 		return await DevHub.getDNAVersion( hash );
+	    },
+	    get_dna_chunk: async function ( ctx, { hash } ) {
+		console.log("Fetching DNA Chunk:", hash );
+		return await DevHub.getDNAChunk( hash );
 	    },
 	},
     });
@@ -70,7 +112,7 @@ Vue.use( VueMoment );
 	    "template": (await import("./templates/home.html")).default,
 	    "data": function() {
 		return {
-		    "dnas": null,
+		    "dnas": [],
 		};
 	    },
 	    async created () {
@@ -88,7 +130,11 @@ Vue.use( VueMoment );
 	    },
 	    "methods": {
 		async refresh () {
-		    this.dnas			= await this.$store.dispatch("list_my_dnas");
+		    let dnas			= await this.$store.dispatch("list_my_dnas");
+		    this.dnas			= Object.values( dnas ).map(dna => {
+			dna.hash		= b64( dna.id );
+			return dna;
+		    });
 		},
 		...mapActions([
 		]),
@@ -119,8 +165,10 @@ Vue.use( VueMoment );
 		}]);
 	    },
 	    "methods": {
-		save () {
-		    console.log("Saving...");
+		async save () {
+		    console.log("Creating DNA with input:", this.dna );
+		    let dna			= await this.$store.dispatch("create_dna", this.dna );
+		    console.log("Created DNA:", dna );
 		}
 	    },
 	},
@@ -131,7 +179,7 @@ Vue.use( VueMoment );
 		    "id": null,
 		    "dna": null,
 		    "next_version": null,
-		    "versions": null,
+		    "versions": [],
 		};
 	    },
 	    async created () {
@@ -151,7 +199,10 @@ Vue.use( VueMoment );
 		async refresh () {
 		    let dna_obj			= await this.$store.dispatch("get_dna", { "hash": this.id });
 		    this.dna			= dna_obj.toJSON();
-		    this.versions		= await dna_obj.versions();
+		    this.versions		= Object.values( await dna_obj.versions() ).map(dv => {
+			dv.hash			= b64( dv.id );
+			return dv;
+		    });
 		    this.next_version		= Object.values(this.versions).reduce((acc, dv) => dv.version > acc ? dv.version : acc, 0) + 1;
 		},
 	    },
@@ -202,7 +253,8 @@ Vue.use( VueMoment );
 	    },
 	    async created () {
 		this.id				= this.$route.params.entry_hash;
-		this.dna_version.version	= this.$route.query.version || 1;
+		this.dna_version.for_dna	= b64( this.id );
+		this.dna_version.version	= parseInt(this.$route.query.version) || 1;
 
 		this.$root.setToolbarControls([{
 		    "path": "/dna/" + encodeURIComponent(this.id),
@@ -219,8 +271,17 @@ Vue.use( VueMoment );
 		}]);
 	    },
 	    "methods": {
-		save () {
+		async fileSelected ( event ) {
+		    let files			= event.target.files;
+		    this.dna_version.bytes	= await load_file( files[0] );
+		},
+		async save () {
 		    console.log("Saving...");
+		    console.log( this.dna_version );
+		    this.dna_version.published_at = (new Date( this.published_date )).getTime();
+
+		    let dna_version		= await this.$store.dispatch("create_dna_version", this.dna_version );
+		    console.log( dna_version );
 		}
 	    },
 	},
@@ -237,7 +298,7 @@ Vue.use( VueMoment );
 		await this.refresh();
 
 		this.$root.setToolbarControls([{
-		    "path": "/dna/" + encodeURIComponent( Buffer.from(this.dna_version.for_dna.id).toString("base64") ),
+		    "path": "/dna/" + encodeURIComponent( b64( this.dna_version.for_dna.id ) ),
 		    "title": "Back to DNA",
 		    "icon": "arrow-left-square",
 		}], [{
@@ -251,6 +312,25 @@ Vue.use( VueMoment );
 		    let version_obj		= await this.$store.dispatch("get_dna_version", { "hash": this.id });
 		    this.dna_version		= version_obj.toJSON();
 		    console.log( this.dna_version );
+		},
+		async download () {
+		    let bytes			= new Uint8Array( this.dna_version.file_size );
+		    let index			= 0;
+		    for ( let chunk_hash of this.dna_version.chunk_addresses ) {
+			let $chunk		= await this.$store.dispatch("get_dna_chunk", { "hash": chunk_hash });
+			let chunk		= $chunk.toJSON();
+			bytes.set( chunk.bytes, index );
+			index		       += chunk.bytes.length;
+		    }
+		    console.log( bytes );
+
+		    let blob			= new Blob([ bytes ]);
+		    let link			= document.createElement("a");
+		    link.href			= URL.createObjectURL(blob);
+
+		    let filename		= this.dna_version.for_dna.name.replace(/[/\\?%*:|"<>]/g, '_');
+		    link.download		= `${filename}-v${this.dna_version.version}.dna`;
+		    link.click();
 		},
 	    },
 	},

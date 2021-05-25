@@ -47,22 +47,29 @@
 	</div>
     </div>
 
-    <div v-for="(version,id) in versions"
-	 class="row border-top py-2"
-	 :entry-hash="id">
-	<div class="col-2">
-	    <strong>{{ version.version }}</strong>
+    <div v-if="versions.length">
+	<div v-for="version in versions"
+	     class="row border-top py-2"
+	     :entry-hash="version.id">
+	    <div class="col-2">
+		<strong>{{ version.version }}</strong>
+	    </div>
+	    <div class="col">
+		<span class="badge bg-secondary">Created on {{ version.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
+	    </div>
+	    <div class="col-4">
+		<p>{{ version.file_size }}</p>
+	    </div>
+	    <div class="col-auto d-flex align-items-center">
+		<router-link :to="'/dna/version/' + encodeURIComponent(version.hash)" class="btn btn-light">
+		    More info
+		</router-link>
+	    </div>
 	</div>
-	<div class="col">
-	    <span class="badge bg-secondary">Created on {{ version.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
-	</div>
-	<div class="col-4">
-	    <p>{{ version.file_size }}</p>
-	</div>
-	<div class="col-auto d-flex align-items-center">
-	    <router-link :to="'/dna/version/' + encodeURIComponent(id)" class="btn btn-light">
-		More info
-	    </router-link>
+    </div>
+    <div v-else class="card">
+	<div class="card-body text-center">
+	    No versions
 	</div>
     </div>
 
