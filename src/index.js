@@ -107,6 +107,9 @@ function load_file ( file ) {
 	    update_dna: async function ( ctx, [hash, input] ) {
 		return await DevHub.updateDNA( hash, input );
 	    },
+	    deprecate_dna: async function ( ctx, [hash, reason] ) {
+		return await DevHub.deprecateDNA( hash, reason );
+	    },
 
 	    // DNA Versions
 	    create_dna_version: async function ( ctx, input ) {
@@ -117,6 +120,9 @@ function load_file ( file ) {
 	    },
 	    update_dna_version: async function ( ctx, [hash, input] ) {
 		return await DevHub.updateDNAVersion( hash, input );
+	    },
+	    delete_dna_version: async function ( ctx, { hash } ) {
+		return await DevHub.deleteDNAVersion( hash );
 	    },
 	    get_dna_chunk: async function ( ctx, { hash } ) {
 		return await DevHub.getDNAChunk( hash );
@@ -209,22 +215,50 @@ function load_file ( file ) {
 		    "dna": null,
 		    "next_version": null,
 		    "versions": [],
+		    "deprecation_prompt": null,
+		    "deprecation": {
+			"reason": null,
+		    },
 		};
+	    },
+	    "watch": {
+		dna () {
+		    this.setToolbar();
+		},
 	    },
 	    async created () {
 		this.id				= this.$route.params.entry_hash;
-		this.$root.setToolbarControls([{
-		    "path": "/",
-		    "title": "Back to Dashboard",
-		    "icon": "arrow-left-square",
-		}], [{
-		    "path": "/dna/" + encodeURIComponent(this.id) + "/edit",
-		    "title": "Edit",
-		    "icon": "pencil-square",
-		}]);
 		await this.refresh();
+		this.setToolbar();
 	    },
 	    "methods": {
+		setToolbar () {
+		    let bottom_controls		= [{
+			"path": "/dna/" + encodeURIComponent(this.id) + "/edit",
+			"title": "Edit",
+			"icon": "pencil-square",
+		    }];
+
+		    if ( !this.dna.deprecation ) {
+			bottom_controls.unshift({
+			    "action": this.deprecatePrompt,
+			    "title": "Deprecate",
+			    "icon": "trash",
+			}, "-");
+		    }
+
+		    this.$root.setToolbarControls([{
+			"path": "/",
+			"title": "Back to Dashboard",
+			"icon": "arrow-left-square",
+		    }], bottom_controls );
+		},
+		deprecationModal () {
+		    if ( this.deprecation_prompt === null )
+			this.deprecation_prompt = new bootstrap.Modal( document.getElementById("dna-deprecation-modal") );
+
+		    return this.deprecation_prompt;
+		},
 		async refresh () {
 		    let dna_obj			= await this.$store.dispatch("get_dna", { "hash": this.id });
 		    this.dna			= dna_obj.toJSON();
@@ -233,6 +267,20 @@ function load_file ( file ) {
 			return dv;
 		    }).sort( object_sorter("version") ).reverse();
 		    this.next_version		= Object.values(this.versions).reduce((acc, dv) => dv.version > acc ? dv.version : acc, 0) + 1;
+		},
+		async deprecatePrompt () {
+		    let modal			= this.deprecationModal();
+		    modal.show();
+		},
+		async confirmDeprecation () {
+		    console.log("Deprecating now...", this.deprecation );
+		    this.dna			= (await this.$store.dispatch("deprecate_dna", [this.id, this.deprecation.reason])).toJSON();
+		    this.deprecation		= {
+			"reason": null,
+		    };
+
+		    let modal			= this.deprecationModal();
+		    modal.hide();
 		},
 	    },
 	},
@@ -345,6 +393,8 @@ function load_file ( file ) {
 		return {
 		    "id": null,
 		    "dna_version": null,
+		    "delete_prompt": null,
+		    "delete_reason": null,
 		};
 	    },
 	    async created () {
@@ -356,12 +406,22 @@ function load_file ( file ) {
 		    "title": "Back to DNA",
 		    "icon": "arrow-left-square",
 		}], [{
+		    "action": this.deletePrompt,
+		    "title": "Delete",
+		    "icon": "trash",
+		}, "-", {
 		    "path": "/dna/version/" + encodeURIComponent(this.id) + "/edit",
 		    "title": "Edit",
 		    "icon": "pencil-square",
 		}]);
 	    },
 	    "methods": {
+		deleteModal () {
+		    if ( this.delete_prompt === null )
+			this.delete_prompt = new bootstrap.Modal( document.getElementById("dna-version-delete-modal") );
+
+		    return this.delete_prompt;
+		},
 		async refresh () {
 		    let version_obj		= await this.$store.dispatch("get_dna_version", { "hash": this.id });
 		    this.dna_version		= version_obj.toJSON();
@@ -382,6 +442,27 @@ function load_file ( file ) {
 		    let filename		= this.dna_version.for_dna.name.replace(/[/\\?%*:|"<>]/g, '_');
 		    link.download		= `${filename}-v${this.dna_version.version}.dna`;
 		    link.click();
+		},
+		async deletePrompt () {
+		    let modal			= this.deleteModal();
+		    modal.show();
+		},
+		async confirmDelete () {
+		    console.log("Deleting now...", this.delete_reason );
+		    try {
+			await this.$store.dispatch("delete_dna_version", { "hash": this.id });
+			let modal		= this.deleteModal();
+			modal.hide();
+
+			notify.success("Deleted DNA Version...");
+			this.$router.push("/dna/" + encodeURIComponent( b64( this.dna_version.for_dna.id ) ) );
+		    } catch (err) {
+			console.error( err );
+			notify.open({
+			    type: "error",
+			    message: `Failed to delete DNA Version - ${err.toString()}`,
+			});
+		    }
 		},
 	    },
 	},

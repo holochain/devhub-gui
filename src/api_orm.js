@@ -73,6 +73,15 @@ class ORM {
 	return new Dna( this, dna, hash );
     }
 
+    async deprecateDNA ( hash, reason ) {
+	hash				= EntryHash(hash);
+	let [deprecated_dna_hash, dna]	= await this.callZome("dnas", "storage", "deprecate_dna", {
+	    "addr": hash,
+	    "message": reason,
+	});
+	return new Dna( this, dna, hash );
+    }
+
     async getDNA ( hash ) {
 	hash				= EntryHash(hash);
 	let dna_info			= await this.callZome("dnas", "storage", "get_dna", {
@@ -94,6 +103,14 @@ class ORM {
 	    "properties": input,
 	});
 	return new DnaVersion( this, dna, hash );
+    }
+
+    async deleteDNAVersion ( hash ) {
+	hash				= EntryHash(hash);
+	let [deleted_dna_hash, dna_version] = await this.callZome("dnas", "storage", "delete_dna_version", {
+	    "addr": hash,
+	});
+	return new DnaVersion( this, dna_version, hash );
     }
 
     async getDNAVersion ( hash ) {
