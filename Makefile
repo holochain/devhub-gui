@@ -1,6 +1,7 @@
 
 SHELL		= bash
 
+PROJECT_NAME	= devhub
 AGENT		= ./tests/AGENT
 DNAREPO_HASH	= ./tests/DNAREPO_HASH
 LAIR_DIR	= ./tests/lair
@@ -8,6 +9,18 @@ HC_DIR		= ./tests/conductor-storage
 HC_CONF		= $(HC_DIR)/conductor-config.yml
 HC_ADMIN_PORT	= 35678
 DNA_DNAREPO	= dnas/dnarepo.dna
+NGINX_CONF	= /etc/nginx/sites-available/$(PROJECT_NAME)
+
+#
+# HTTP Server
+#
+$(NGINX_CONF):		tests/nginx/$(PROJECT_NAME)
+	sed -e "s|PWD|$(shell pwd)|g"					\
+	    < $< | sudo tee $@;
+	echo " ... Wrote new $@ (from $<)";
+	sudo ln -fs ../sites-available/$(PROJECT_NAME) /etc/nginx/sites-enabled/
+	sudo systemctl reload nginx.service
+	systemctl status nginx
 
 
 #

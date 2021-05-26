@@ -1,7 +1,7 @@
 {
   "name": "devhub-gui",
   "version": "0.1.0",
-  "description": "The official web-based UI that works with Holochain's collection of DevHub DNAs",
+  "description": "A web-based UI that works with Holochain's collection of DevHub DNAs",
   "main": "index.js",
   "scripts": {
     "build": "webpack",

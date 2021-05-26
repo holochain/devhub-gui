@@ -1,0 +1,10 @@
+# -*- mode: nginx -*-
+server {
+    listen 80;
+    server_name devhub.holochain.org;
+
+    root PWD/dist/;
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
