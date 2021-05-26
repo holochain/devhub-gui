@@ -26,17 +26,27 @@ class ORM {
     async callZome (dna_nick, zome, fname, args = null ) {
 	const provenance		= this.agent;
 	console.log(`DEBUG callZome '${dna_nick}->${zome}->${fname}':`, args );
-	let result			= await this.conductor.callZome({
-	    "cap":		null,
-	    "provenance":	provenance,
-	    "cell_id":		this.cells[dna_nick],
-	    "zome_name":	zome,
-	    "fn_name":		fname,
-	    "payload":		args,
-	});
-	console.log("DEBUG callZome result:", result );
+	try {
+	    let result			= await this.conductor.callZome({
+		"cap":		null,
+		"provenance":	provenance,
+		"cell_id":		this.cells[dna_nick],
+		"zome_name":	zome,
+		"fn_name":		fname,
+		"payload":		args,
+	    });
+	    console.log("DEBUG callZome result:", result );
 
-	return result;
+	    return result;
+	} catch (err) {
+	    console.error( err );
+	    if ( err instanceof Error ) // Native error
+		throw err;
+	    else if ( err.type === "error" ) // Holochain error
+		throw new Error(`${err.data.type}: ${err.data.data}`);
+	    else
+		throw new Error(JSON.stringify(err));
+	}
     }
 
     async myDNAs ( wrapped = false ) {
@@ -54,6 +64,15 @@ class ORM {
 	return new Dna( this, dna, dna_hash );
     }
 
+    async updateDNA ( hash, input ) {
+	hash				= EntryHash(hash);
+	let [updated_dna_hash, dna]	= await this.callZome("dnas", "storage", "update_dna", {
+	    "addr": hash,
+	    "properties": input,
+	});
+	return new Dna( this, dna, hash );
+    }
+
     async getDNA ( hash ) {
 	hash				= EntryHash(hash);
 	let dna_info			= await this.callZome("dnas", "storage", "get_dna", {
@@ -66,6 +85,15 @@ class ORM {
 	let dna_obj			= new Dna( this, {}, input.for_dna );
 	let dna_version			= await dna_obj.createVersion( input );
 	return dna_version.toJSON();
+    }
+
+    async updateDNAVersion ( hash, input ) {
+	hash				= EntryHash(hash);
+	let [updated_dna_hash, dna]	= await this.callZome("dnas", "storage", "update_dna_version", {
+	    "addr": hash,
+	    "properties": input,
+	});
+	return new DnaVersion( this, dna, hash );
     }
 
     async getDNAVersion ( hash ) {

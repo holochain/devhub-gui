@@ -1,7 +1,9 @@
 const path			= require('path');
 const webpack			= require('webpack');
+const fs			= require('fs');
 
 const Copy			= require('copy-webpack-plugin');
+const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH", "utf8");
 
 module.exports = {
     target: 'web',
@@ -46,7 +48,7 @@ module.exports = {
 	}),
 	new webpack.DefinePlugin({
 	    'process.env': {
-		'DNAREPO_HASH': JSON.stringify("hC0k2kZSwy5jal/it8azZbuewty/j862TsT1j9sd1QwDu87cntHh"),
+		'DNAREPO_HASH': JSON.stringify( DNAREPO_HASH ),
 	    }
 	}),
     ],

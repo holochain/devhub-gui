@@ -52,15 +52,15 @@
 	     class="row border-top py-2"
 	     :entry-hash="version.id">
 	    <div class="col-2">
-		<strong>{{ version.version }}</strong>
+		<strong>v{{ version.version }}</strong>
 	    </div>
 	    <div class="col">
 		<span class="badge bg-secondary">Created on {{ version.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
 	    </div>
-	    <div class="col-4">
-		<p>{{ version.file_size }}</p>
+	    <div class="col-3 text-end">
+		<p>{{ version.file_size | number }} bytes</p>
 	    </div>
-	    <div class="col-auto d-flex align-items-center">
+	    <div class="col-3 d-flex align-items-center justify-content-end">
 		<router-link :to="'/dna/version/' + encodeURIComponent(version.hash)" class="btn btn-light">
 		    More info
 		</router-link>

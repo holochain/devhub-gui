@@ -9,6 +9,7 @@ const { mapState,
 const VueRouter					= require('vue-router').default;
 const VueMoment					= require('vue-moment').default;
 
+const notify					= require('./notify.js');
 const orm					= require('./api_orm.js');
 
 
@@ -16,10 +17,26 @@ Vue.use( Vuex );
 Vue.use( VueRouter );
 Vue.use( VueMoment );
 
+
+Vue.filter("number", function (value) {
+    return (new Number(value)).toLocaleString();
+});
+
+
 function b64 ( input ) {
     return typeof input === "string"
 	? Buffer.from( input, "base64" )
 	: Buffer.from( input ).toString("base64");
+}
+
+function object_sorter (key) {
+    return (a,b) => {
+	if ( a[key] === undefined )
+	    return b[key] === undefined ? 0 : -1;
+	return a[key] < b[key]
+	    ? -1
+	    : a[key] > b[key] ? 1 : 0;
+    };
 }
 
 function load_file ( file ) {
@@ -56,7 +73,6 @@ function load_file ( file ) {
 	"dnas": DNAREPO_HASH,
     });
     console.log("ORM Object:", DevHub );
-    // console.log("My DNAs:", JSON.stringify( await DevHub.myDNAs(), null, 4 ) );
 
 
     const store					= new Vuex.Store({
@@ -80,27 +96,29 @@ function load_file ( file ) {
 
 	    // DNAs
 	    list_my_dnas: async function ( ctx ) {
-		console.log("Fetching my DNAs");
 		return await DevHub.myDNAs();
 	    },
 	    create_dna: async function ( ctx, input ) {
-		console.log("Create DNA:", input );
 		return await DevHub.createDNA( input );
 	    },
 	    get_dna: async function ( ctx, { hash } ) {
-		console.log("Fetching DNA:", hash );
 		return await DevHub.getDNA( hash );
 	    },
+	    update_dna: async function ( ctx, [hash, input] ) {
+		return await DevHub.updateDNA( hash, input );
+	    },
+
+	    // DNA Versions
 	    create_dna_version: async function ( ctx, input ) {
-		console.log("Create DNA Version:", input );
 		return await DevHub.createDNAVersion( input );
 	    },
 	    get_dna_version: async function ( ctx, { hash } ) {
-		console.log("Fetching DNA Version:", hash );
 		return await DevHub.getDNAVersion( hash );
 	    },
+	    update_dna_version: async function ( ctx, [hash, input] ) {
+		return await DevHub.updateDNAVersion( hash, input );
+	    },
 	    get_dna_chunk: async function ( ctx, { hash } ) {
-		console.log("Fetching DNA Chunk:", hash );
 		return await DevHub.getDNAChunk( hash );
 	    },
 	},
@@ -134,7 +152,7 @@ function load_file ( file ) {
 		    this.dnas			= Object.values( dnas ).map(dna => {
 			dna.hash		= b64( dna.id );
 			return dna;
-		    });
+		    }).sort( object_sorter("published_at") ).reverse();
 		},
 		...mapActions([
 		]),
@@ -167,8 +185,19 @@ function load_file ( file ) {
 	    "methods": {
 		async save () {
 		    console.log("Creating DNA with input:", this.dna );
-		    let dna			= await this.$store.dispatch("create_dna", this.dna );
-		    console.log("Created DNA:", dna );
+		    try {
+			let dna			= await this.$store.dispatch("create_dna", this.dna );
+			console.log("Created DNA:", dna );
+
+			notify.success("Created new DNA...");
+			this.$router.push("/");
+		    } catch (err) {
+			console.error( err );
+			notify.open({
+			    type: "error",
+			    message: `Failed to create DNA - ${err.toString()}`,
+			});
+		    }
 		}
 	    },
 	},
@@ -202,7 +231,7 @@ function load_file ( file ) {
 		    this.versions		= Object.values( await dna_obj.versions() ).map(dv => {
 			dv.hash			= b64( dv.id );
 			return dv;
-		    });
+		    }).sort( object_sorter("version") ).reverse();
 		    this.next_version		= Object.values(this.versions).reduce((acc, dv) => dv.version > acc ? dv.version : acc, 0) + 1;
 		},
 	    },
@@ -237,8 +266,22 @@ function load_file ( file ) {
 		    let dna_obj			= await this.$store.dispatch("get_dna", { "hash": this.id });
 		    this.dna			= dna_obj.toJSON();
 		},
-		save () {
-		    console.log("Saving...");
+		async save () {
+		    console.log("Updating DNA:", this.id );
+		    console.log("Updating DNA with input:", this.dna );
+		    try {
+			let dna			= await this.$store.dispatch("update_dna", [this.id, this.dna] );
+			console.log("Updated DNA:", dna );
+
+			notify.success("Updated DNA...");
+			this.$router.push("/dna/" + encodeURIComponent(this.id) );
+		    } catch (err) {
+			console.error( err );
+			notify.open({
+			    type: "error",
+			    message: `Failed to update DNA - ${err.toString()}`,
+			});
+		    }
 		}
 	    },
 	},
@@ -276,12 +319,23 @@ function load_file ( file ) {
 		    this.dna_version.bytes	= await load_file( files[0] );
 		},
 		async save () {
-		    console.log("Saving...");
-		    console.log( this.dna_version );
-		    this.dna_version.published_at = (new Date( this.published_date )).getTime();
+		    console.log("Creating DNA Version with input:", this.dna_version );
+		    let input			= this.dna_version;
+		    try {
+			input.published_at = (new Date( this.published_date + "T00:00:00.000Z" )).getTime();
 
-		    let dna_version		= await this.$store.dispatch("create_dna_version", this.dna_version );
-		    console.log( dna_version );
+			let dna_version		= await this.$store.dispatch("create_dna_version", input );
+			console.log("Created DNA Version:", dna_version );
+
+			notify.success("Created new DNA Version...");
+			this.$router.push("/dna/" + encodeURIComponent(this.id) );
+		    } catch (err) {
+			console.error( err );
+			notify.open({
+			    type: "error",
+			    message: `Failed to create DNA Version - ${err.toString()}`,
+			});
+		    }
 		}
 	    },
 	},
@@ -314,17 +368,14 @@ function load_file ( file ) {
 		    console.log( this.dna_version );
 		},
 		async download () {
-		    let bytes			= new Uint8Array( this.dna_version.file_size );
-		    let index			= 0;
+		    let chunks			= [];
 		    for ( let chunk_hash of this.dna_version.chunk_addresses ) {
 			let $chunk		= await this.$store.dispatch("get_dna_chunk", { "hash": chunk_hash });
-			let chunk		= $chunk.toJSON();
-			bytes.set( chunk.bytes, index );
-			index		       += chunk.bytes.length;
+			chunks.push( $chunk.toJSON().bytes );
 		    }
-		    console.log( bytes );
+		    console.log( chunks );
 
-		    let blob			= new Blob([ bytes ]);
+		    let blob			= new Blob(chunks);
 		    let link			= document.createElement("a");
 		    link.href			= URL.createObjectURL(blob);
 
@@ -366,19 +417,34 @@ function load_file ( file ) {
 		    this.dna_version		= version_obj.toJSON();
 		    this.published_date		= (new Date(this.dna_version.published_at)).toISOString().slice(0,10);
 		},
-		save () {
-		    console.log("Saving...");
+		async save () {
+		    console.log("Updating DNA Version:", this.id );
+		    let input			= this.dna_version;
+		    console.log("Updating DNA Version with input:", input );
+		    try {
+			input.published_at = (new Date( this.published_date + "T00:00:00.000Z" )).getTime();
+			let dna			= await this.$store.dispatch("update_dna_version", [this.id, input] );
+			console.log("Updated DNA Version:", dna );
+
+			notify.success("Updated DNA Version...");
+			this.$router.push("/dna/version/" + encodeURIComponent(this.id) );
+		    } catch (err) {
+			console.error( err );
+			notify.open({
+			    type: "error",
+			    message: `Failed to update DNA Version - ${err.toString()}`,
+			});
+		    }
 		}
 	    },
 	},
     };
 
-    console.log( routeComponents );
     const routes				= [];
     for (let [ path, component ] of Object.entries( routeComponents )) {
 	routes.push({ path, component });
     }
-    console.log( routes );
+    console.log("Vue.js routers config:", routes );
 
     const router				= new VueRouter({
 	mode: "history",

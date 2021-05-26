@@ -11,14 +11,14 @@
 			<h3>{{ dna.name }}</h3>
 		    </div>
 		    <div class="col-4 text-right">
-			<span class="badge badge-secondary">Created on {{ dna.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
+			<span class="badge bg-secondary">Created on {{ dna.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
 		    </div>
 		</div>
 
 		<p>{{ dna.description }}</p>
 	    </div>
 	    <div class="col-auto d-flex align-items-center">
-		<router-link :to="'/dna/' + encodeURIComponent(dna.hash)" class="btn btn-primary">
+		<router-link :to="'/dna/' + encodeURIComponent(dna.hash)" class="btn btn-light">
 		    More info
 		</router-link>
 	    </div>
