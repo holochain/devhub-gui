@@ -5,20 +5,23 @@
 	<div v-for="dna in dnas"
 	     class="row border-top py-2"
 	     :entry-hash="dna.hash">
+	    <div class="col-auto d-flex align-items-center">
+		<img :src="dataImage( dna.icon )">
+	    </div>
 	    <div class="col pt-2">
 		<div class="row">
 		    <div class="col-8">
 			<h3>{{ dna.name }}</h3>
 		    </div>
 		    <div class="col-4 text-right">
-			<span class="badge bg-secondary">Created on {{ dna.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
+			<span class="badge bg-secondary">Created on {{ dna.published_at | time('full') }}</span>
 		    </div>
 		</div>
 
 		<p>{{ dna.description }}</p>
 	    </div>
 	    <div class="col-auto d-flex align-items-center">
-		<router-link :to="'/dna/' + encodeURIComponent(dna.hash)" class="btn btn-light">
+		<router-link :to="'/dna/' + dna.$id" class="btn btn-light">
 		    More info
 		</router-link>
 	    </div>

@@ -18,6 +18,14 @@ const AGENT_HASH			= b64( AGENT_B64 );
 const DNAREPO_HASH			= b64( DNAREPO_B64 );
 
 
+function random_profile () {
+    return {
+	"name": faker.name.findName(),
+	"email": faker.internet.exampleEmail(),
+	"website": faker.internet.url(),
+    };
+}
+
 function random_dna () {
     return {
 	"name": faker.commerce.productName(),
@@ -52,18 +60,26 @@ function random_dna_bytes () {
     const DevHub			= await ORM.connect( APP_PORT, AGENT_HASH, {
 	"dnas": DNAREPO_HASH,
     });
-
     try {
+	await DevHub.ready;
+
+	// Show existing data
 	let my_dnas			= await DevHub.myDNAs( true );
-	console.log("My DNAs:", JSON.stringify(my_dnas,null,4) );
 	for (let hash in my_dnas) {
-	    let versions		= await my_dnas[hash].versions();
-	    console.log(`Versions for DNA (${hash})`, JSON.stringify(versions,null,4) );
+	    let $dna			= my_dnas[hash];
+	    console.log("My DNA:", $dna.toJSON() );
+	    let versions		= await $dna.versions();
+	    console.log(`Versions for DNA (${hash})`, versions );
 	}
+
+
+	// Create random data
+	let profile			= await DevHub.setProfile( random_profile() );
+	console.log("My profile:", profile.toJSON() );
 
 	for (let i=0; i < (faker.datatype.number(10) + 10); i++) {
 	    let dna			= await DevHub.createDNA( random_dna() );
-	    console.log("New DNA:", JSON.stringify(dna,null,4) );
+	    console.log("New DNA:", dna.toJSON() );
 
 	    for (let n=0; n < faker.datatype.number(10); n++) {
 		let dna_version		= await dna.createVersion( random_dna_version( dna.hash() ));

@@ -1,45 +1,55 @@
 
+const Identicon				= require('identicon.js');
 const { AppWebsocket }			= require('@holochain/conductor-api');
+const { Schema }			= require('@holochain/devhub-entities');
+const { Translator }			= require('@whi/essence');
+const { HoloHash }			= require('@whi/holo-hash');
+const { xor_digest }			= require('@whi/xor-digest');
 
 
-function EntryHash (hash) {
-    if ( hash === undefined || hash === null )
-	throw new Error(`EntryHash input is missing: ${hash}`);
+function identicon_jpg_bytes ( input ) {
+    if ( input === "string" )
+	throw new Error(`Creating identicon JPG bytes expects a byte array, not '${typeof input}'`);
 
-    if ( typeof hash === "string" )
-	return Buffer.from(hash, "base64");
-    else if ( hash instanceof Uint8Array )
-	return hash;
-    else
-	throw new Error(`Unknown hash input: ${typeof hash} (${hash.constructor.name})`);
+    let unique_input			= xor_digest( input, 8 );
+    let idcon				= new Identicon( Buffer.from(unique_input).toString("hex") );
+
+    return Buffer.from( String(idcon), "base64" );
 }
+
+const Interpreter			= new Translator(["AppError", "UtilsError", "DNAError", "UserError"], {
+    "rm_stack_lines": 2,
+});
 
 class ORM {
     constructor( conductor, agent, dna_hashes ) {
 	this.conductor			= conductor;
 	this.agent			= agent;
+	this.profile			= null;
 	this.cells			= {
 	    "dnas":	[ dna_hashes.dnas, agent ],
 	};
+	this.ready			= this.fetchProfile();
     }
 
     async callZome (dna_nick, zome, fname, args = null ) {
 	const provenance		= this.agent;
 	console.log(`DEBUG callZome '${dna_nick}->${zome}->${fname}':`, args );
+	let pack;
 	try {
-	    let result			= await this.conductor.callZome({
+	    let response		= await this.conductor.callZome({
 		"cap":		null,
 		"provenance":	provenance,
-		"cell_id":		this.cells[dna_nick],
+		"cell_id":	this.cells[dna_nick],
 		"zome_name":	zome,
-		"fn_name":		fname,
-		"payload":		args,
+		"fn_name":	fname,
+		"payload":	args,
 	    });
-	    console.log("DEBUG callZome result:", result );
+	    console.log("DEBUG callZome result:", response );
 
-	    return result;
+	    pack			= Interpreter.parse( response );
 	} catch (err) {
-	    console.error( err );
+	    console.error("Uncaptured Call Zome Function Error:", err );
 	    if ( err instanceof Error ) // Native error
 		throw err;
 	    else if ( err.type === "error" ) // Holochain error
@@ -47,26 +57,155 @@ class ORM {
 	    else
 		throw new Error(JSON.stringify(err));
 	}
+
+	let payload			= pack.value();
+
+	if ( payload instanceof Error )
+	    throw payload;
+
+	let composition			= pack.metadata('composition');
+	let deconstructed		= Schema.deconstruct( composition, payload );
+	console.log("DEBUG callZome deconstructed:", deconstructed );
+
+	return deconstructed;
+    }
+
+    async fetchProfile () {
+	await this.getProfile();
+    }
+
+    async getWhoAmI () {
+	let agent_info			= await this.callZome("dnas", "storage", "whoami");
+	return {
+	    "initial": new HoloHash(agent_info.agent_initial_pubkey),
+	    "latest": new HoloHash(agent_info.agent_latest_pubkey),
+	};
+    }
+
+    async getProfile ( agent_pubkey = null ) {
+	console.log("Getting profile for:", agent_pubkey );
+	if ( agent_pubkey !== null )
+	    agent_pubkey		= (new HoloHash(agent_pubkey, false)).toType("AgentPubKey");
+
+	let profile;
+	try {
+	    this.profile		= await this.callZome("dnas", "storage", "get_profile", {
+		"agent": agent_pubkey,
+	    });
+	} catch (err) {
+	    if ( !err.message.includes("Profile has not been created") )
+		throw err;
+
+	    if ( !agent_pubkey )
+		agent_pubkey		= (await this.getWhoAmI()).initial;
+
+	    this.profile		= false;
+	    profile			= {
+		"id": agent_pubkey,
+		"email": "",
+		"name": "" + agent_pubkey,
+		"website": "",
+		"avatar_image": identicon_jpg_bytes( agent_pubkey.bytes() ),
+		"avatar_image_b64": null,
+	    };
+	}
+
+	// profile.agent			= agent_pubkey;
+
+	return profile;
+    }
+
+    async setProfile ( input ) {
+	if ( input.avatar_image === undefined ) {
+	    input.avatar_image		= identicon_jpg_bytes( this.agent );
+	}
+
+	if ( this.profile === false ) {
+	    let profile			= await this.callZome("dnas", "storage", "create_profile", {
+		"name": input.name,
+		"email": input.email,
+		"website": input.website,
+		"avatar_image": input.avatar_image,
+	    });
+	    this.profile		= profile;
+	}
+	else if ( this.profile === null ) {
+	    throw new Error(`Too early to set profile because initial fetch is not complete.`);
+	}
+	else {
+	    let profile			= await this.callZome("dnas", "storage", "update_profile", {
+		"addr": this.profile.$addr,
+		"properties": {
+		    "name": input.name,
+		    "email": input.email,
+		    "website": input.website,
+		    "avatar_image": input.avatar_image,
+		},
+	    });
+	    this.profile		= profile;
+	}
+
+	return this.profile;
+    }
+
+    async getFollowing () {
+	let developers			= await this.callZome("dnas", "storage", "get_following");
+
+	return developers.map((link) => {
+	    let $entry_hash		= new HoloHash(link.target);
+	    return Object.assign(link, {
+		"id": $entry_hash,
+		"hash": String( $entry_hash ),
+	    })
+	});
+    }
+
+    async followAgent ( agent_pubkey ) {
+	agent_pubkey			= new HoloHash(agent_pubkey, false);
+	let hash			= await this.callZome("dnas", "storage", "follow_developer", {
+	    "agent": agent_pubkey,
+	});
+	return hash;
     }
 
     async myDNAs ( wrapped = false ) {
 	let dnas			= await this.callZome("dnas", "storage", "get_my_dnas" );
+	return dnas;
+    }
 
-	return dnas.reduce((result, [hash,dna]) => {
-	    let key			= Buffer.from(hash).toString("base64");
-	    result[key]			= wrapped === true ? new Dna( this, dna, hash ) : dna;
+    async listDNAs ( agent_pubkey, wrapped = false ) {
+	agent_pubkey			= new HoloHash(agent_pubkey, false);
+	let dnas			= await this.callZome("dnas", "storage", "get_dnas", {
+	    "agent": agent_pubkey,
+	});
+
+	console.log("DNAs list:", dnas );
+	let dna_dict = dnas.reduce( (result, dna) => {
+	    dna.icon_b64		= Buffer.from( dna.icon ).toString("base64");
+
+	    let key			= String(dna.$id);
+	    console.log("Reducing to dict:", key, dna );
+
+	    result[key]			= dna;
 	    return result;
 	}, {});
+
+	console.log("DNA dictionary:", dna_dict );
+	return dna_dict;
     }
 
     async createDNA ( input ) {
-	let [dna_hash, dna]		= await this.callZome("dnas", "storage", "create_dna", input );
-	return new Dna( this, dna, dna_hash );
+	if ( input.icon === undefined ) {
+	    let icon_input		= Buffer.concat([ this.agent, Buffer.from(input.name) ]);
+	    input.icon			= identicon_jpg_bytes( icon_input );
+	}
+	let dna				= await this.callZome("dnas", "storage", "create_dna", input );
+	return new Dna( this, dna, dna.$id );
     }
 
     async updateDNA ( hash, input ) {
-	hash				= EntryHash(hash);
-	let [updated_dna_hash, dna]	= await this.callZome("dnas", "storage", "update_dna", {
+	hash				= new HoloHash(hash, false);
+	let dna				= await this.callZome("dnas", "storage", "update_dna", {
 	    "addr": hash,
 	    "properties": input,
 	});
@@ -74,8 +213,8 @@ class ORM {
     }
 
     async deprecateDNA ( hash, reason ) {
-	hash				= EntryHash(hash);
-	let [deprecated_dna_hash, dna]	= await this.callZome("dnas", "storage", "deprecate_dna", {
+	hash				= new HoloHash(hash, false);
+	let dna				= await this.callZome("dnas", "storage", "deprecate_dna", {
 	    "addr": hash,
 	    "message": reason,
 	});
@@ -83,9 +222,9 @@ class ORM {
     }
 
     async getDNA ( hash ) {
-	hash				= EntryHash(hash);
+	hash				= new HoloHash(hash, false);
 	let dna_info			= await this.callZome("dnas", "storage", "get_dna", {
-	    "addr": hash,
+	    "id": hash,
 	});
 	return new Dna( this, dna_info, hash );
     }
@@ -97,8 +236,8 @@ class ORM {
     }
 
     async updateDNAVersion ( hash, input ) {
-	hash				= EntryHash(hash);
-	let [updated_dna_hash, dna]	= await this.callZome("dnas", "storage", "update_dna_version", {
+	hash				= new HoloHash(hash, false);
+	let dna				= await this.callZome("dnas", "storage", "update_dna_version", {
 	    "addr": hash,
 	    "properties": input,
 	});
@@ -106,23 +245,23 @@ class ORM {
     }
 
     async deleteDNAVersion ( hash ) {
-	hash				= EntryHash(hash);
-	let [deleted_dna_hash, dna_version] = await this.callZome("dnas", "storage", "delete_dna_version", {
+	hash				= new HoloHash(hash, false);
+	let dna_version			= await this.callZome("dnas", "storage", "delete_dna_version", {
 	    "addr": hash,
 	});
 	return new DnaVersion( this, dna_version, hash );
     }
 
     async getDNAVersion ( hash ) {
-	hash				= EntryHash(hash);
+	hash				= new HoloHash(hash, false);
 	let version_info		= await this.callZome("dnas", "storage", "get_dna_version", {
-	    "addr": hash,
+	    "id": hash,
 	});
 	return new DnaVersion( this, version_info, hash );
     }
 
     async getDNAChunk ( hash ) {
-	hash				= EntryHash(hash);
+	hash				= new HoloHash(hash, false);
 	let chunk			= await this.callZome("dnas", "storage", "get_dna_chunk", {
 	    "addr": hash,
 	});
@@ -156,9 +295,21 @@ class Entry {
 }
 
 
+class Profile extends Entry {
+    constructor ( client, profile_info, entry_hash ) {
+	super( client, profile_info, entry_hash );
+
+	this.data.hash			= String(new HoloHash( profile_info.id ));
+	this.data.avatar_image_b64	= Buffer.from( this.data.avatar_image ).toString("base64");
+    }
+}
+
+
 class Dna extends Entry {
     constructor ( client, dna_info, entry_hash ) {
 	super( client, dna_info, entry_hash );
+
+	this.data.icon_b64		= Buffer.from( this.data.icon ).toString("base64");
     }
 
     async versions ( wrapped = false ) {
@@ -168,11 +319,6 @@ class Dna extends Entry {
 	    "for_dna": dna_hash,
 	});
 
-	return versions.reduce((result, [hash,dna_version]) => {
-	    let key			= Buffer.from(hash).toString("base64");
-	    result[key]			= wrapped === true ? new DnaVersion( this.orm, dna_version, hash ) : dna_version;
-	    return result;
-	}, {});
 	return versions;
     }
 
@@ -183,7 +329,7 @@ class Dna extends Entry {
 	let chunk_hashes		= [];
 	let chunk_count			= Math.ceil( dna_bytes.length / chunk_size );
 	for (let i=0; i < chunk_count; i++) {
-	    let [chunk_hash, chunk]	= await this.orm.callZome("dnas", "storage", "create_dna_chunk", {
+	    let chunk			= await this.orm.callZome("dnas", "storage", "create_dna_chunk", {
 		"sequence": {
 		    "position": i+1,
 		    "length": chunk_count,
@@ -192,11 +338,11 @@ class Dna extends Entry {
 	    });
 	    console.log("Chunk %s/%s hash", i+1, chunk_count );
 
-	    chunk_hashes.push( chunk_hash );
+	    chunk_hashes.push( chunk.$addr );
 	}
 	console.log("Final chunks:", chunk_hashes );
 
-	let [version_hash, version]	= await this.orm.callZome("dnas", "storage", "create_dna_version", {
+	let version			= await this.orm.callZome("dnas", "storage", "create_dna_version", {
 	    "for_dna":		this.hash(),
 	    "published_at":	input.published_at,
 	    "version":		input.version,
@@ -204,9 +350,9 @@ class Dna extends Entry {
 	    "file_size":	dna_bytes.length,
 	    "chunk_addresses":	chunk_hashes,
 	});
-	console.log("New DNA version:", version_hash );
+	console.log("New DNA version:", version.$id );
 
-	return new DnaVersion( this.orm, version, version_hash );
+	return new DnaVersion( this.orm, version, version.$id );
     }
 }
 

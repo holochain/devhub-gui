@@ -1,8 +1,10 @@
-dnas/dnarepo.dna
+dnas/*.dna
 *.log
 tests/AGENT
-tests/DNAREPO_HASH
+tests/AGENT_*
+tests/*_HASH
 tests/conductor-storage
 tests/lair
+holochain
 dist
 node_modules

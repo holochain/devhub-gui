@@ -3,9 +3,16 @@
 	{{ dna.deprecation.message }}
     </div>
 
-    <h1>{{ dna.name }}</h1>
+    <div class="row">
+	<div class="col-auto d-flex align-items-center">
+	    <img :src="'data:image/png;base64,' + dna.icon_b64">
+	</div>
+	<div class="col">
+	    <h1>{{ dna.name }}</h1>
 
-    <p>{{ dna.description }}</p>
+	    <p>{{ dna.description }}</p>
+	</div>
+    </div>
 
     <div class="row my-5">
 	<div class="col">
@@ -16,10 +23,10 @@
 		<div class="card-body">
 		    <dl class="row">
 			<dt class="col-sm-3">Created</dt>
-			<dd class="col-sm-9">{{ dna.published_at | moment("dddd, MMMM D (YYYY)") }}</dd>
+			<dd class="col-sm-9">{{ dna.published_at | time('full') }}</dd>
 
 			<dt class="col-sm-3">Last updated</dt>
-			<dd class="col-sm-9">??</dd>
+			<dd class="col-sm-9">{{ dna.last_updated | time('full') }}</dd>
 		    </dl>
 		</div>
 	    </div>
@@ -59,13 +66,13 @@
 		<strong>v{{ version.version }}</strong>
 	    </div>
 	    <div class="col">
-		<span class="badge bg-secondary">Created on {{ version.published_at | moment("dddd, MMMM D (YYYY)") }}</span>
+		<span class="badge bg-secondary">Created on {{ version.published_at | time('date-weekday') }}</span>
 	    </div>
 	    <div class="col-3 text-end">
 		<p>{{ version.file_size | number }} bytes</p>
 	    </div>
 	    <div class="col-3 d-flex align-items-center justify-content-end">
-		<router-link :to="'/dna/version/' + encodeURIComponent(version.hash)" class="btn btn-light">
+		<router-link :to="'/dna/version/' + version.$id" class="btn btn-light">
 		    More info
 		</router-link>
 	    </div>

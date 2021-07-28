@@ -3,7 +3,10 @@ const webpack			= require('webpack');
 const fs			= require('fs');
 
 const Copy			= require('copy-webpack-plugin');
+const AGENT_HASH		= fs.readFileSync("./tests/AGENT", "utf8");
 const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH", "utf8");
+const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH", "utf8");
+const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH", "utf8");
 
 module.exports = {
     target: 'web',
@@ -48,7 +51,10 @@ module.exports = {
 	}),
 	new webpack.DefinePlugin({
 	    'process.env': {
+		'AGENT_HASH': JSON.stringify( AGENT_HASH ),
 		'DNAREPO_HASH': JSON.stringify( DNAREPO_HASH ),
+		'HAPPS_HASH': JSON.stringify( HAPPS_HASH ),
+		'WEBASSETS_HASH': JSON.stringify( WEBASSETS_HASH ),
 	    }
 	}),
     ],

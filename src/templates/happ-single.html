@@ -1,0 +1,92 @@
+<div v-if="happ" id="happ-page" class="px-4 pt-3 pb-5">
+    <div v-if="happ.deprecation" class="alert alert-danger" role="alert">
+	{{ happ.deprecation.message }}
+    </div>
+
+    <div class="row">
+	<div class="col">
+	    <h1>{{ happ.title }}</h1>
+	    <h3>{{ happ.subtitle }}</h3>
+
+	    <p>{{ happ.description }}</p>
+	</div>
+    </div>
+
+    <div class="row my-5">
+	<div class="col">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Details
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-3">Created</dt>
+			<dd class="col-sm-9">{{ happ.published_at | time('full') }}</dd>
+
+			<dt class="col-sm-3">Last updated</dt>
+			<dd class="col-sm-9">{{ happ.last_updated | time('full') }}</dd>
+		    </dl>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+    <div class="row">
+	<div class="col">
+	    <h2>hApp Releases</h2>
+	</div>
+	<div class="col text-end">
+	    <router-link :to="'/happ/' + id + '/release/new'" class="btn btn-primary">
+		<i class="bi-plus"></i>
+		Create New Release
+	    </router-link>
+	</div>
+    </div>
+
+    <div v-if="releases.length">
+	<div v-for="release in releases"
+	     class="row border-top py-2"
+	     :entry-hash="release.id">
+	    <div class="col-2">
+		<strong>{{ release.name }}</strong>
+	    </div>
+	    <div class="col">
+		<span class="badge bg-secondary">Created on {{ release.published_at | time('date-weekday') }}</span>
+	    </div>
+	    <div class="col-3 d-flex align-items-center justify-content-end">
+		<router-link :to="'/happ/release/' + release.$id" class="btn btn-light">
+		    More info
+		</router-link>
+	    </div>
+	</div>
+    </div>
+    <div v-else class="card">
+	<div class="card-body text-center">
+	    No releases
+	</div>
+    </div>
+
+    <div class="modal fade" id="happ-deprecation-modal" data-bs-backdrop="static" tabindex="-1">
+	<div class="modal-dialog modal-dialog-centered">
+	    <div class="modal-content">
+		<div class="modal-header">
+		    <h5 class="modal-title" id="staticBackdropLabel">Deprecate hApp</h5>
+		    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+		</div>
+		<div class="modal-body">
+		    <p>Are you sure you want to deprecate the {{ happ.title }} hApp?</p>
+
+		    <div class="mb-3">
+			<label class="form-label">Reason</label>
+			<textarea class="form-control" v-model="deprecation.message" rows="3"></textarea>
+		    </div>
+		</div>
+		<div class="modal-footer">
+		    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+		    <button type="button" class="btn btn-primary" @click="confirmDeprecation()">Confirm</button>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+</div>

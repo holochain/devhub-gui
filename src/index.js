@@ -1,18 +1,23 @@
 
-window.Buffer					= require('buffer/').Buffer;
-const Vue					= require('vue');
-const Vuex					= require('vuex');
-const createLogger				= require('vuex/dist/logger');
+window.Buffer				= require('buffer/').Buffer;
+const Vue				= require('vue');
+const Vuex				= require('vuex');
+const createLogger			= require('vuex/dist/logger');
 const { mapState,
 	mapMutations,
-	mapActions }				= require('vuex');
-const VueRouter					= require('vue-router').default;
-const VueMoment					= require('vue-moment').default;
+	mapActions }			= require('vuex');
+const VueRouter				= require('vue-router').default;
+const VueMoment				= require('vue-moment').default;
 
-const notify					= require('./notify.js');
-const orm					= require('./api_orm.js');
+const notify				= require('./notify.js');
+const { object_sorter,
+	load_file,
+	b64 }				= require('./utils.js');
+const orm				= require('./api_orm.js');
 
+const happs_controllers			= require('./happs_controllers.js');
 
+window.Vue				= Vue;
 Vue.use( Vuex );
 Vue.use( VueRouter );
 Vue.use( VueMoment );
@@ -22,51 +27,42 @@ Vue.filter("number", function (value) {
     return (new Number(value)).toLocaleString();
 });
 
+Vue.filter("base64", function (value) {
+    return Buffer.from( value ).toString("base64");
+});
 
-function b64 ( input ) {
-    return typeof input === "string"
-	? Buffer.from( input, "base64" )
-	: Buffer.from( input ).toString("base64");
-}
+Vue.filter("time", function (value, format) {
+    switch (format) {
+    case 'full':
+	format				= "dddd, MMMM D (YYYY) @ HH:mm:ss";
+	break;
+    case 'date':
+	format				= "MMMM D (YYYY)";
+	break;
+    case 'date-weekday':
+	format				= "dddd, MMMM D (YYYY)";
+	break;
+    }
+    return Vue.filter("moment")(value, format);
+});
 
-function object_sorter (key) {
-    return (a,b) => {
-	if ( a[key] === undefined )
-	    return b[key] === undefined ? 0 : -1;
-	return a[key] < b[key]
-	    ? -1
-	    : a[key] > b[key] ? 1 : 0;
-    };
-}
 
-function load_file ( file ) {
-    console.log( file );
-    return new Promise((f,r) => {
-	let reader			= new FileReader();
+Vue.mixin({
+    "methods": {
+	dataImage ( bytes ) {
+	    return 'data:image/png;base64,' + Vue.filter("base64")( bytes );
+	},
+    },
+});
 
-	reader.readAsArrayBuffer( file );
-	reader.onerror			= function (err) {
-	    console.log("error:", err );
 
-	    r( err );
-	};
-	reader.onload			= function (evt) {
-	    console.log("load:", evt );
-	    let result			= new Uint8Array( evt.target.result );
-	    console.log( result );
-
-	    f( result );
-	};
-	reader.onprogress		= function (p) {
-	    console.log("progress:", p );
-	};
-    });
-}
 
 
 (async function(global) {
     const PORT					= 44001;
-    const AGENT_HASH				= b64("hCAkFic1hM2iG44c17eTdrp5mCQiys45qgGA8n3LS0UrcaslwwjN");
+    const AGENT_HASH				= b64( process.env.AGENT_HASH );
+    // const PORT					= 44002;
+    // const AGENT_HASH				= b64("hCAkjuTWIKaNYPGA3VQneAjs3mc7tE89yTEBhMD0WHKXTMm2dPg1");
     const DNAREPO_HASH				= b64( process.env.DNAREPO_HASH );
 
     const DevHub				= await orm.connect( PORT, AGENT_HASH, {
@@ -91,12 +87,32 @@ function load_file ( file ) {
 	},
 	actions: {
 	    get_whoami: async function ( ctx ) {
-		return ctx.commit("set_whoami", "Someone" );
+		return await DevHub.getWhoAmI();
+		// return ctx.commit("set_whoami", "Someone" );
+	    },
+
+	    // Profile
+	    get_profile: async function ( ctx, { agent } = {} ) {
+		return (await DevHub.getProfile( agent ));
+	    },
+	    set_profile: async function ( ctx, input ) {
+		return await DevHub.setProfile( input );
+	    },
+
+	    // Following
+	    get_following: async function ( ctx ) {
+		return await DevHub.getFollowing();
+	    },
+	    follow_agent: async function ( ctx, { agent } ) {
+		return await DevHub.followAgent( agent );
 	    },
 
 	    // DNAs
 	    list_my_dnas: async function ( ctx ) {
 		return await DevHub.myDNAs();
+	    },
+	    list_dnas_for: async function ( ctx, { agent } ) {
+		return await DevHub.listDNAs( agent );
 	    },
 	    create_dna: async function ( ctx, input ) {
 		return await DevHub.createDNA( input );
@@ -130,6 +146,7 @@ function load_file ( file ) {
 	},
     });
 
+    const hctls					= await happs_controllers();
 
     const routeComponents			= {
 	"/": {
@@ -155,15 +172,128 @@ function load_file ( file ) {
 	    "methods": {
 		async refresh () {
 		    let dnas			= await this.$store.dispatch("list_my_dnas");
-		    this.dnas			= Object.values( dnas ).map(dna => {
-			dna.hash		= b64( dna.id );
-			return dna;
-		    }).sort( object_sorter("published_at") ).reverse();
+		    this.dnas			= dnas.sort( object_sorter("published_at") ).reverse();
 		},
 		...mapActions([
 		]),
 	    },
 	},
+	"/profile/edit": {
+	    "template": (await import("./templates/profile-update.html")).default,
+	    "data": function() {
+		return {
+		    "profile": null,
+		};
+	    },
+	    async created () {
+		this.$root.setToolbarControls([{
+		    "path": "/profile",
+		    "title": "Back to Profile",
+		    "icon": "arrow-left-square",
+		}], [{
+		    "path": "/profile",
+		    "title": "Cancel",
+		    "icon": "x-square",
+		}, "-", {
+		    "action": this.save,
+		    "title": "Save",
+		    "icon": "check-square-fill",
+		}]);
+		await this.refresh();
+	    },
+	    "methods": {
+		async refresh () {
+		    this.profile		= await this.$store.dispatch("get_profile");
+		},
+		async save () {
+		    console.log("Updating Profile with input:", this.profile );
+		    try {
+			let profile		= await this.$store.dispatch("set_profile", this.profile );
+			console.log("Updated Profile:", profile );
+
+			notify.success("Updated Profile...");
+			this.$router.push("/profile");
+		    } catch (err) {
+			console.error( err );
+			notify.open({
+			    type: "error",
+			    message: `Failed to update Profile - ${err.toString()}`,
+			});
+		    }
+		}
+	    },
+	},
+	"/profile/:agent?": {
+	    "template": (await import("./templates/profile.html")).default,
+	    "data": function() {
+		return {
+		    "agent": null,
+		    "profile": null,
+		    "following": null,
+		    "follow_new_agent": "hCAk1TZLVbFPHO+FtU33/rMxruedVIQSUPeQljjNYS6pW+qWErwg",
+		};
+	    },
+	    async created () {
+		this.$root.setToolbarControls(null, [{
+		    "path": "/profile/edit",
+		    "title": "Update Profile",
+		    "icon": "pencil-square",
+		}]);
+		await this.refresh();
+	    },
+	    "computed": {
+		...mapState([
+		    "whoami",
+		]),
+	    },
+	    "methods": {
+		async refresh () {
+		    this.agent			= this.$route.params.agent;
+		    this.profile		= await this.$store.dispatch("get_profile", {
+			"agent": this.agent,
+		    });
+
+		    await this.refreshFollowing();
+		},
+		async refreshFollowing () {
+		    if ( !this.agent ) {
+			this.following		= await this.$store.dispatch("get_following");
+
+			for (let [i,link] of Object.entries(this.following) ) {
+			    console.log("Fetching profile for developer:", link.target );
+			    Vue.set(
+				this.following, i,
+				await this.$store.dispatch("get_profile", {
+				    "agent": link.id.toType("AgentPubKey"),
+				})
+			    );
+			}
+		    }
+		    else
+			console.log("Not getting followers because agent is specificied:", this.agent );
+		},
+		async followAgent ( agent ) {
+		    try {
+			await this.$store.dispatch("follow_agent", { agent } );
+			notify.success("Now following " + agent);
+			await this.refreshFollowing();
+		    } catch (err) {
+			console.error( err );
+			notify.open({
+			    type: "error",
+			    message: `Failed to follow Agent - ${err.toString()}`,
+			});
+		    }
+		},
+		...mapActions([
+		]),
+	    },
+	},
+	"/happs": hctls.happs,
+	"/happ/new": hctls.create_happ,
+	"/happ/:entry_hash": hctls.happ_single,
+	"/happ/:entry_hash/release/new": hctls.create_release,
+	"/happ/release/:entry_hash": hctls.release_single,
 	"/dna/new": {
 	    "template": (await import("./templates/dna-create.html")).default,
 	    "data": function() {
@@ -262,11 +392,13 @@ function load_file ( file ) {
 		async refresh () {
 		    let dna_obj			= await this.$store.dispatch("get_dna", { "hash": this.id });
 		    this.dna			= dna_obj.toJSON();
-		    this.versions		= Object.values( await dna_obj.versions() ).map(dv => {
-			dv.hash			= b64( dv.id );
-			return dv;
-		    }).sort( object_sorter("version") ).reverse();
-		    this.next_version		= Object.values(this.versions).reduce((acc, dv) => dv.version > acc ? dv.version : acc, 0) + 1;
+
+		    let versions		= await dna_obj.versions();
+		    this.versions		= versions.sort( object_sorter("version") ).reverse();
+
+		    this.next_version		= this.versions.reduce( (acc, dv) => {
+			return dv.version > acc ? dv.version : acc;
+		    }, 0 ) + 1;
 		},
 		async deprecatePrompt () {
 		    let modal			= this.deprecationModal();
@@ -313,12 +445,17 @@ function load_file ( file ) {
 		async refresh () {
 		    let dna_obj			= await this.$store.dispatch("get_dna", { "hash": this.id });
 		    this.dna			= dna_obj.toJSON();
+
+		    delete this.dna.last_updated; // Forces new timestamp in DNA
 		},
 		async save () {
 		    console.log("Updating DNA:", this.id );
 		    console.log("Updating DNA with input:", this.dna );
 		    try {
-			let dna			= await this.$store.dispatch("update_dna", [this.id, this.dna] );
+			let input		= Object.assign( {}, this.dna );
+			input.published_at	= input.published_at.getTime();
+
+			let dna			= await this.$store.dispatch("update_dna", [this.id, input] );
 			console.log("Updated DNA:", dna );
 
 			notify.success("Updated DNA...");
@@ -402,7 +539,7 @@ function load_file ( file ) {
 		await this.refresh();
 
 		this.$root.setToolbarControls([{
-		    "path": "/dna/" + encodeURIComponent( b64( this.dna_version.for_dna.id ) ),
+		    "path": "/dna/" + this.dna_version.for_dna.$id,
 		    "title": "Back to DNA",
 		    "icon": "arrow-left-square",
 		}], [{
@@ -455,7 +592,7 @@ function load_file ( file ) {
 			modal.hide();
 
 			notify.success("Deleted DNA Version...");
-			this.$router.push("/dna/" + encodeURIComponent( b64( this.dna_version.for_dna.id ) ) );
+			this.$router.push("/dna/" + this.dna_version.for_dna.$id );
 		    } catch (err) {
 			console.error( err );
 			notify.open({
@@ -558,6 +695,14 @@ function load_file ( file ) {
 		    "path": "/",
 		    "title": "Dashboard",
 		    "icon": "house",
+		}, {
+		    "path": "/happs",
+		    "title": "hApps",
+		    "icon": "window",
+		}, {
+		    "path": "/profile",
+		    "title": "Profile",
+		    "icon": "person",
 		}];
 		this.toolbar_bottom_controls	= bottom || [];
 	    },
