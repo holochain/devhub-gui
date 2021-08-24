@@ -1,10 +1,5 @@
-dnas/*.dna
-*.log
-tests/AGENT
-tests/AGENT_*
-tests/*_HASH
-tests/conductor-storage
-tests/lair
-holochain
-dist
 node_modules
+dist
+holochain
+dnas/*.dna
+tests/*_HASH

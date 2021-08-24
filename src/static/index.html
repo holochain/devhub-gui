@@ -1,49 +1,40 @@
 <!doctype html>
-<html>
+<html >
     <head>
 	<title>DevHub</title>
 
+	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
+	<!-- Application -->
+	<script src="/webpacked.app.js" async></script>
+
 	<!-- Responsive mobile-first framework -->
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css"
-	      integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
+	      integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
 
 	<!-- Notification Component -->
 	<link rel="stylesheet" href="/notyf/notyf.min.css">
 
 	<!-- Manual Overrides -->
-	<link rel="stylesheet" href="/css/custom.css">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap">
+
+	<link rel="stylesheet" href="/css/bootstrap-holochain-theme.css">
     </head>
     <body>
 	<div id="app" class="v-cloak row">
 	    <div class="col-auto">
-		<div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 4.5rem; height: 100vh; font-size: 2em;">
+		<div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 12rem; height: 100vh; font-size: 2em;">
 		    <ul class="col nav nav-pills nav-flush flex-column mb-auto text-center">
-			<li class="nav-item" v-for="control in toolbar_top_controls">
-			    <hr v-if="control === '-'">
-			    <router-link v-if="control.path" class="nav-link" exact :to="control.path" :title="control.title">
-				<i :class="iconClass( control.icon )"></i>
-			    </router-link>
-			    <a v-if="control.action" href="#" class="nav-link" exact @click="control.action" :title="control.title">
-				<i :class="iconClass( control.icon )"></i>
-			    </a>
-			</li>
-		    </ul>
-		    <ul class="col-auto nav nav-pills nav-flush flex-column mb-auto text-center">
-			<li class="nav-item" v-for="control in toolbar_bottom_controls">
-			    <hr v-if="control === '-'">
-			    <router-link v-if="control.path" class="nav-link" exact :to="control.path" :title="control.title">
-				<i :class="iconClass( control.icon )"></i>
-			    </router-link>
-			    <a v-if="control.action" href="#" class="nav-link" exact @click="control.action" :title="control.title">
-				<i :class="iconClass( control.icon )"></i>
-			    </a>
+			<li class="my-2">
+			    <a href="/" class="nav-link" title="Home"><img src="/holochain-home.png"></a>
 			</li>
 		    </ul>
 		</div>
@@ -61,11 +52,7 @@
 		integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
 	<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
 		integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js"
-		integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT" crossorigin="anonymous"></script>
-
-	<!-- Application -->
-	<script src="/webpacked.app.js"></script>
-
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"
+		integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
     </body>
 </html>

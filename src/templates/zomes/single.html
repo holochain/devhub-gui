@@ -1,0 +1,113 @@
+<page-view id="single-zome-page">
+    <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.name"></breadcrumbs>
+
+    <hr>
+
+    <deprecation-alert v-if="deprecated" :message="zome.deprecation.message"></deprecation-alert>
+
+    <page-header class="mb-3">
+	<template #title>
+	    <placeholder :when="zome" size="fill">{{ zome.name }}</placeholder>
+	</template>
+
+	<template #title-extras v-if="!deprecated">
+            <router-link :to="'/zomes/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
+		<i class="bi-pencil"></i>
+		Edit
+            </router-link>
+
+            <a @click="modal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
+		<i class="bi-x-lg"></i>
+		Deprecate
+            </a>
+	</template>
+    </page-header>
+
+    <div class="mb-5">
+	<p><placeholder :when="zome" size="p">{{ zome.description }}</placeholder></p>
+    </div>
+
+    <div class="row align-items-stretch">
+	<div class="col-6">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Details
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-4">Created</dt>
+			<dd class="col-sm-8"><placeholder :when="zome">{{ $filters.time( zome.published_at, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-4">Last Updated</dt>
+			<dd class="col-sm-8"><placeholder :when="zome">{{ $filters.time( zome.last_updated, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-4">Authors</dt>
+			<dd class="col-sm-8"><placeholder :when="zome">N/A</placeholder></dd>
+		    </dl>
+		</div>
+	    </div>
+	</div>
+
+	<div class="col-6">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Developed by
+		</div>
+		<div class="card-body">
+		    <strong><placeholder :when="zome">{{ zome.developer.pubkey }}</placeholder></strong><br>
+		    <placeholder :when="zome">
+			<span v-if="zome.developer.website">
+			    <a href="#" target="_blank">website</a>
+			</span>
+			<span v-else>No website</span>
+		    </placeholder>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+    <div class="mt-5">
+	<div class="d-flex mb-4">
+	    <h2 class="fs-4 flex-grow-1">Zome Versions</h2>
+
+            <router-link v-if="zome" :to="'/zomes/' + id + '/versions/update'"
+			 class="btn btn-primary text-nowrap"
+			 :class="{ 'disabled': deprecated }">
+		<i class="bi-plus-lg"></i>
+		Create new version
+            </router-link>
+	</div>
+
+	<list-group :list="versions" no-result-text="No Zome Versions" :loading="loading_versions">
+	    <list-group-item v-for="version in versions">
+		<div class="row align-items-center">
+		    <div class="col pt-3">
+			<h3 class="fs-6"><placeholder>{{ version.name }}</placeholder></h3>
+			<p><placeholder>{{ version.description }}</placeholder></p>
+		    </div>
+		    <div class="col-4">
+			<span class="badge badge-md bg-secondary">Created on {{ $filters.time( version.published_at, "weekday+date" ) }}</span>
+		    </div>
+		    <div class="col-auto">
+			<router-link :to="'/zomes/' + zome.$id + '/versions/' + version.$id" class="btn btn-light">
+			    More info
+			</router-link>
+		    </div>
+		</div>
+	    </list-group-item>
+	</list-group>
+    </div>
+
+    <modal v-if="zome" title="Deprecate Zome" ref="modal"
+	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
+	<form ref="form" :class="{ 'was-validated': validated }">
+	    <div class="mb-4">
+		<p>Are you sure you want to deprecate the <strong>{{ zome.name }}</strong> Zome?</p>
+	    </div>
+	    <input-feedback>
+		<textarea v-model="deprecation.message" placeholder="Reason (optional)" required
+			  class="form-control" rows="4"></textarea>
+	    </input-feedback>
+	</form>
+    </modal>
+</page-view>

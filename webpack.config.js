@@ -3,23 +3,26 @@ const webpack			= require('webpack');
 const fs			= require('fs');
 
 const Copy			= require('copy-webpack-plugin');
-const AGENT_HASH		= fs.readFileSync("./tests/AGENT", "utf8");
-const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH", "utf8");
-const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH", "utf8");
-const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH", "utf8");
+
+const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH",	"utf8").trim();
+const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH",		"utf8").trim();
+const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH",	"utf8").trim();
+const WEBPACK_MODE		= "development"; // production | development
+
 
 module.exports = {
-    target: 'web',
-    mode: 'development', // production | development
-    entry: [ '@babel/polyfill', './src/index.js' ],
+    target: "web",
+    mode: WEBPACK_MODE,
+    entry: [ "./src/index.js" ],
     resolve: {
 	alias: {
-	    vue: 'vue/dist/vue.js'
+	    "vue":		"vue/dist/vue.esm-bundler.js",
+	    "vue-router":	"vue-router/dist/vue-router.esm-bundler.js",
 	},
     },
     output: {
-	publicPath: '/',
-	filename: 'webpacked.app.js'
+	publicPath: "/",
+	filename: "webpacked.app.js"
     },
     module: {
 	rules: [
@@ -27,9 +30,17 @@ module.exports = {
 		test: /\.m?js$/,
 		exclude: /(node_modules|bower_components)/,
 		use: {
-		    loader: 'babel-loader',
+		    loader: "babel-loader",
 		    options: {
-			presets: ['@babel/preset-env']
+			presets: ["@babel/preset-env"],
+			plugins: [
+			    ["@babel/plugin-transform-runtime", {
+				"regenerator": true,
+			    }],
+			    ["@babel/plugin-transform-modules-commonjs", {
+				"allowTopLevelThis": true,
+			    }],
+			],
 		    }
 		}
 	    },
@@ -37,7 +48,7 @@ module.exports = {
 		test: /\.html$/,
 		exclude: /node_modules/,
 		use: {
-		    loader: 'html-loader'
+		    loader: "html-loader"
 		}
 	    }
 	],
@@ -45,21 +56,29 @@ module.exports = {
     plugins: [
 	new Copy({
 	    patterns: [
-		"./src/static/",
-		{ from: "./node_modules/notyf/notyf.min.css", to: "notyf" },
+		{
+		    from: "./src/static/",
+		    globOptions: {
+			gitignore: true,
+			ignore: ["**/*~"],
+		    },
+		},
 	    ],
 	}),
 	new webpack.DefinePlugin({
-	    'process.env': {
-		'AGENT_HASH': JSON.stringify( AGENT_HASH ),
-		'DNAREPO_HASH': JSON.stringify( DNAREPO_HASH ),
-		'HAPPS_HASH': JSON.stringify( HAPPS_HASH ),
-		'WEBASSETS_HASH': JSON.stringify( WEBASSETS_HASH ),
-	    }
+	    // Vue says to do this - https://github.com/vuejs/vue-next/tree/master/packages/vue#bundler-build-feature-flags
+	    "WEBPACK_MODE":		JSON.stringify( WEBPACK_MODE ),
+	    "__VUE_OPTIONS_API__":	JSON.stringify( true ),
+	    "__VUE_PROD_DEVTOOLS__":	JSON.stringify( false ),
+	    "process.env": {
+		"DNAREPO_HASH":		JSON.stringify( DNAREPO_HASH ),
+		"HAPPS_HASH":		JSON.stringify( HAPPS_HASH ),
+		"WEBASSETS_HASH":	JSON.stringify( WEBASSETS_HASH ),
+	    },
 	}),
     ],
     stats: {
 	colors: true
     },
-    devtool: 'source-map',
+    devtool: "source-map",
 };
