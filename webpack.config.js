@@ -15,6 +15,7 @@ module.exports = {
     mode: WEBPACK_MODE,
     entry: [ "./src/index.js" ],
     resolve: {
+	// mainFields: ["main"],
 	alias: {
 	    "vue":		"vue/dist/vue.esm-bundler.js",
 	    "vue-router":	"vue-router/dist/vue-router.esm-bundler.js",
@@ -48,9 +49,12 @@ module.exports = {
 		test: /\.html$/,
 		exclude: /node_modules/,
 		use: {
-		    loader: "html-loader"
+		    loader: "html-loader",
+		    options: {
+			sources: false, // prevents 'not found' errors for HTML references
+		    },
 		}
-	    }
+	    },
 	],
     },
     plugins: [
@@ -78,7 +82,8 @@ module.exports = {
 	}),
     ],
     stats: {
-	colors: true
+	colors: true,
+	errorDetails: true,
     },
     devtool: "source-map",
 };

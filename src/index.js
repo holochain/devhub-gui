@@ -15,7 +15,8 @@ log.level.trace && logging();
 const { sort_by_object_key }		= require('./common.js');
 const filters				= require('./filters.js');
 const components			= require('./components.js');
-const zomes_init			= require('./zomes_controllers.js');
+const zomes_init			= require('./zome_controllers.js');
+const zome_versions_init		= require('./zome_version_controllers.js');
 
 
 const AGENT_HASH			= window.localStorage.getItem("AGENT_PUBKEY");
@@ -56,14 +57,18 @@ window.Vue				= Vue;
 	"simulate_latency": (WEBPACK_MODE === "development"),
     });
 
-    const zomes_controllers		= await zomes_init( client );
+    const zome_controllers		= await zomes_init( client );
+    const zome_version_controllers	= await zome_versions_init( client );
 
     const route_components		= [
-	[ "/",					zomes_controllers.zomes,	"Dashboard" ],
-	[ "/zomes",				zomes_controllers.zomes,	"Zomes" ],
-	[ "/zomes/new",				zomes_controllers.create_zome,	"Add Zome" ],
-	[ "/zomes/:id",				zomes_controllers.single_zome,	"Zome Info" ],
-	[ "/zomes/:id/update",			zomes_controllers.update_zome,	"Edit Zome" ],
+	[ "/",					zome_controllers.list,			"Dashboard" ],
+	[ "/zomes",				zome_controllers.list,			"Zomes" ],
+	[ "/zomes/new",				zome_controllers.create,		"Add Zome" ],
+	[ "/zomes/:id",				zome_controllers.single,		"Zome Info" ],
+	[ "/zomes/:id/update",			zome_controllers.update,		"Edit Zome" ],
+	[ "/zomes/:zome/versions/new",		zome_version_controllers.create,	"Add Zome Version" ],
+	[ "/zomes/:zome/versions/:id",		zome_version_controllers.single,	"Zome Version Info" ],
+	[ "/zomes/:zome/versions/:id/update",	zome_version_controllers.update,	"Edit Version" ],
     ];
 
     const breadcrumb_mapping		= {};
@@ -95,14 +100,41 @@ window.Vue				= Vue;
     const app				= Vue.createApp({
 	data () {
 	    return {
+		"status_view_html": null,
 	    };
 	},
-	"methods": {
+	created () {
+	    this.$router.afterEach( (to, from, failure) => {
+		log.normal("Navigated to:", to, from, failure );
+
+		if ( to.matched.length === 0 )
+		    return this.showStatusView( 404 );
+
+		this.showStatusView( false );
+	    });
 	},
     });
 
     app.mixin({
+	data () {
+	    return {
+		"_debounce_timers": {},
+	    };
+	},
 	"methods": {
+	    async showStatusView ( status ) {
+		if ( !status ) {
+		    this.$root.status_view_html = null;
+		    return;
+		}
+
+		try {
+		    this.$root.status_view_html = (await import(`./templates/${status}.html`)).default;
+		} catch (err) {
+		    log.error("%s", err.message, err );
+		    this.$root.status_view_html = (await import(`./templates/500.html`)).default;
+		}
+	    },
 	    dataImage ( bytes ) {
 		return 'data:image/png;base64,' + "TODO: make base64 thing";
 	    },
@@ -127,6 +159,58 @@ window.Vue				= Vue;
 		});
 
 		dest[fkey]		= src[fkey];
+	    },
+
+	    debounce ( callback, delay = 1_000, id ) {
+		if ( id === undefined )
+		    id			= String(callback);
+
+		const toid		= this._debounce_timers[id];
+
+		if ( toid ) {
+		    clearTimeout( toid );
+		    delete this._debounce_timers[id];
+		}
+
+		this._debounce_timers[id] = setTimeout( () => {
+		    callback.bind(this);
+		    delete this._debounce_timers[id];
+		}, delay );
+	    },
+
+	    load_file ( file ) {
+		log.normal("Load file:", file );
+		return new Promise((f,r) => {
+		    let reader			= new FileReader();
+
+		    reader.readAsArrayBuffer( file );
+		    reader.onerror			= function (err) {
+			log.error("FileReader error event:", err );
+
+			r( err );
+		    };
+		    reader.onload			= function (evt) {
+			log.info("FileReader load event:", evt );
+			let result			= new Uint8Array( evt.target.result );
+			log.debug("FileReader result:", result );
+
+			f( result );
+		    };
+		    reader.onprogress		= function (p) {
+			log.trace("progress:", p );
+		    };
+		});
+	    },
+
+	    download ( filename, ...bytes ) {
+		log.normal("Downloading bytes (%s bytes) as '%s'", bytes.length, filename );
+
+		const blob		= new Blob( bytes );
+		const link		= document.createElement("a");
+		link.href		= URL.createObjectURL( blob );
+		link.download		= filename;
+
+		link.click();
 	    },
 	},
     });

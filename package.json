@@ -21,6 +21,7 @@
     "@babel/runtime": "^7.15.3",
     "@holochain/devhub-entities": "file:../devhub-dnas/js-devhub-entities/holochain-devhub-entities-0.2.0.tgz",
     "@whi/weblogger": "^0.1.2",
+    "showdown": "^1.9.1",
     "vue": "^3.2.4",
     "vue-router": "^4.0.11"
   },

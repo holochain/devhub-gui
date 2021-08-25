@@ -60,10 +60,8 @@ const ListGroup = {
     },
     "template": `
 <div v-if="loading" class="card">
-    <div class="card-body text-center p-4">
-        <div class="spinner-border mt-1" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
+    <div class="card-body">
+        <loading :when="true"></loading>
     </div>
 </div>
 <div v-else-if="list.length" class="list-group list-group-flush">
@@ -91,7 +89,7 @@ const InputFeedback = {
 	"validMessage": {
 	    "type": String,
 	},
-	"debounce": {
+	"debounceDelay": {
 	    "type": Number,
 	    "default": 0,
 	},
@@ -127,12 +125,12 @@ const InputFeedback = {
 		previous_value		= this.input.value;
 		this.showFeedback	= false;
 
-		if ( this.debounce > 0 ) {
+		if ( this.debounceDelay > 0 ) {
 		    if ( toid ) {
 			clearTimeout( toid );
 			toid		= undefined;
 		    }
-		    toid		= setTimeout( this.runValidator.bind(this, event), this.debounce );
+		    toid		= setTimeout( this.runValidator.bind(this, event), this.debounceDelay );
 		}
 		else
 		    this.runValidator( event );
@@ -161,6 +159,9 @@ const InputFeedback = {
 	updateInvalidMessage ( msg = "" ) {
 	    this.input.setCustomValidity( msg );
 
+	    if ( this.invalidMessage === this.input.validationMessage )
+		return;
+
 	    log.trace("Setting invalid message to: '%s'", this.input.validationMessage );
 	    this.invalidMessage		= this.input.validationMessage;
 	},
@@ -168,10 +169,10 @@ const InputFeedback = {
     "computed": {
     },
     "template": `
-<div ref="container" :class="{ 'was-validated': blurred && showFeedback }">
+<div ref="container" :class="{ 'was-validated': blurred && showFeedback }" class="d-inline-block w-100">
     <slot></slot>
-    <div v-if="validMessage" class="valid-feedback text-start">{{ validMessage }}</div>
-    <div v-if="input" class="invalid-feedback text-start">{{ invalidMessage }}</div>
+    <div v-if="validMessage" class="valid-feedback text-start" v-html="validMessage"></div>
+    <div v-if="input" class="invalid-feedback text-start" v-html="invalidMessage"></div>
 </div>`,
 };
 
@@ -232,13 +233,20 @@ const Breadcrumbs = {
 			    return (new RegExp( re_str )).test( path );
 			});
 
-		    if ( !found )
+		    if ( !found ) {
 			log.warn("No breadcrumb name for path: %s", path );
+			return acc;
+		    }
 
 		    acc.push({
 			"link": path,
 			"text": found[1],
 		    });
+		}
+
+		if ( segments.length === (index + 1) ) {
+		    // Remove the current pages link
+		    delete acc[acc.length-1].link;
 		}
 
 		return acc;
@@ -256,10 +264,10 @@ const Breadcrumbs = {
     <nav style="--bs-breadcrumb-divider: '>';">
         <ol class="breadcrumb m-0">
             <li v-for="(crumb, index) in crumbs" class="breadcrumb-item">
-                <span v-if="crumbs.length-1 === index">{{ crumb.text }}</span>
-                <router-link v-else :to="crumb.link">
+                <router-link v-if="crumb.link" :to="crumb.link">
                     {{ crumb.text }}
                 </router-link>
+                <span v-else>{{ crumb.text }}</span>
             </li>
         </ol>
     </nav>
@@ -337,16 +345,40 @@ const Modal = {
 };
 
 const PageHeader = {
-    "template": `
-<div class="row align-items-center">
-    <div class="col-5 d-flex">
-        <h1 class="fs-2 m-0 me-5 text-nowrap"><slot name="title"></slot></h1>
+    "props": {
+	"controlsCol": {
+	    "type": String,
+	    "default": null,
+	},
+    },
+    data () {
+	return {
+	    "header_col_classes": {},
+	    "controls_col_classes": {},
+	};
+    },
+    mounted () {
+	let header_col_size		= 12;
+	let controls_col_size		= 0;
 
-        <div class="my-auto">
+	if ( this.$slots["controls"] ) {
+	    controls_col_size		= this.controlsCol || 6;
+	    header_col_size		= 12 - controls_col_size;
+	}
+
+	this.header_col_classes[`col-${header_col_size}`] = true;
+	this.controls_col_classes[`col-${controls_col_size}`] = true;
+    },
+    "template": `
+<div class="page-header row align-items-center">
+    <div class="d-flex align-items-center" :class="header_col_classes">
+        <slot name="default"></slot>
+
+        <div class="my-auto ms-5">
             <slot name="title-extras"></slot>
         </div>
     </div>
-    <div class="col-7">
+    <div v-if="$slots['controls']" :class="controls_col_classes">
         <slot name="controls"></slot>
     </div>
 </div>`,
@@ -354,7 +386,7 @@ const PageHeader = {
 
 const PageView = {
     "template": `
-<div class="pt-3 pb-5">
+<div class="flex-grow-1 pt-3 pb-5">
     <slot></slot>
 </div>`,
 };
@@ -380,17 +412,19 @@ const Placeholder = {
     },
     "computed": {
 	styles () {
-	    let width			= this.size;
-
-	    if ( width === "fill" )
-		width			= "100%";
-	    else if ( width === "p" )
-		width			= "100%";
-
-	    return {
-		"width": `${width}`,
-		"min-width": `${this.minSize}`,
+	    const styles		= {
+		"width":		this.size,
 	    };
+
+	    if ( styles.width === "fill" )
+		styles.width		= "100%";
+	    else if ( styles.width === "p" )
+		styles.width		= "100%";
+
+	    if ( !this.when )
+		styles['min-width']	= this.minSize;
+
+	    return styles;
 	},
 	classes () {
 	    const classes		= {};
@@ -406,8 +440,24 @@ const Placeholder = {
     },
     "template": `
 <span class="ph-glow" :class="classes" :style="styles">
-    <span v-if="when"><slot></slot></span>
+    <slot v-if="when"></slot>
 </span>`,
+};
+
+const Loading = {
+    "props": {
+	"when": {
+	    "type": Boolean,
+	    "required": true,
+	},
+    },
+    "template": `
+<div v-if="when" class="text-center p-4">
+    <div class="spinner-border mt-1" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+<slot v-else></slot>`,
 };
 
 
@@ -423,4 +473,5 @@ module.exports = {
     "page-view":		PageView,
     "search":			Search,
     "placeholder":		Placeholder,
+    "loading":			Loading,
 };

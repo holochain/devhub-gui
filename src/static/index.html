@@ -18,9 +18,6 @@
 	      integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
 
-	<!-- Notification Component -->
-	<link rel="stylesheet" href="/notyf/notyf.min.css">
-
 	<!-- Manual Overrides -->
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,8 +37,15 @@
 		</div>
 	    </div>
 
-	    <div class="col" style="overflow-y: scroll; max-height: 100vh;">
-		<main>
+	    <div class="col vh-100" style="overflow-y: scroll;">
+		<page-view v-if="status_view_html" id="tatus-page">
+		    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+
+		    <hr>
+
+		    <div v-html="status_view_html"></div>
+		</page-view>
+		<main v-else class="h-100 d-flex flex-column">
 		    <router-view :key="$route.path"></router-view>
 		</main>
 	    </div>

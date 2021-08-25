@@ -6,8 +6,8 @@
     <deprecation-alert v-if="deprecated" :message="zome.deprecation.message"></deprecation-alert>
 
     <page-header class="mb-3">
-	<template #title>
-	    <placeholder :when="zome" size="fill">{{ zome.name }}</placeholder>
+	<template #default>
+	    <h1 class="fs-2"><placeholder :when="zome" size="fill">{{ zome.name }}</placeholder></h1>
 	</template>
 
 	<template #title-extras v-if="!deprecated">
@@ -54,13 +54,17 @@
 		    Developed by
 		</div>
 		<div class="card-body">
-		    <strong><placeholder :when="zome">{{ zome.developer.pubkey }}</placeholder></strong><br>
-		    <placeholder :when="zome">
-			<span v-if="zome.developer.website">
-			    <a href="#" target="_blank">website</a>
-			</span>
-			<span v-else>No website</span>
-		    </placeholder>
+		    <dl class="row">
+			<dt class="col-sm-12"><placeholder :when="zome">{{ zome.developer.pubkey }}</placeholder></dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="zome">
+				<span v-if="zome.developer.website">
+				    <a href="#" target="_blank">website</a>
+				</span>
+				<span v-else>No website</span>
+			    </placeholder>
+			</dd>
+		    </dl>
 		</div>
 	    </div>
 	</div>
@@ -70,7 +74,7 @@
 	<div class="d-flex mb-4">
 	    <h2 class="fs-4 flex-grow-1">Zome Versions</h2>
 
-            <router-link v-if="zome" :to="'/zomes/' + id + '/versions/update'"
+            <router-link v-if="zome" :to="'/zomes/' + id + '/versions/new'"
 			 class="btn btn-primary text-nowrap"
 			 :class="{ 'disabled': deprecated }">
 		<i class="bi-plus-lg"></i>
@@ -79,17 +83,38 @@
 	</div>
 
 	<list-group :list="versions" no-result-text="No Zome Versions" :loading="loading_versions">
-	    <list-group-item v-for="version in versions">
+	    <div class="row px-3">
+		<div class="col-3 fw-7">
+		    Version #
+		</div>
+		<div class="col-3 fw-7">
+		    Created
+		</div>
+		<div class="col-3 fw-7">
+		    File size
+		</div>
+		<div class="col"></div>
+	    </div>
+
+	    <hr class="my-1">
+
+	    <list-group-item v-for="version in versions" class="py-3">
 		<div class="row align-items-center">
-		    <div class="col pt-3">
-			<h3 class="fs-6"><placeholder>{{ version.name }}</placeholder></h3>
-			<p><placeholder>{{ version.description }}</placeholder></p>
+		    <div class="col-3">
+			<h3 class="fs-6 m-0">{{ version.version }}</h3>
 		    </div>
-		    <div class="col-4">
-			<span class="badge badge-md bg-secondary">Created on {{ $filters.time( version.published_at, "weekday+date" ) }}</span>
+		    <div class="col-3">
+			Created on {{ $filters.time( version.published_at, "weekday+date" ) }}
 		    </div>
-		    <div class="col-auto">
-			<router-link :to="'/zomes/' + zome.$id + '/versions/' + version.$id" class="btn btn-light">
+		    <div class="col-3">
+			N/A
+		    </div>
+		    <div class="col text-end">
+			<a @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">
+			    Unpublish
+			</a>
+
+			<router-link :to="'/zomes/' + id + '/versions/' + version.$id" class="btn btn-light ms-5">
 			    More info
 			</router-link>
 		    </div>
@@ -109,5 +134,12 @@
 			  class="form-control" rows="4"></textarea>
 	    </input-feedback>
 	</form>
+    </modal>
+
+    <modal title="Unpublish Zome Version" ref="unpublishModal"
+	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
+	<div v-if="zome && version">
+	    <p>Are you sure you want to unpublish the {{ zome.name }} Zome Version <strong>{{ version.version }}</strong>?</p>
+	</div>
     </modal>
 </page-view>

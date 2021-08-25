@@ -40,6 +40,9 @@ module.exports = {
 	case "date+time":
 	    format			= `${date(d)} @ ${time(d)}`;
 	    break;
+	case "date":
+	    format			= `${date(d)}`;
+	    break;
 	default:
 	    format			= `${day(d)}, ${date(d)} @ ${time(d)}`; // "dddd, MMMM D (YYYY) @ HH:mm:ss";
 	    break;

@@ -7,7 +7,7 @@ const { sort_by_object_key }		= require('./common.js');
 
 module.exports = async function ( client ) {
 
-    async function zomes () {
+    async function list () {
 	return {
 	    "template": (await import("./templates/zomes/list.html")).default,
 	    "data": function() {
@@ -41,7 +41,7 @@ module.exports = async function ( client ) {
 	};
     };
 
-    async function create_zome () {
+    async function create () {
 	return {
 	    "template": (await import("./templates/zomes/create.html")).default,
 	    "data": function() {
@@ -74,7 +74,7 @@ module.exports = async function ( client ) {
 			);
 			this.$router.push( "/zomes/" + zome.$id );
 		    } catch ( err ) {
-			log.error("Failed to create Zome):", err );
+			log.error("Failed to create Zome:", err );
 			this.error	= err;
 		    } finally {
 			this.saving	= false;
@@ -84,11 +84,12 @@ module.exports = async function ( client ) {
 	};
     };
 
-    async function update_zome () {
+    async function update () {
 	return {
 	    "template": (await import("./templates/zomes/update.html")).default,
 	    "data": function() {
 		return {
+		    "id": null,
 		    "error": null,
 		    "zome": null,
 		    "input": {},
@@ -112,9 +113,6 @@ module.exports = async function ( client ) {
 		    let zome		= await client.call(
 			"dnarepo", "dna_library", "get_zome", { "id": this.id }
 		    );
-		    delete zome.published_at;
-		    delete zome.last_updated;
-		    delete zome.developer.pubkey;
 
 		    log.info("Received zome: %s", zome.name, zome );
 		    this.zome		= zome;
@@ -146,7 +144,7 @@ module.exports = async function ( client ) {
 	};
     };
 
-    async function single_zome () {
+    async function single () {
 	return {
 	    "template": (await import("./templates/zomes/single.html")).default,
 	    "data": function() {
@@ -160,6 +158,7 @@ module.exports = async function ( client ) {
 			"message": null,
 		    },
 		    "validated": false,
+		    "version": null,
 		};
 	    },
 	    async created () {
@@ -174,6 +173,9 @@ module.exports = async function ( client ) {
 		modal () {
 		    return this.$refs["modal"].modal;
 		},
+		unpublishModal () {
+		    return this.$refs["unpublishModal"].modal;
+		},
 		deprecated () {
 		    return !!( this.zome && this.zome.deprecation );
 		},
@@ -186,14 +188,21 @@ module.exports = async function ( client ) {
 		async fetchZome () {
 		    this.loading_zome	= true;
 
-		    log.debug("Getting zome %s", String(this.id) );
-		    let zome		= await client.call(
-			"dnarepo", "dna_library", "get_zome", { "id": this.id }
-		    );
+		    try {
+			log.debug("Getting zome %s", String(this.id) );
+			let zome		= await client.call(
+			    "dnarepo", "dna_library", "get_zome", { "id": this.id }
+			);
 
-		    log.info("Received zome: %s", zome.name, zome );
-		    this.zome		= zome;
-		    this.loading_zome	= false;
+			log.info("Received zome: %s", zome.name, zome );
+			this.zome		= zome;
+			this.loading_zome	= false;
+		    } catch (err) {
+			if ( err.name === "EntryNotFoundError" )
+			    return this.$root.showStatusView( 404 );
+
+			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
+		    }
 		},
 		async fetchZomeVersions () {
 		    this.loading_versions	= true;
@@ -206,9 +215,6 @@ module.exports = async function ( client ) {
 		    log.info("Received %s versions for %s", versions.length, String(versions.$base) );
 		    this.versions		= versions;
 		    this.loading_versions	= false;
-		},
-		async deprecatePrompt () {
-		    this.modal.show();
 		},
 		async deprecate () {
 		    this.validated	= true;
@@ -229,14 +235,30 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 		},
+		promptUnpublish ( version ) {
+		    this.version		= version;
+		    this.unpublishModal.show();
+		},
+		async unpublish () {
+		    log.normal("Deleting Zome Version '%s' (%s)", this.version.version, String(this.version.$id) );
+		    await client.call(
+			"dnarepo", "dna_library", "delete_zome_version", {
+			    "id": this.version.$id,
+			}
+		    );
+
+		    this.version		= null;
+		    this.unpublishModal.hide();
+		    this.fetchZomeVersions();
+		},
 	    },
 	};
     };
 
     return {
-	zomes,
-	create_zome,
-	update_zome,
-	single_zome,
+	list,
+	create,
+	update,
+	single,
     };
 };

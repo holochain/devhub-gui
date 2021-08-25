@@ -34,7 +34,10 @@ hr {
 .h4, .h5, .h6, h4, h5, h6 {
   font-weight: 700;
 }
-
+a {
+  color: inherit;
+  cursor: pointer;
+}
 
 
 .text-primary {
@@ -207,6 +210,33 @@ a.text-primary:hover {
   top: 50%;
   left: 16px;
 }
+.form-input-file {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0 !important;
+  min-height: 6em;
+  cursor: grabbing !important;
+  border: 1px dashed #ced4da;
+  border-radius: .3rem !important;
+}
+.form-input-file::before {
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  margin: 1em;
+  content: "";
+}
+.form-input-file::after {
+  content: "\f358";
+  font-family: bootstrap-icons !important;
+  font-size: 3em;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-left: -0.5em;
+  margin-top: -0.75em;
+}
 
 
 
@@ -322,4 +352,13 @@ dl dt {
   cursor: wait;
   background-color: currentColor;
   opacity: .5;
+}
+
+.page-header h1,
+.page-header h2,
+.page-header h3,
+.page-header h4,
+.page-header h5,
+.page-header h6 {
+  margin: 0;
 }
