@@ -12,7 +12,8 @@ const { HoloHash,
 
 log.level.trace && logging();
 
-const { sort_by_object_key }		= require('./common.js');
+const store_init			= require('./store.js');
+const common				= require('./common.js');
 const filters				= require('./filters.js');
 const components			= require('./components.js');
 const zomes_init			= require('./zome_controllers.js');
@@ -48,7 +49,7 @@ log.level.normal && Object.entries( dnas ).forEach( ([nick, hash]) => {
 });
 
 
-window.Vue				= Vue;
+window._Vue				= Vue;
 
 
 (async function(global) {
@@ -57,6 +58,7 @@ window.Vue				= Vue;
 	"simulate_latency": (WEBPACK_MODE === "development"),
     });
 
+    const store				= await store_init( client, Vue );
     const zome_controllers		= await zomes_init( client );
     const zome_version_controllers	= await zome_versions_init( client );
 
@@ -100,12 +102,13 @@ window.Vue				= Vue;
     const app				= Vue.createApp({
 	data () {
 	    return {
+		"status_view_data": null,
 		"status_view_html": null,
 	    };
 	},
 	created () {
 	    this.$router.afterEach( (to, from, failure) => {
-		log.normal("Navigated to:", to, from, failure );
+		log.normal("Navigated to:", to.path, from.path, failure );
 
 		if ( to.matched.length === 0 )
 		    return this.showStatusView( 404 );
@@ -116,15 +119,36 @@ window.Vue				= Vue;
     });
 
     app.mixin({
-	data () {
-	    return {
-		"_debounce_timers": {},
-	    };
-	},
 	"methods": {
-	    async showStatusView ( status ) {
-		if ( !status ) {
+	    async catchStatusCodes ( status_codes, err ) {
+		if ( !Array.isArray(status_codes) )
+		    status_codes	= [ status_codes ];
+
+		status_codes.forEach( (code, i) => {
+		    status_codes[i]	= parseInt( code );
+		});
+
+		if ( status_codes.includes( 404 ) && err.name === "EntryNotFoundError" )
+		    this.$root.showStatusView( 404 );
+		else if ( status_codes.includes( 500 ) )
+		    this.$root.showStatusView( 500 );
+	    },
+
+	    async showStatusView ( status, data = null ) {
+		if ( !status ) { // reset status view
 		    this.$root.status_view_html = null;
+		    return;
+		}
+
+		if ( data ) {
+		    this.$root.status_view_data = Object.assign( {
+			"code": status,
+			"title": "It's not me, it's you",
+			"message": "Default HTTP Code Name",
+			"details": null,
+		    }, data );
+		    this.$root.status_view_html = true;
+
 		    return;
 		}
 
@@ -135,88 +159,34 @@ window.Vue				= Vue;
 		    this.$root.status_view_html = (await import(`./templates/500.html`)).default;
 		}
 	    },
-	    dataImage ( bytes ) {
-		return 'data:image/png;base64,' + "TODO: make base64 thing";
-	    },
 
-	    sort_by_object_key,
+	    getPathId ( key ) {
+		const path_id		= this.$route.params[key];
 
-	    copy ( src, dest, ...keys ) {
-		let fkey		= keys.pop();
+		try {
+		    return new HoloHashes.EntryHash( path_id );
+		} catch (err) {
+		    if ( err instanceof HoloHashes.HoloHashError ) {
+			this.showStatusView( 400, {
+			    "title": "Invalid Identifier",
+			    "message": `Invalid Holo Hash in URL path`,
+			    "details": [
+				`<code>${path_id}</code>`,
+				`${err.name}: ${err.message}`,
+			    ],
+			});
+		    }
 
-		keys.forEach( key => {
-		    if ( src === null || typeof src !== "object" )
-			log.error("Source object is type '%s'; must be an object", typeof src );
-		    if ( dest === null || typeof dest !== "object" )
-			log.error("Destination object is type '%s'; must be an object", typeof dest );
-
-		    src			= src[key];
-
-		    if ( dest[key] === undefined ) // create the path for destination object
-			dest[key]	= {};
-
-		    dest		= dest[key];
-		});
-
-		dest[fkey]		= src[fkey];
-	    },
-
-	    debounce ( callback, delay = 1_000, id ) {
-		if ( id === undefined )
-		    id			= String(callback);
-
-		const toid		= this._debounce_timers[id];
-
-		if ( toid ) {
-		    clearTimeout( toid );
-		    delete this._debounce_timers[id];
+		    throw err;
 		}
-
-		this._debounce_timers[id] = setTimeout( () => {
-		    callback.bind(this);
-		    delete this._debounce_timers[id];
-		}, delay );
 	    },
 
-	    load_file ( file ) {
-		log.normal("Load file:", file );
-		return new Promise((f,r) => {
-		    let reader			= new FileReader();
-
-		    reader.readAsArrayBuffer( file );
-		    reader.onerror			= function (err) {
-			log.error("FileReader error event:", err );
-
-			r( err );
-		    };
-		    reader.onload			= function (evt) {
-			log.info("FileReader load event:", evt );
-			let result			= new Uint8Array( evt.target.result );
-			log.debug("FileReader result:", result );
-
-			f( result );
-		    };
-		    reader.onprogress		= function (p) {
-			log.trace("progress:", p );
-		    };
-		});
-	    },
-
-	    download ( filename, ...bytes ) {
-		log.normal("Downloading bytes (%s bytes) as '%s'", bytes.length, filename );
-
-		const blob		= new Blob( bytes );
-		const link		= document.createElement("a");
-		link.href		= URL.createObjectURL( blob );
-		link.download		= filename;
-
-		link.click();
-	    },
+	    ...common,
 	},
     });
 
-    app.config.globalProperties.breadcrumb_mapping = breadcrumb_mapping;
-    app.config.globalProperties.$filters = filters;
+    app.config.globalProperties.breadcrumb_mapping	= breadcrumb_mapping;
+    app.config.globalProperties.$filters		= filters;
     app.config.errorHandler		= function (err, vm, info) {
 	log.error("Vue App Error (%s):", info, err, vm );
     };
@@ -226,10 +196,11 @@ window.Vue				= Vue;
     }
 
     app.use( router );
+    app.use( store );
     app.mount("#app");
 
-    global.App				= app;
-    global.Router			= router;
+    global._App				= app;
+    global._Router			= router;
 
     log.info("Finished App configuration and mounting");
 })(window);

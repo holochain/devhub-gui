@@ -41,7 +41,7 @@ module.exports = async function ( client ) {
 		},
 	    },
 	    async created () {
-		this.zome_id		= new HoloHashes.EntryHash( this.$route.params.zome );
+		this.zome_id		= this.getPathId("zome");
 	    },
 	    "methods": {
 		async file_selected ( event ) {
@@ -64,11 +64,10 @@ module.exports = async function ( client ) {
 			return;
 
 		    this.saving		= true;
-		    this.input.for_zome	= this.zome_id;
 		    try {
-			let version	= await client.call(
-			    "dnarepo", "dna_library", "create_zome_version", this.input
-			);
+			const version	= await this.$store.dispatch("createZomeVersion", [ this.zome_id, this.input ] );
+
+			this.$store.dispatch("fetchVersionsForZome", this.zome_id );
 			this.$router.push( `/zomes/${this.zome_id}/versions/${version.$id}` );
 		    } catch ( err ) {
 			log.error("Failed to create Zome Version:", err );
@@ -89,17 +88,29 @@ module.exports = async function ( client ) {
 		    "id": null,
 		    "zome_id": null,
 		    "error": null,
-		    "version": null,
-		    "loading_version": true,
-		    "zome": null,
+		    "_version": null,
 		    "input": {},
 		    "validated": false,
-		    "saving": false,
-		    "changelog_markdown": null,
+		    "changelog_html": null,
 		    "show_changelog_preview": false,
 		};
 	    },
 	    "computed": {
+		version () {
+		    if ( this.$store.getters.zome_version( this.id ).entity )
+			this._version	= this.copy( this.$store.getters.zome_version( this.id ).entity );
+
+		    return this._version;
+		},
+		$version () {
+		    return this.$store.getters.zome_version( this.id ).metadata;
+		},
+		zome () {
+		    return this.version ? this.version.for_zome : null;
+		},
+		$zome () {
+		    return this.$version;
+		},
 		form () {
 		    return this.$refs["form"];
 		},
@@ -108,12 +119,11 @@ module.exports = async function ( client ) {
 		}
 	    },
 	    async created () {
-		this.id			= new HoloHashes.EntryHash( this.$route.params.id );
-		this.zome_id		= new HoloHashes.EntryHash( this.$route.params.zome );
+		this.id			= this.getPathId("id");
+		this.zome_id		= this.getPathId("zome");
 
-		this.fetchVersion();
-
-		window.View = this;
+		if ( !this.version )
+		    await this.fetchVersion();
 	    },
 	    "methods": {
 		toggleChangelogPreview () {
@@ -121,27 +131,15 @@ module.exports = async function ( client ) {
 		    this.updateChangelogMarkdown();
 		},
 		updateChangelogMarkdown () {
-		    this.changelog_markdown	= md_converter.makeHtml( this.version.changelog );
+		    this.changelog_html	= md_converter.makeHtml( this.version.changelog );
 		},
 		async fetchVersion () {
-		    this.loading_version	= true;
-
 		    try {
-			log.debug("Getting zome version %s", String(this.id) );
-			let version		= await client.call(
-			    "dnarepo", "dna_library", "get_zome_version", { "id": this.id }
-			);
-
-			log.info("Received version: %s", version.name, version );
-			this.version		= version;
-			this.zome		= version.for_zome;
-			this.loading_version	= false;
-			this.updateChangelogMarkdown();
+			await this.$store.dispatch("fetchZomeVersion", this.id );
 		    } catch (err) {
-			if ( err.name === "EntryNotFoundError" )
-			    return this.$root.showStatusView( 404 );
+			this.catchStatusCodes([ 404, 500 ], err );
 
-			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get zome version (%s): %s", String(this.id), err.message, err );
 		    }
 		},
 		async update () {
@@ -150,21 +148,13 @@ module.exports = async function ( client ) {
 		    if ( this.form.checkValidity() === false )
 			return;
 
-		    this.saving		= true;
 		    try {
-			let zome	= await client.call(
-			    "dnarepo", "dna_library", "update_zome_version", {
-				"id": this.id,
-				"addr": this.version.$addr,
-				"properties": this.input,
-			    }
-			);
+			await this.$store.dispatch("updateZomeVersion", [ this.id, this.input ] );
+
 			this.$router.push( `/zomes/${this.zome_id}/versions/${this.id}` );
 		    } catch ( err ) {
-			log.error("Failed to update Zome (%s):", String(this.zome.$id), err );
+			log.error("Failed to update Zome Version (%s):", String(this.id), err );
 			this.error	= err;
-		    } finally {
-			this.saving	= false;
 		    }
 		},
 	    },
@@ -178,80 +168,81 @@ module.exports = async function ( client ) {
 		return {
 		    "id": null,
 		    "zome_id": null,
-		    "zome": null,
-		    "version": null,
-		    "loading_version": true,
-		    "wasm_bytes": null,
-		    "loading_wasm_bytes": true,
-		    "changelog_markdown": null,
+		    "changelog_html": null,
 		};
 	    },
 	    async created () {
-		this.id			= new HoloHashes.EntryHash( this.$route.params.id );
-		this.zome_id		= new HoloHashes.EntryHash( this.$route.params.zome );
+		this.id			= this.getPathId("id");
+		this.zome_id		= this.getPathId("zome");
 
 		this.refresh();
 	    },
 	    "computed": {
+		version () {
+		    return this.$store.getters.zome_version( this.id ).entity;
+		},
+		$version () {
+		    return this.$store.getters.zome_version( this.id ).metadata;
+		},
+		zome () {
+		    return this.version ? this.version.for_zome : null;
+		},
+		$zome () {
+		    return this.$version;
+		},
+		$wasmBytes () {
+		    return this.$store.getters.zome_version_wasm( this.version ? this.version.mere_memory_addr : null ).metadata;
+		},
 		modal () {
 		    return this.$refs["modal"].modal;
 		},
 		wasm_filename () {
+		    if ( !this.zome )
+			return "Zome Wasm";
+
 		    const filename	= this.zome.name.replace(/[/\\?%*:|"<>]/g, '_');
 		    return `${filename}_v${this.version.version}.wasm`;
+		},
+		zome_deprecated () {
+		    return !!( this.zome && this.zome.deprecation );
 		},
 	    },
 	    "methods": {
 		refresh () {
-		    this.fetchVersion();
+		    if ( !this.version )
+			this.fetchVersion();
+		    else
+			this.updateChangelogMarkdown();
 		},
 		updateChangelogMarkdown () {
-		    this.changelog_markdown	= md_converter.makeHtml( this.version.changelog );
+		    this.changelog_html	= md_converter.makeHtml( this.version.changelog );
 		},
 		async fetchVersion () {
-		    this.loading_version	= true;
-
 		    try {
-			log.debug("Getting zome version %s", String(this.id) );
-			let version		= await client.call(
-			    "dnarepo", "dna_library", "get_zome_version", { "id": this.id }
-			);
-
-			log.info("Received version: %s", version.name, version );
-			this.version		= version;
-			this.zome		= version.for_zome;
-			this.loading_version	= false;
+			let version	= await this.$store.dispatch("fetchZomeVersion", this.id );
 
 			this.updateChangelogMarkdown();
-			this.fetchWasmBytes( version.mere_memory_addr );
 		    } catch (err) {
-			if ( err.name === "EntryNotFoundError" )
-			    return this.$root.showStatusView( 404 );
+			this.catchStatusCodes([ 404, 500 ], err );
 
-			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get zome version (%s): %s", String(this.id), err.message, err );
 		    }
 		},
-		async fetchWasmBytes ( addr ) {
-		    this.loading_wasm_bytes	= true;
+		async downloadWasmBytes () {
+		    try {
+			const wasm_bytes	= await this.$store.dispatch("fetchZomeVersionWasm", this.version.mere_memory_addr );
 
-		    log.debug("Getting Wasm bytes %s", String(addr) );
-		    let wasm_bytes		= await client.call(
-			"dnarepo", "mere_memory", "retrieve_bytes", addr
-		    );
-
-		    log.info("Received wasm_bytes:", wasm_bytes );
-		    this.wasm_bytes		= new Uint8Array( wasm_bytes );
-		    this.loading_wasm_bytes	= false;
+			this.download( this.wasm_filename, wasm_bytes );
+		    } catch (err) {
+			log.error("Failed to get wasm bytes for zome version(%s): %s", String(this.id), err.message, err );
+		    }
 		},
 		async unpublish () {
-		    log.normal("Deleting Zome Version '%s' (%s)", this.version.version, String(this.id) );
-		    await client.call(
-			"dnarepo", "dna_library", "delete_zome_version", {
-			    "id": this.id,
-			}
-		    );
+		    await this.$store.dispatch("unpublishZomeVersion", this.id );
 
 		    this.modal.hide();
+
+		    this.$store.dispatch("fetchVersionsForZome", this.zome_id );
 		    this.$router.push( `/zomes/${this.zome_id}` );
 		},
 	    },

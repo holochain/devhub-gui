@@ -43,7 +43,19 @@
 
 		    <hr>
 
-		    <div v-html="status_view_html"></div>
+		    <div v-if="status_view_data">
+			<h1>{{ status_view_data.title }}</h1>
+
+			<h4 class="fw-2 text-danger">{{ status_view_data.code }} status - <span v-html="status_view_data.message"></span></h4>
+
+			<div v-if="status_view_data.details">
+			    <strong>Details</strong>
+			    <ul>
+				<li v-for="msg in status_view_data.details" v-html="msg"></li>
+			    </ul>
+			</div>
+		    </div>
+		    <div v-else v-html="status_view_html"></div>
 		</page-view>
 		<main v-else class="h-100 d-flex flex-column">
 		    <router-view :key="$route.path"></router-view>

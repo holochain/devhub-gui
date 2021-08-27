@@ -4,18 +4,22 @@ const log				= new Logger("components");
 
 const DeprecationAlert = {
     "props": {
+	"title": {
+	    "type": String,
+	    "default": "This has been deprecated",
+	},
 	"message": {
 	    "type": String,
-	    "required": true,
 	},
     },
     "template": `
 <div class="alert alert-danger d-flex align-items-center" role="alert">
     <i class="bi-exclamation-triangle-fill me-3"></i>
     <div>
-        <strong>This Zome has been deprecated</strong>
-        <br>
-        <p class="m-0"><em>Author message: "{{ message }}"</em></p>
+        <strong>{{ title }}</strong>
+        <template v-if="message">
+            <br><p class="m-0"><em>Author message: "{{ message }}"</em></p>
+        </template>
     </div>
 </div>`,
 };
@@ -30,6 +34,10 @@ const DisplayError = {
 	    },
 	    "required": true,
 	},
+	"debug": {
+	    "type": Boolean,
+	    "default": false,
+	},
     },
     "template": `
 <div v-if="error" class="alert alert-danger d-flex align-items-center" role="alert">
@@ -38,7 +46,7 @@ const DisplayError = {
         <strong>{{ error.name }}</strong>
         <br>
         <p class="m-0"><em>{{ error.message }}</em></p>
-        <pre v-if="error.data" class="mt-3 mb-0"><code>{{ JSON.stringify(error.data, null, 4) }}</code></pre>
+        <pre v-if="debug && error.data" class="mt-3 mb-0"><code>{{ JSON.stringify(error.data, null, 4) }}</code></pre>
     </div>
 </div>`,
 };
@@ -191,7 +199,6 @@ const Breadcrumbs = {
 	},
     },
     data () {
-	window.Breadcrumbs		= this;
 	const breadcrumb_mapping	= this.pathMapping;
 	const current_path		= this.$router.currentRoute.value.path;
 	const segments			= current_path.split("/").slice(1);
@@ -271,6 +278,7 @@ const Breadcrumbs = {
             </li>
         </ol>
     </nav>
+    <slot></slot>
 </div>`,
 };
 
@@ -298,6 +306,11 @@ const Modal = {
 	    "default": true,
 	},
     },
+    data () {
+	return {
+	    "running_action": false,
+	};
+    },
     mounted () {
 	this.$el.addEventListener('hidden.bs.modal', (event) => {
 	    log.debug("Modal hidden event");
@@ -319,6 +332,16 @@ const Modal = {
 		el.classList.remove("was-validated");
 	    });
 	},
+	async runAction () {
+	    this.running_action		= true;
+	    try {
+		await this.action( this );
+	    } catch (err) {
+		console.error( err );
+	    } finally {
+		this.running_action	= false;
+	    }
+	}
     },
     "template": `
 <div class="modal">
@@ -335,8 +358,12 @@ const Modal = {
                 <slot name="controls">
                     <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal"
                             @click="cancel()">Cancel</button>
-                    <button type="button" class="btn btn-primary"
-                            @click="action( this )">{{ actionText }}</button>
+                    <button type="button" class="btn btn-primary" :class="{ 'disabled': running_action }"
+                            @click="runAction()">
+                        <span v-if="running_action"
+                              class="spinner-border spinner-border-sm me-3"></span>
+                        {{ actionText }}
+                    </button>
                 </slot>
             </div>
         </div>
@@ -401,13 +428,13 @@ const Search = {
 const Placeholder = {
     "props": {
 	"when": {
-	    "default": true,
+	    "default": false,
 	},
 	"size": {
 	    "default": "100%",
 	},
 	"minSize": {
-	    "default": "6em",
+	    "default": "6em", // for elements that don't respond to 100%
 	},
     },
     "computed": {
@@ -421,7 +448,7 @@ const Placeholder = {
 	    else if ( styles.width === "p" )
 		styles.width		= "100%";
 
-	    if ( !this.when )
+	    if ( this.when )
 		styles['min-width']	= this.minSize;
 
 	    return styles;
@@ -440,7 +467,7 @@ const Placeholder = {
     },
     "template": `
 <span class="ph-glow" :class="classes" :style="styles">
-    <slot v-if="when"></slot>
+    <slot v-if="!when"></slot>
 </span>`,
 };
 

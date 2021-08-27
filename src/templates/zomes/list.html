@@ -2,6 +2,9 @@
     <page-header controls-col="7">
 	<template #default>
 	    <h1 class="fs-2">My Zomes</h1>
+	    <a v-if="$zomes.loaded" @click="fetchZomes()" class="ms-2 fs-4">
+		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $zomes.loading }"></i>
+	    </a>
 	</template>
 
 	<template #title-extras>
@@ -33,7 +36,7 @@
 
     <hr>
 
-    <list-group :list="zomes" no-result-text="No Zomes" :loading="loading_zomes">
+    <list-group :list="zomes" no-result-text="No Zomes" :loading="$zomes.loading">
 	<list-group-item v-for="zome in sort_by_object_key( zomes, order_by )">
 	    <div class="row align-items-center">
 		<div class="col pt-3">

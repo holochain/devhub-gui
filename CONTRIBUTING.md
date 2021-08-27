@@ -2,6 +2,18 @@
 
 # Design
 
+## Dependencies
+
+### Primary
+
+- [Vue.js](https://next.router.vuejs.org/) - Application framework
+- [Vue Router](https://next.router.vuejs.org/) - Navigation manager
+- [Vuex](https://next.vuex.vuejs.org/guide/) - State manager
+
+### Secondary
+
+- [showdown](https://github.com/showdownjs/showdown) - Markdown to HTML converter
+
 ## Routes
 
 | URL Path                      | Page's Purpose                                            |
@@ -38,6 +50,18 @@
 | `/profiles/mine`              | &ndash; View My profiles                                  |
 | `/profiles/mine/update`       | &ndash; Update my Agent's profiles                        |
 | `/profiles/<id>`              | &ndash; View a specific Agent's profiles                  |
+
+
+## Modules
+
+- `./src/store.js` - [State management](https://next.vuex.vuejs.org/guide/)
+- `./src/common.js` - [Global mixins](https://v3.vuejs.org/guide/mixins.html#global-mixin)
+- `./src/filters.js` - Vue.js filters
+  - *using [`globalProperties` workaround](https://v3.vuejs.org/guide/migration/filters.html#global-filters) since v3 removed template filters*
+- `./src/components.js` - [Vue.js components](https://v3.vuejs.org/guide/component-basics.html)
+- `./src/index.js` - App main entry point
+- `./src/*_controllers.js` - Router components grouped by data type
+  - eg. `zome`, `zome_version`, `dna`, etc...
 
 
 # Development

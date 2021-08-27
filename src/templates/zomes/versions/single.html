@@ -1,17 +1,24 @@
 <page-view id="single-zome version-page">
     <breadcrumbs v-if="version && zome" :skip-base="true" :path-mapping="breadcrumb_mapping"
-		 :sub-1="zome.name" :sub-3="'Version #' + version.version"></breadcrumbs>
+		 :sub-1="zome.name" :sub-3="'Version #' + version.version">
+	<a v-if="$version.loaded" @click="fetchVersion()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $version.loading }"></i>
+	</a>
+    </breadcrumbs>
 
     <hr>
 
+    <deprecation-alert v-if="zome_deprecated && $version.current"
+		       title="The parent Zome has been deprecated"></deprecation-alert>
+
     <div class="mb-4">
-	<h1 class="fs-2"><placeholder :when="zome" size="fill">{{ zome.name }}</placeholder></h1>
+	<h1 class="fs-2"><placeholder :when="!$version.current" size="25%">{{ zome.name }}</placeholder></h1>
     </div>
 
     <page-header class="mb-2 p-3">
 	<template #default>
             <h2 class="fs-5 text-nowrap">
-		<placeholder :when="version" size="fill">{{ version.version }}
+		<placeholder :when="!$version.current" size="fill">{{ version.version }}
 		    <span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
 		</placeholder>
 	    </h2>
@@ -36,8 +43,8 @@
 		    Changelog
 		</div>
 		<div class="card-body">
-		    <placeholder :when="version">
-			<div v-html="changelog_markdown"></div>
+		    <placeholder :when="!$version.current">
+			<div v-html="changelog_html"></div>
 		    </placeholder>
 		</div>
 	    </div>
@@ -51,17 +58,19 @@
 		<div class="card-body">
 		    <dl class="row">
 			<dt class="col-sm-12">Created</dt>
-			<dd class="col-sm-12"><placeholder :when="version">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
 
 			<dt class="col-sm-12">Last Updated</dt>
-			<dd class="col-sm-12"><placeholder :when="version">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
 		    </dl>
 
-		    <loading :when="loading_wasm_bytes">
+		    <loading :when="!$version.current">
 			<div class="mx-3 my-5">
-			    <a href="#" class="btn btn-primary w-100" @click="download( wasm_filename, wasm_bytes )">
-				<i class="bi-download"></i>
-				Download Zome Wasm
+			    <a class="btn btn-primary w-100" @click="downloadWasmBytes()">
+				<span v-if="$wasmBytes.loading"
+				      class="spinner-border spinner-border-sm me-3"></span>
+				<i v-else class="bi-download"></i>
+				Download {{ wasm_filename }}
 			    </a>
 			</div>
 		    </loading>

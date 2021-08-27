@@ -1,13 +1,19 @@
 <page-view id="single-zome-page">
-    <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.name"></breadcrumbs>
+    <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.name">
+	<a v-if="$zome.loaded" @click="fetchZome()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $zome.loading }"></i>
+	</a>
+    </breadcrumbs>
 
     <hr>
 
-    <deprecation-alert v-if="deprecated" :message="zome.deprecation.message"></deprecation-alert>
+    <deprecation-alert v-if="deprecated && $zome.current"
+		       title="This Zome has been deprecated"
+		       :message="zome.deprecation.message"></deprecation-alert>
 
     <page-header class="mb-3">
 	<template #default>
-	    <h1 class="fs-2"><placeholder :when="zome" size="fill">{{ zome.name }}</placeholder></h1>
+	    <h1 class="fs-2"><placeholder :when="!$zome.current" size="fill">{{ zome.name }}</placeholder></h1>
 	</template>
 
 	<template #title-extras v-if="!deprecated">
@@ -24,7 +30,7 @@
     </page-header>
 
     <div class="mb-5">
-	<p><placeholder :when="zome" size="p">{{ zome.description }}</placeholder></p>
+	<p><placeholder :when="!$zome.current" size="p">{{ zome.description }}</placeholder></p>
     </div>
 
     <div class="row align-items-stretch">
@@ -36,13 +42,13 @@
 		<div class="card-body">
 		    <dl class="row">
 			<dt class="col-sm-4">Created</dt>
-			<dd class="col-sm-8"><placeholder :when="zome">{{ $filters.time( zome.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8"><placeholder :when="!$zome.current">{{ $filters.time( zome.published_at, "weekday+date" ) }}</placeholder></dd>
 
 			<dt class="col-sm-4">Last Updated</dt>
-			<dd class="col-sm-8"><placeholder :when="zome">{{ $filters.time( zome.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8"><placeholder :when="!$zome.current">{{ $filters.time( zome.last_updated, "weekday+date" ) }}</placeholder></dd>
 
 			<dt class="col-sm-4">Authors</dt>
-			<dd class="col-sm-8"><placeholder :when="zome">N/A</placeholder></dd>
+			<dd class="col-sm-8"><placeholder :when="!$zome.current">N/A</placeholder></dd>
 		    </dl>
 		</div>
 	    </div>
@@ -55,9 +61,9 @@
 		</div>
 		<div class="card-body">
 		    <dl class="row">
-			<dt class="col-sm-12"><placeholder :when="zome">{{ zome.developer.pubkey }}</placeholder></dt>
+			<dt class="col-sm-12"><placeholder :when="!$zome.current">{{ zome.developer.pubkey }}</placeholder></dt>
 			<dd class="col-sm-12">
-			    <placeholder :when="zome">
+			    <placeholder :when="!$zome.current">
 				<span v-if="zome.developer.website">
 				    <a href="#" target="_blank">website</a>
 				</span>
@@ -72,7 +78,12 @@
 
     <div class="mt-5">
 	<div class="d-flex mb-4">
-	    <h2 class="fs-4 flex-grow-1">Zome Versions</h2>
+	    <h2 class="fs-4 flex-grow-1">
+		Zome Versions
+		<a v-if="$versions.loaded" @click="fetchZomeVersions()" class="ms-2 fs-4">
+		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.loading }"></i>
+		</a>
+	    </h2>
 
             <router-link v-if="zome" :to="'/zomes/' + id + '/versions/new'"
 			 class="btn btn-primary text-nowrap"
@@ -82,15 +93,15 @@
             </router-link>
 	</div>
 
-	<list-group :list="versions" no-result-text="No Zome Versions" :loading="loading_versions">
+	<list-group :list="versions" no-result-text="No Zome Versions" :loading="$versions.loading">
 	    <div class="row px-3">
-		<div class="col-3 fw-7">
+		<div class="col-2 fw-7">
 		    Version #
 		</div>
-		<div class="col-3 fw-7">
+		<div class="col-4 fw-7">
 		    Created
 		</div>
-		<div class="col-3 fw-7">
+		<div class="col-2 fw-7">
 		    File size
 		</div>
 		<div class="col"></div>
@@ -100,16 +111,16 @@
 
 	    <list-group-item v-for="version in versions" class="py-3">
 		<div class="row align-items-center">
-		    <div class="col-3">
+		    <div class="col-2">
 			<h3 class="fs-6 m-0">{{ version.version }}</h3>
 		    </div>
-		    <div class="col-3">
+		    <div class="col-4">
 			Created on {{ $filters.time( version.published_at, "weekday+date" ) }}
 		    </div>
-		    <div class="col-3">
+		    <div class="col-2">
 			N/A
 		    </div>
-		    <div class="col text-end">
+		    <div class="col text-end text-nowrap">
 			<a @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">
 			    Unpublish
 			</a>
@@ -130,8 +141,8 @@
 		<p>Are you sure you want to deprecate the <strong>{{ zome.name }}</strong> Zome?</p>
 	    </div>
 	    <input-feedback>
-		<textarea v-model="deprecation.message" placeholder="Reason (optional)" required
-			  class="form-control" rows="4"></textarea>
+		<textarea v-model="deprecation.message" class="form-control" rows="4"
+			  placeholder="Reason (optional)" required :disabled="$zome.deprecating"></textarea>
 	    </input-feedback>
 	</form>
     </modal>

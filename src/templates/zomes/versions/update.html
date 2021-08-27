@@ -9,17 +9,18 @@
     <form ref="form" :class="{ 'was-validated': validated }"
 	  class="flex-grow-1 d-flex flex-column">
 	<div class="mb-4">
-	    <h1 class="fs-2"><placeholder :when="zome" size="fill">{{ zome.name }}</placeholder></h1>
+	    <h1 class="fs-2"><placeholder :when="!$zome.current" size="fill">{{ zome.name }}</placeholder></h1>
 	</div>
 
 	<page-header class="mb-2 py-3">
 	    <template #default>
 		<h2 class="fs-5 text-nowrap">
-		    <placeholder :when="version" size="fill">
+		    <placeholder :when="!$version.current" size="fill">
 			<input-feedback class="w-auto">
-			    <input type="number" @change="copy(version, input, 'version')" v-model.number="version.version"
+			    <input type="number" v-model="version.version"
 				   class="form-control d-inline-block" style="width: 6em;"
-				   :disabled="saving" required>
+				   @change="copy(version, input, 'version')"
+				   :disabled="$version.updating" required>
 			</input-feedback>
 			<span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
 		    </placeholder>
@@ -29,7 +30,11 @@
 	    <template #title-extras>
 		<router-link :to="'/zomes/' + zome_id + '/versions/' + id" class="btn btn-outline-primary">Cancel</router-link>
 
-		<a @click="update()" class="btn btn-primary ms-5">Save changes</a>
+		<a @click="update()" class="btn btn-primary ms-5" :class="{ 'disabled': $version.updating }">
+		    <span v-if="$version.updating"
+			  class="spinner-border spinner-border-sm me-3"></span>
+		    Save changes
+		</a>
 	    </template>
 	</page-header>
 
@@ -42,12 +47,13 @@
 			   @click="toggleChangelogPreview()">{{ preview_toggle_text }}</a>
 		    </div>
 		    <div class="card-body">
-			<placeholder :when="version" size="p" class="h-100">
-			    <div v-if="show_changelog_preview" v-html="changelog_markdown"></div>
+			<placeholder :when="!$version.current" size="p" class="h-100">
+			    <div v-if="show_changelog_preview" v-html="changelog_html"></div>
 			    <input-feedback v-else class="h-100">
-				<textarea @change="copy(version, input, 'changelog')" v-model="version.changelog"
+				<textarea v-model="version.changelog" class="form-control font-monospace h-100 border-0 shadow-none" rows="10"
+					  @change="copy(version, input, 'changelog')"
 					  @keyup="debounce( updateChangelogMarkdown, 500 )"
-					  class="form-control font-monospace h-100" rows="10" :disabled="saving"></textarea>
+					  :disabled="$version.updating"></textarea>
 			    </input-feedback>
 			</placeholder>
 		    </div>
@@ -62,10 +68,10 @@
 		    <div class="card-body">
 			<dl class="row">
 			    <dt class="col-sm-12">Created</dt>
-			    <dd class="col-sm-12"><placeholder :when="version">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
+			    <dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
 
 			    <dt class="col-sm-12">Last Updated</dt>
-			    <dd class="col-sm-12"><placeholder :when="version">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
+			    <dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
 			</dl>
 		    </div>
 		</div>

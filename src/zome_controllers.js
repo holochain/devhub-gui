@@ -1,9 +1,6 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zomes");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
-const { sort_by_object_key }		= require('./common.js');
-
 
 module.exports = async function ( client ) {
 
@@ -13,29 +10,31 @@ module.exports = async function ( client ) {
 	    "data": function() {
 		return {
 		    "order_by": "published_at",
-		    "zomes": [],
-		    "loading_zomes": true,
 		};
 	    },
 	    async created () {
 		this.refresh();
 	    },
+	    "computed": {
+		zomes () {
+		    const zomes		= this.$store.getters.zomes().collection;
+		    return this.sort_by_object_key( zomes, "created_at" );
+		},
+		$zomes () {
+		    return this.$store.getters.zomes().metadata;
+		},
+	    },
 	    "methods": {
 		refresh () {
-		    this.fetchZomes();
+		    if ( this.zomes.length === 0 )
+			this.fetchZomes();
 		},
 		async fetchZomes () {
-		    this.loading_zomes	= true;
-
-		    log.debug("Getting zome list...");
-		    let zomes		= await client.call(
-			"dnarepo", "dna_library", "get_my_zomes"
-		    );
-
-		    log.info("Found %s Zomes in Collection for %s", zomes.length, String( zomes.$base ) );
-		    this.zomes		= sort_by_object_key( zomes, "created_at" );
-
-		    this.loading_zomes	= false;
+		    try {
+			await this.$store.dispatch("fetchZomes", { "agent": "me" });
+		    } catch (err) {
+			log.error("Failed to get zomes: %s", err.message, err );
+		    }
 		},
 	    },
 	};
@@ -69,9 +68,8 @@ module.exports = async function ( client ) {
 
 		    this.saving		= true;
 		    try {
-			let zome	= await client.call(
-			    "dnarepo", "dna_library", "create_zome", this.input
-			);
+			const zome	= await this.$store.dispatch("createZome", this.input );
+
 			this.$router.push( "/zomes/" + zome.$id );
 		    } catch ( err ) {
 			log.error("Failed to create Zome:", err );
@@ -91,31 +89,37 @@ module.exports = async function ( client ) {
 		return {
 		    "id": null,
 		    "error": null,
-		    "zome": null,
 		    "input": {},
 		    "validated": false,
-		    "saving": false,
 		};
 	    },
 	    "computed": {
+		zome () {
+		    return this.$store.getters.zome( this.id ).entity;
+		},
+		$zome () {
+		    console.log("Zome updating:", this.$store.getters.zome( this.id ).metadata.updating );
+		    return this.$store.getters.zome( this.id ).metadata;
+		},
 		form () {
 		    return this.$refs["form"];
 		},
 	    },
 	    async created () {
-		this.id			= new HoloHashes.EntryHash( this.$route.params.id );
+		this.id			= this.getPathId("id");
 
-		this.fetchZome();
+		if ( !this.zome )
+		    this.fetchZome();
 	    },
 	    "methods": {
 		async fetchZome () {
-		    log.debug("Getting zome %s", String(this.id) );
-		    let zome		= await client.call(
-			"dnarepo", "dna_library", "get_zome", { "id": this.id }
-		    );
+		    try {
+			await this.$store.dispatch("fetchZome", this.id );
+		    } catch (err) {
+			this.catchStatusCodes([ 404, 500 ], err );
 
-		    log.info("Received zome: %s", zome.name, zome );
-		    this.zome		= zome;
+			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
+		    }
 		},
 		async update () {
 		    this.validated	= true;
@@ -123,21 +127,13 @@ module.exports = async function ( client ) {
 		    if ( this.form.checkValidity() === false )
 			return;
 
-		    this.saving		= true;
 		    try {
-			let zome	= await client.call(
-			    "dnarepo", "dna_library", "update_zome", {
-				"id": this.id,
-				"addr": this.zome.$addr,
-				"properties": this.input,
-			    }
-			);
+			await this.$store.dispatch("updateZome", [ this.id, this.input ] );
+
 			this.$router.push( "/zomes/" + this.id );
 		    } catch ( err ) {
-			log.error("Failed to update Zome (%s):", String(this.zome.$id), err );
+			log.error("Failed to update Zome (%s):", String(this.id), err );
 			this.error	= err;
-		    } finally {
-			this.saving	= false;
 		    }
 		},
 	    },
@@ -150,10 +146,6 @@ module.exports = async function ( client ) {
 	    "data": function() {
 		return {
 		    "id": null,
-		    "zome": null,
-		    "versions": [],
-		    "loading_zome": true,
-		    "loading_versions": true,
 		    "deprecation": {
 			"message": null,
 		    },
@@ -162,11 +154,24 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    async created () {
-		this.id			= new HoloHashes.EntryHash( this.$route.params.id );
+		window.View		= this;
+		this.id			= this.getPathId("id");
 
 		this.refresh();
 	    },
 	    "computed": {
+		zome () {
+		    return this.$store.getters.zome( this.id ).entity;
+		},
+		$zome () {
+		    return this.$store.getters.zome( this.id ).metadata;
+		},
+		versions () {
+		    return this.$store.getters.zome_versions( this.id ).collection;
+		},
+		$versions () {
+		    return this.$store.getters.zome_versions( this.id ).metadata;
+		},
 		form () {
 		    return this.$refs["form"];
 		},
@@ -182,39 +187,27 @@ module.exports = async function ( client ) {
 	    },
 	    "methods": {
 		refresh () {
-		    this.fetchZome();
-		    this.fetchZomeVersions();
+		    if ( !this.zome )
+			this.fetchZome();
+
+		    if ( this.versions.length === 0 )
+			this.fetchZomeVersions();
 		},
 		async fetchZome () {
-		    this.loading_zome	= true;
-
 		    try {
-			log.debug("Getting zome %s", String(this.id) );
-			let zome		= await client.call(
-			    "dnarepo", "dna_library", "get_zome", { "id": this.id }
-			);
-
-			log.info("Received zome: %s", zome.name, zome );
-			this.zome		= zome;
-			this.loading_zome	= false;
+			await this.$store.dispatch("fetchZome", this.id );
 		    } catch (err) {
-			if ( err.name === "EntryNotFoundError" )
-			    return this.$root.showStatusView( 404 );
+			this.catchStatusCodes([ 404, 500 ], err );
 
 			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
 		    }
 		},
 		async fetchZomeVersions () {
-		    this.loading_versions	= true;
-
-		    log.debug("Getting zome versions for %s", String(this.id) );
-		    let versions	= await client.call(
-			"dnarepo", "dna_library", "get_zome_versions", { "for_zome": this.id }
-		    );
-
-		    log.info("Received %s versions for %s", versions.length, String(versions.$base) );
-		    this.versions		= versions;
-		    this.loading_versions	= false;
+		    try {
+			await this.$store.dispatch("fetchVersionsForZome", this.id );
+		    } catch (err) {
+			log.error("Failed to get versions for zome (%s): %s", String(this.id), err.message, err );
+		    }
 		},
 		async deprecate () {
 		    this.validated	= true;
@@ -222,32 +215,23 @@ module.exports = async function ( client ) {
 		    if ( this.form.checkValidity() === false )
 			return;
 
-		    log.normal("Deprecating Zome '%s' (%s)", this.zome.name, String(this.zome.$id) );
-		    this.zome		= await client.call(
-			"dnarepo", "dna_library", "deprecate_zome", {
-			    "addr": this.id,
-			    "message": this.deprecation.message,
-			}
-		    );
+		    await this.$store.dispatch("deprecateZome", [ this.id, this.deprecation ] );
+
 		    this.deprecation	= {
 			"message": null,
 		    };
 
 		    this.modal.hide();
+
+		    this.$store.dispatch("fetchZomes", { "agent": "me" });
 		},
 		promptUnpublish ( version ) {
-		    this.version		= version;
+		    this.version	= version;
 		    this.unpublishModal.show();
 		},
 		async unpublish () {
-		    log.normal("Deleting Zome Version '%s' (%s)", this.version.version, String(this.version.$id) );
-		    await client.call(
-			"dnarepo", "dna_library", "delete_zome_version", {
-			    "id": this.version.$id,
-			}
-		    );
+		    await this.$store.dispatch("unpublishZomeVersion", this.version.$id );
 
-		    this.version		= null;
 		    this.unpublishModal.hide();
 		    this.fetchZomeVersions();
 		},
