@@ -1,12 +1,12 @@
 const { Logger }			= require('@whi/weblogger');
-const log				= new Logger("zomes");
+const log				= new Logger("dnas");
 
 
 module.exports = async function ( client ) {
 
     async function list () {
 	return {
-	    "template": (await import("./templates/zomes/list.html")).default,
+	    "template": (await import("./templates/dnas/list.html")).default,
 	    "data": function() {
 		return {
 		    "order_by": "published_at",
@@ -16,24 +16,24 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
-		zomes () {
-		    const zomes		= this.$store.getters.zomes().collection;
-		    return this.sort_by_object_key( zomes, this.order_by );
+		dnas () {
+		    const dnas		= this.$store.getters.dnas().collection;
+		    return this.sort_by_object_key( dnas, this.order_by );
 		},
-		$zomes () {
-		    return this.$store.getters.zomes().metadata;
+		$dnas () {
+		    return this.$store.getters.dnas().metadata;
 		},
 	    },
 	    "methods": {
 		refresh () {
-		    if ( this.zomes.length === 0 )
-			this.fetchZomes();
+		    if ( this.dnas.length === 0 )
+			this.fetchDnas();
 		},
-		async fetchZomes () {
+		async fetchDnas () {
 		    try {
-			await this.$store.dispatch("fetchZomes", { "agent": "me" });
+			await this.$store.dispatch("fetchDnas", { "agent": "me" });
 		    } catch (err) {
-			log.error("Failed to get zomes: %s", err.message, err );
+			log.error("Failed to get dnas: %s", err.message, err );
 		    }
 		},
 	    },
@@ -42,7 +42,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/zomes/create.html")).default,
+	    "template": (await import("./templates/dnas/create.html")).default,
 	    "data": function() {
 		return {
 		    "error": null,
@@ -68,11 +68,11 @@ module.exports = async function ( client ) {
 
 		    this.saving		= true;
 		    try {
-			const zome	= await this.$store.dispatch("createZome", this.input );
+			const dna	= await this.$store.dispatch("createDna", this.input );
 
-			this.$router.push( "/zomes/" + zome.$id );
+			this.$router.push( "/dnas/" + dna.$id );
 		    } catch ( err ) {
-			log.error("Failed to create Zome:", err );
+			log.error("Failed to create Dna:", err );
 			this.error	= err;
 		    } finally {
 			this.saving	= false;
@@ -84,7 +84,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/zomes/update.html")).default,
+	    "template": (await import("./templates/dnas/update.html")).default,
 	    "data": function() {
 		return {
 		    "id": null,
@@ -94,12 +94,12 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		zome () {
-		    return this.$store.getters.zome( this.id ).entity;
+		dna () {
+		    return this.$store.getters.dna( this.id ).entity;
 		},
-		$zome () {
-		    console.log("Zome updating:", this.$store.getters.zome( this.id ).metadata.updating );
-		    return this.$store.getters.zome( this.id ).metadata;
+		$dna () {
+		    console.log("Dna updating:", this.$store.getters.dna( this.id ).metadata.updating );
+		    return this.$store.getters.dna( this.id ).metadata;
 		},
 		form () {
 		    return this.$refs["form"];
@@ -108,17 +108,17 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.id			= this.getPathId("id");
 
-		if ( !this.zome )
-		    this.fetchZome();
+		if ( !this.dna )
+		    this.fetchDna();
 	    },
 	    "methods": {
-		async fetchZome () {
+		async fetchDna () {
 		    try {
-			await this.$store.dispatch("fetchZome", this.id );
+			await this.$store.dispatch("fetchDna", this.id );
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 
-			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get dna (%s): %s", String(this.id), err.message, err );
 		    }
 		},
 		async update () {
@@ -128,11 +128,11 @@ module.exports = async function ( client ) {
 			return;
 
 		    try {
-			await this.$store.dispatch("updateZome", [ this.id, this.input ] );
+			await this.$store.dispatch("updateDna", [ this.id, this.input ] );
 
-			this.$router.push( "/zomes/" + this.id );
+			this.$router.push( "/dnas/" + this.id );
 		    } catch ( err ) {
-			log.error("Failed to update Zome (%s):", String(this.id), err );
+			log.error("Failed to update Dna (%s):", String(this.id), err );
 			this.error	= err;
 		    }
 		},
@@ -142,7 +142,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/zomes/single.html")).default,
+	    "template": (await import("./templates/dnas/single.html")).default,
 	    "data": function() {
 		return {
 		    "id": null,
@@ -160,17 +160,17 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
-		zome () {
-		    return this.$store.getters.zome( this.id ).entity;
+		dna () {
+		    return this.$store.getters.dna( this.id ).entity;
 		},
-		$zome () {
-		    return this.$store.getters.zome( this.id ).metadata;
+		$dna () {
+		    return this.$store.getters.dna( this.id ).metadata;
 		},
 		versions () {
-		    return this.$store.getters.zome_versions( this.id ).collection;
+		    return this.$store.getters.dna_versions( this.id ).collection;
 		},
 		$versions () {
-		    return this.$store.getters.zome_versions( this.id ).metadata;
+		    return this.$store.getters.dna_versions( this.id ).metadata;
 		},
 		form () {
 		    return this.$refs["form"];
@@ -182,31 +182,31 @@ module.exports = async function ( client ) {
 		    return this.$refs["unpublishModal"].modal;
 		},
 		deprecated () {
-		    return !!( this.zome && this.zome.deprecation );
+		    return !!( this.dna && this.dna.deprecation );
 		},
 	    },
 	    "methods": {
 		refresh () {
-		    if ( !this.zome )
-			this.fetchZome();
+		    if ( !this.dna )
+			this.fetchDna();
 
 		    if ( this.versions.length === 0 )
-			this.fetchZomeVersions();
+			this.fetchDnaVersions();
 		},
-		async fetchZome () {
+		async fetchDna () {
 		    try {
-			await this.$store.dispatch("fetchZome", this.id );
+			await this.$store.dispatch("fetchDna", this.id );
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 
-			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get dna (%s): %s", String(this.id), err.message, err );
 		    }
 		},
-		async fetchZomeVersions () {
+		async fetchDnaVersions () {
 		    try {
-			await this.$store.dispatch("fetchVersionsForZome", this.id );
+			await this.$store.dispatch("fetchVersionsForDna", this.id );
 		    } catch (err) {
-			log.error("Failed to get versions for zome (%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get versions for dna (%s): %s", String(this.id), err.message, err );
 		    }
 		},
 		async deprecate () {
@@ -215,7 +215,7 @@ module.exports = async function ( client ) {
 		    if ( this.form.checkValidity() === false )
 			return;
 
-		    await this.$store.dispatch("deprecateZome", [ this.id, this.deprecation ] );
+		    await this.$store.dispatch("deprecateDna", [ this.id, this.deprecation ] );
 
 		    this.deprecation	= {
 			"message": null,
@@ -223,17 +223,17 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 
-		    this.$store.dispatch("fetchZomes", { "agent": "me" });
+		    this.$store.dispatch("fetchDnas", { "agent": "me" });
 		},
 		promptUnpublish ( version ) {
 		    this.version	= version;
 		    this.unpublishModal.show();
 		},
 		async unpublish () {
-		    await this.$store.dispatch("unpublishZomeVersion", this.version.$id );
+		    await this.$store.dispatch("unpublishDnaVersion", this.version.$id );
 
 		    this.unpublishModal.hide();
-		    this.fetchZomeVersions();
+		    this.fetchDnaVersions();
 		},
 	    },
 	};

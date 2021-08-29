@@ -16,8 +16,11 @@ const store_init			= require('./store.js');
 const common				= require('./common.js');
 const filters				= require('./filters.js');
 const components			= require('./components.js');
+
 const zomes_init			= require('./zome_controllers.js');
 const zome_versions_init		= require('./zome_version_controllers.js');
+const dnas_init				= require('./dna_controllers.js');
+const dna_versions_init			= require('./dna_version_controllers.js');
 
 
 const AGENT_HASH			= window.localStorage.getItem("AGENT_PUBKEY");
@@ -61,6 +64,8 @@ window._Vue				= Vue;
     const store				= await store_init( client, Vue );
     const zome_controllers		= await zomes_init( client );
     const zome_version_controllers	= await zome_versions_init( client );
+    const dna_controllers		= await dnas_init( client );
+    const dna_version_controllers	= await dna_versions_init( client );
 
     const route_components		= [
 	[ "/",					zome_controllers.list,			"Dashboard" ],
@@ -71,6 +76,14 @@ window._Vue				= Vue;
 	[ "/zomes/:zome/versions/new",		zome_version_controllers.create,	"Add Zome Version" ],
 	[ "/zomes/:zome/versions/:id",		zome_version_controllers.single,	"Zome Version Info" ],
 	[ "/zomes/:zome/versions/:id/update",	zome_version_controllers.update,	"Edit Version" ],
+
+	[ "/dnas",				dna_controllers.list,			"Dnas" ],
+	[ "/dnas/new",				dna_controllers.create,			"Add Dna" ],
+	[ "/dnas/:id",				dna_controllers.single,			"Dna Info" ],
+	[ "/dnas/:id/update",			dna_controllers.update,			"Edit Dna" ],
+	[ "/dnas/:dna/versions/new",		dna_version_controllers.create,		"Add Dna Version" ],
+	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"Dna Version Info" ],
+	[ "/dnas/:dna/versions/:id/update",	dna_version_controllers.update,		"Edit Version" ],
     ];
 
     const breadcrumb_mapping		= {};

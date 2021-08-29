@@ -83,8 +83,16 @@ const ListGroup = {
 };
 
 const ListGroupItem = {
+    data () {
+	return {
+	    "action": false,
+	};
+    },
+    mounted () {
+	this.action			= !!this.$attrs["action"];
+    },
     "template": `
-<div class="list-group-item list-group-item-action px-3">
+<div class="list-group-item px-3" :class="{ 'list-group-item-action': this.action }">
     <slot></slot>
 </div>`,
 };

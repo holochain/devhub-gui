@@ -129,3 +129,18 @@ test-unit:
 	npx mocha ./tests/unit
 test-unit-debug:
 	LOG_LEVEL=silly npx mocha ./tests/unit
+
+
+#
+# Repository
+#
+clean-remove-chaff:
+	@find . -name '*~' -exec rm {} \;
+clean-files:		clean-remove-chaff
+	git clean -nd
+clean-files-force:	clean-remove-chaff
+	git clean -fd
+clean-files-all:	clean-remove-chaff
+	git clean -ndx
+clean-files-all-force:	clean-remove-chaff
+	git clean -fdx

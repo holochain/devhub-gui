@@ -23,6 +23,96 @@
     <body>
 	<div class="container">
 	    <div class="my-5">
+		<h1>Forms</h1>
+
+		<div class="fs-3">
+		    <label class="form-label fw-6">Search with dropdown</label>
+		    <div class="form-input-search">
+			<input type="text" class="form-control" placeholder="Search for something..."
+			       onfocus="this.parentElement.classList.add('show-results')"
+			       onblur="this.parentElement.classList.remove('show-results')">
+
+			<ul class="list-group">
+			    <li class="list-group-item">An item</li>
+			    <li class="list-group-item">A second item</li>
+			</ul>
+		    </div>
+		</div>
+
+		<div>
+		    <label class="form-label fw-6">Search with dropdown</label>
+		    <div class="form-input-search">
+			<input type="text" class="form-control" placeholder="Search for something..."
+			       onfocus="this.parentElement.classList.add('show-results')"
+			       onblur="this.parentElement.classList.remove('show-results')">
+
+			<div class="list-group">
+			    <div class="list-group-item list-group-item-action" aria-current="true">
+				<div class="d-flex w-100 justify-content-between">
+				    <h5 class="mb-1">List group item heading</h5>
+				    <small>3 days ago</small>
+				</div>
+				<p class="mb-1">Some placeholder content in a paragraph.</p>
+				<small>And some small print.</small>
+			    </div>
+			    <div class="list-group-item list-group-item-action" aria-current="true">
+				<div class="d-flex w-100 justify-content-between">
+				    <h5 class="mb-1">List group item heading</h5>
+				    <small>3 days ago</small>
+				</div>
+				<p class="mb-1">Some placeholder content in a paragraph.</p>
+				<small>And some small print.</small>
+			    </div>
+			    <div class="list-group-item list-group-item-action" aria-current="true">
+				<div class="d-flex w-100 justify-content-between">
+				    <h5 class="mb-1">List group item heading</h5>
+				    <small>3 days ago</small>
+				</div>
+				<p class="mb-1">Some placeholder content in a paragraph.</p>
+				<small>And some small print.</small>
+			    </div>
+			</div>
+		    </div>
+		</div>
+
+		<br>
+
+		<div>
+		    <label class="form-label fw-6">Search box</label>
+		    <div class="form-input-search">
+			<input type="text" class="form-control" placeholder="Search for something...">
+		    </div>
+		</div>
+
+		<br>
+
+		<div>
+		    <label class="form-label">Choose something</label>
+		    <select class="form-select">
+			<option selected>Open this select menu</option>
+			<option value="1">One</option>
+			<option value="2">Two</option>
+			<option value="3">Three</option>
+		    </select>
+		</div>
+
+		<div>
+		    <label class="form-label">Title</label>
+		    <input type="text" class="form-control" placeholder="Type here...">
+		</div>
+
+		<div>
+		    <label class="form-label">Message</label>
+		    <textarea class="form-control" rows="3" placeholder="Type here..."></textarea>
+		</div>
+
+		<label class="form-label fw-6">Drag and drop Zome here</label>
+		<input type="file" class="form-control form-input-file">
+	    </div>
+
+	    <hr>
+
+	    <div class="my-5">
 		<h1>Breadcrumbs</h1>
 
 		<div class="d-flex align-items-center">
@@ -132,50 +222,6 @@
 		    <i class="bi-plus-lg"></i>
 		    Create new version
 		</button>
-	    </div>
-
-	    <hr>
-
-	    <div class="my-5">
-		<h1>Forms</h1>
-
-		<div>
-		    <label class="form-label fw-6">Search box</label>
-		    <div class="form-input-search">
-			<input type="text" class="form-control" placeholder="Search for something...">
-		    </div>
-		</div>
-
-		<br>
-
-		<div>
-		    <label class="form-label fw-6">Search box</label>
-		    <div class="form-input-search">
-			<input type="text" class="form-control" placeholder="Search for something...">
-		    </div>
-		</div>
-
-		<br>
-
-		<div>
-		    <label class="form-label">Choose something</label>
-		    <select class="form-select">
-			<option selected>Open this select menu</option>
-			<option value="1">One</option>
-			<option value="2">Two</option>
-			<option value="3">Three</option>
-		    </select>
-		</div>
-
-		<div>
-		    <label class="form-label">Title</label>
-		    <input type="text" class="form-control" placeholder="Type here...">
-		</div>
-
-		<div>
-		    <label class="form-label">Message</label>
-		    <textarea class="form-control" rows="3" placeholder="Type here..."></textarea>
-		</div>
 	    </div>
 	</div>
 	<!-- Bootstrap Components -->

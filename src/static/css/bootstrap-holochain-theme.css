@@ -11,7 +11,7 @@ body {
 }
 
 [v-cloak] {
-  display: none;
+  display: none !important;
 }
 
 .fw-1 { font-weight: 100 !important; }
@@ -180,37 +180,70 @@ a.text-primary:hover {
 .form-control:focus {
   border-color: #4820E3;
 }
+.form-control.no-validate {
+  border-color: #ced4da !important;
+  padding-right: .75rem !important;
+  background: none !important;
+}
 .form-select {
   padding: .26rem 2.25rem .26rem .9rem;
   cursor: pointer;
 }
 
-.input-group-text {
-  background-color: transparent;
-}
-
-.input-group>:not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
-  border-left: none;
-}
-
+/* .input-group-text { */
+/*   background-color: transparent; */
+/* } */
+/* .input-group>:not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) { */
+/*   border-left: none; */
+/* } */
 .form-input-search {
   position: relative;
 }
+.form-input-search .list-group {
+  display: none;
+  position: absolute;
+  z-index: 10;
+  width: 100%;
+  margin-top: -1px;
+}
+.form-input-search .list-group-item:first-child {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.form-input-search input.form-control {
+  font-size: 1em;
+}
+.form-input-search input:focus {
+  z-index: 11;
+}
 .form-input-search input {
-  padding-left: 3rem;
+  padding-left: 3em;
+}
+.form-input-search.show-results input {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.form-input-search input:focus {
+  border: 1px solid #ced4da;
+  box-shadow: none;
+}
+.form-input-search.show-results .list-group {
+  display: block;
 }
 .form-input-search::before {
   content: "\f52a";
+  font-size: 1em;
   font-family: bootstrap-icons !important;
   font-style: normal;
   font-weight: normal !important;
   font-variant: normal;
   text-transform: none;
-  line-height: 1;
-  margin-top: -8px;
+  line-height: 1em;
+  margin-top: -.45em;
+  z-index: 11;
   position: absolute;
   top: 50%;
-  left: 16px;
+  left: 1.1em;
 }
 .form-input-file {
   position: relative;
