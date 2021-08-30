@@ -28,10 +28,28 @@
     <body>
 	<div id="app" v-cloak class="row">
 	    <div class="col-auto">
-		<div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 12rem; height: 100vh; font-size: 2em;">
-		    <ul class="col nav nav-pills nav-flush flex-column mb-auto text-center">
-			<li class="my-2">
-			    <a href="/" class="nav-link" title="Home"><img src="/holochain-home.png"></a>
+		<div class="d-flex flex-column flex-shrink-0 bg-light"
+		     style="width: 12rem; height: 100vh;">
+		    <ul class="list-group list-group-flush">
+			<li class="list-group-item list-group-item-action text-center">
+			    <a href="/" class="nav-link" title="Home">
+				<img src="/holochain-home.png">
+			    </a>
+			</li>
+			<li class="list-group-item list-group-item-action">
+			    <router-link to="/happs" class="nav-link">
+				My hApps
+			    </router-link>
+			</li>
+			<li class="list-group-item list-group-item-action">
+			    <router-link to="/dnas" class="nav-link">
+				My DNAs
+			    </router-link>
+			</li>
+			<li class="list-group-item list-group-item-action">
+			    <router-link to="/zomes" class="nav-link">
+				My Zomes
+			    </router-link>
 			</li>
 		    </ul>
 		</div>

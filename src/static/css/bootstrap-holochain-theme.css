@@ -45,6 +45,7 @@ a:hover {
 .text-primary {
   color: #4820E3 !important;
 }
+.nav-link:focus, .nav-link:hover,
 a.text-primary:hover {
   color: #3316a5;
 }

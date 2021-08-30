@@ -5,12 +5,12 @@
 
     <div class="row">
 	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
-	    <label class="form-label fw-6">Dna Name</label>
+	    <label class="form-label fw-6">DNA Name</label>
 	    <input-feedback valid-message="That's a great name!">
 		<input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
 	    </input-feedback>
 
-	    <label class="form-label fw-6">Dna Description</label>
+	    <label class="form-label fw-6">DNA Description</label>
 	    <input-feedback>
 		<textarea v-model="input.description" class="form-control" rows="3" :disabled="saving" required></textarea>
 	    </input-feedback>

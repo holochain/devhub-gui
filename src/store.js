@@ -94,7 +94,6 @@ module.exports = async function ( client, Vue ) {
 		    "metadata":		getters.metadata( path ),
 		};
 	    },
-
 	    zome_version_wasm: ( state, getters ) => ( addr ) =>  {
 		const path		= dataTypePath.zomeVersionWasm( addr );
 		return {
@@ -103,7 +102,7 @@ module.exports = async function ( client, Vue ) {
 	    },
 
 	    //
-	    // Dna
+	    // DNA
 	    //
 	    dnas: ( state, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.dnas( agent );
@@ -133,9 +132,46 @@ module.exports = async function ( client, Vue ) {
 		    "metadata":		getters.metadata( path ),
 		};
 	    },
-
 	    dna_version_package: ( state, getters ) => ( addr ) =>  {
 		const path		= dataTypePath.dnaVersionPackage( addr );
+		return {
+		    "metadata":		getters.metadata( path ),
+		};
+	    },
+
+	    //
+	    // hApp
+	    //
+	    happs: ( state, getters ) => ( agent = "me" ) => {
+		const path		= dataTypePath.happs( agent );
+		return {
+		    "collection":	getters.collection( path ),
+		    "metadata":		getters.metadata( path ),
+		};
+	    },
+	    happ: ( state, getters ) => ( id ) => {
+		const path		= dataTypePath.happ( id );
+		return {
+		    "entity":		getters.entity( path ),
+		    "metadata":		getters.metadata( path ),
+		};
+	    },
+	    happ_releases: ( state, getters ) => ( happ_id ) =>  {
+		const path		= dataTypePath.happReleases( happ_id );
+		return {
+		    "collection":	getters.collection( path ),
+		    "metadata":		getters.metadata( path ),
+		};
+	    },
+	    happ_release: ( state, getters ) => ( id ) =>  {
+		const path		= dataTypePath.happRelease( id );
+		return {
+		    "entity":		getters.entity( path ),
+		    "metadata":		getters.metadata( path ),
+		};
+	    },
+	    happ_release_package: ( state, getters ) => ( addr ) =>  {
+		const path		= dataTypePath.happReleasePackage( addr );
 		return {
 		    "metadata":		getters.metadata( path ),
 		};
@@ -242,12 +278,38 @@ module.exports = async function ( client, Vue ) {
 		    );
 		}
 
-		log.info("Found %s Dnas in Collection for %s", dnas.length, String( dnas.$base ) );
+		log.info("Found %s DNAs in Collection for %s", dnas.length, String( dnas.$base ) );
 
 		commit("cacheCollection", [ path, dnas ] );
 		commit("recordLoaded", path );
 
 		return dnas;
+	    },
+
+	    async fetchHapps ({ commit }, { agent } ) {
+		const path		= dataTypePath.happs( agent );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting %s happs", agent );
+		let happs;
+		if ( agent === "me" ) {
+		    happs		= await client.call(
+			"happs", "happ_library", "get_my_happs"
+		    );
+		}
+		else {
+		    happs		= await client.call(
+			"happs", "happ_library", "get_happs", { agent }
+		    );
+		}
+
+		log.info("Found %s hApps in Collection for %s", happs.length, String( happs.$base ) );
+
+		commit("cacheCollection", [ path, happs ] );
+		commit("recordLoaded", path );
+
+		return happs;
 	    },
 
 
@@ -448,7 +510,7 @@ module.exports = async function ( client, Vue ) {
 
 
 	    //
-	    // Dna
+	    // DNA
 	    //
 	    async fetchDna ({ commit }, id ) {
 		const path		= dataTypePath.dna( id );
@@ -487,7 +549,7 @@ module.exports = async function ( client, Vue ) {
 	    },
 
 	    async createDna ({ commit }, input ) {
-		log.normal("Creating Dna: %s", input.name );
+		log.normal("Creating DNA: %s", input.name );
 		const dna		= await client.call(
 		    "dnarepo", "dna_library", "create_dna", input
 		);
@@ -504,7 +566,7 @@ module.exports = async function ( client, Vue ) {
 
 		commit("metadata", [ path, { "updating": true }] );
 
-		log.normal("Updating Dna (%s)", String(entity.$addr) );
+		log.normal("Updating DNA (%s)", String(entity.$addr) );
 		try {
 		    const dna		= await client.call(
 			"dnarepo", "dna_library", "update_dna", {
@@ -528,7 +590,7 @@ module.exports = async function ( client, Vue ) {
 
 		commit("metadata", [ path, { "deprecating": true }] );
 
-		log.normal("Deprecating Dna (%s) because: %s", String(entity.$addr), message );
+		log.normal("Deprecating DNA (%s) because: %s", String(entity.$addr), message );
 		try {
 		    const dna		= await client.call(
 			"dnarepo", "dna_library", "deprecate_dna", {
@@ -548,7 +610,7 @@ module.exports = async function ( client, Vue ) {
 
 
 	    //
-	    // Dna Version
+	    // DNA Version
 	    //
 	    async fetchDnaVersion ({ commit }, id ) {
 		const path		= dataTypePath.dnaVersion( id );
@@ -587,7 +649,7 @@ module.exports = async function ( client, Vue ) {
 	    },
 
 	    async createDnaVersion ({ commit }, [ dna_id, input ] ) {
-		log.normal("Creating Dna Version: #%s", input.version );
+		log.normal("Creating DNA Version: #%s", input.version );
 
 		input.for_dna		= dna_id;
 
@@ -607,7 +669,7 @@ module.exports = async function ( client, Vue ) {
 
 		commit("metadata", [ path, { "updating": true }] );
 
-		log.normal("Updating Dna Version (%s)", String(entity.$addr) );
+		log.normal("Updating DNA Version (%s)", String(entity.$addr) );
 		try {
 		    const version	= await client.call(
 			"dnarepo", "dna_library", "update_dna_version", {
@@ -630,10 +692,214 @@ module.exports = async function ( client, Vue ) {
 
 		commit("metadata", [ path, { "unpublishing": true }] );
 
-		log.normal("Deleting Dna Version (%s)", String(id) );
+		log.normal("Deleting DNA Version (%s)", String(id) );
 		try {
 		    await client.call(
 			"dnarepo", "dna_library", "delete_dna_version", {
+			    "id": id,
+			}
+		    );
+
+		    commit("expireEntity", path );
+		} finally {
+		    commit("metadata", [ path, { "unpublishing": false }] );
+		}
+	    },
+
+
+	    //
+	    // Happ
+	    //
+	    async fetchHapp ({ commit }, id ) {
+		const path		= dataTypePath.happ( id );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting happ %s", String(id) );
+		let happ		= await client.call(
+		    "happs", "happ_library", "get_happ", { id }
+		);
+
+		log.info("Received happ: %s", happ.name, happ );
+
+		commit("cacheEntity", [ path, happ ] );
+		commit("recordLoaded", path );
+
+		return happ;
+	    },
+
+	    async fetchReleasesForHapp ({ commit }, happ_id ) {
+		const path		= dataTypePath.happReleases( happ_id );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting releases for happ %s", String(happ_id) );
+		let releases		= await client.call(
+		    "happs", "happ_library", "get_happ_releases", { "for_happ": happ_id }
+		);
+
+		log.info("Received %s releases for %s", releases.length, String(releases.$base) );
+
+		commit("cacheCollection", [ path, releases ] );
+		commit("recordLoaded", path );
+
+		return releases;
+	    },
+
+	    async createHapp ({ commit }, input ) {
+		log.normal("Creating Happ: %s", input.name );
+		const happ		= await client.call(
+		    "happs", "happ_library", "create_happ", input
+		);
+
+		const path		= dataTypePath.happ( happ.$id );
+		commit("cacheEntity", [ path, happ ] );
+
+		return happ;
+	    },
+
+	    async updateHapp ({ commit, getters }, [ id, input ] ) {
+		const entity		= getters.happ( id ).entity;
+		const path		= dataTypePath.happ( id );
+
+		commit("metadata", [ path, { "updating": true }] );
+
+		log.normal("Updating Happ (%s)", String(entity.$addr) );
+		try {
+		    const happ		= await client.call(
+			"happs", "happ_library", "update_happ", {
+			    // "id": id,
+			    "addr": entity.$addr,
+			    "properties": input,
+			}
+		    );
+
+		    commit("cacheEntity", [ path, happ ] );
+
+		    return happ;
+		} finally {
+		    commit("metadata", [ path, { "updating": false }] );
+		}
+	    },
+
+	    async deprecateHapp ({ commit, getters }, [ id, { message } ] ) {
+		const entity		= getters.happ( id ).entity;
+		const path		= dataTypePath.happ( id );
+
+		commit("metadata", [ path, { "deprecating": true }] );
+
+		log.normal("Deprecating Happ (%s) because: %s", String(entity.$addr), message );
+		try {
+		    const happ		= await client.call(
+			"happs", "happ_library", "deprecate_happ", {
+			    "addr": entity.$addr,
+			    "message": message,
+			}
+		    );
+
+		    commit("cacheEntity", [ path, happ ] );
+
+		    return happ;
+		} finally {
+		    commit("metadata", [ path, { "deprecating": false }] );
+		}
+
+	    },
+
+
+	    //
+	    // Happ Release
+	    //
+	    async fetchHappRelease ({ commit }, id ) {
+		const path		= dataTypePath.happRelease( id );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting happ release %s", String(id) );
+		let release		= await client.call(
+		    "happs", "happ_library", "get_happ_release", { id }
+		);
+
+		log.info("Received happ release: %s", release.release, release );
+
+		commit("cacheEntity", [ path, release ] );
+		commit("recordLoaded", path );
+
+		return release;
+	    },
+
+	    async fetchHappReleasePackage ({ commit }, id ) {
+		const path		= dataTypePath.happReleasePackage( id );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting hApp package %s", String(id) );
+		try {
+		    let bytes		= await client.call(
+			"happs", "happ_library", "get_release_package", {
+			    id,
+			    "dnarepo_dna_hash": client._client._app_schema._dnas["dnarepo"]._hash,
+			}, {
+			    "timeout": 30_000,
+			}
+		    );
+
+		    log.info("Received hApp package:", bytes );
+
+		    return new Uint8Array( bytes );
+		} finally {
+		    commit("recordLoaded", path );
+		}
+	    },
+
+	    async createHappRelease ({ commit }, [ happ_id, input ] ) {
+		log.normal("Creating Happ Release: #%s", input.release );
+
+		input.for_happ		= happ_id;
+
+		const release		= await client.call(
+		    "happs", "happ_library", "create_happ_release", input
+		);
+
+		const path		= dataTypePath.happRelease( release.$id );
+		commit("cacheEntity", [ path, release ] );
+
+		return release;
+	    },
+
+	    async updateHappRelease ({ commit, getters }, [ id, input ] ) {
+		const entity		= getters.happ_release( id ).entity;
+		const path		= dataTypePath.happRelease( id );
+
+		commit("metadata", [ path, { "updating": true }] );
+
+		log.normal("Updating Happ Release (%s)", String(entity.$addr) );
+		try {
+		    const release	= await client.call(
+			"happs", "happ_library", "update_happ_release", {
+			    // "id": id,
+			    "addr": entity.$addr,
+			    "properties": input,
+			}
+		    );
+
+		    commit("cacheEntity", [ path, release ] );
+
+		    return release;
+		} finally {
+		    commit("metadata", [ path, { "updating": false }] );
+		}
+	    },
+
+	    async unpublishHappRelease ({ commit }, id ) {
+		const path		= dataTypePath.happRelease( id );
+
+		commit("metadata", [ path, { "unpublishing": true }] );
+
+		log.normal("Deleting Happ Release (%s)", String(id) );
+		try {
+		    await client.call(
+			"happs", "happ_library", "delete_happ_release", {
 			    "id": id,
 			}
 		    );

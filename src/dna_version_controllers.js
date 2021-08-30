@@ -31,12 +31,6 @@ module.exports = async function ( client ) {
 			"version": null,
 			"changelog": null,
 			"zomes": [],
-			// {
-			//     "name": "mere_memory",
-			//     "zome": zome_version_1.for_zome.$id,
-			//     "version": zome_version_1.$id,
-			//     "resource": zome_version_1.mere_memory_addr,
-			// }
 		    },
 		    "added_zomes": [],
 		    "zome_versions": {},
@@ -118,7 +112,7 @@ module.exports = async function ( client ) {
 			this.$store.dispatch("fetchVersionsForDna", this.dna_id );
 			this.$router.push( `/dnas/${this.dna_id}/versions/${version.$id}` );
 		    } catch ( err ) {
-			log.error("Failed to create Dna Version:", err );
+			log.error("Failed to create DNA Version:", err );
 			this.error	= err;
 		    } finally {
 			this.saving	= false;
@@ -126,6 +120,7 @@ module.exports = async function ( client ) {
 		},
 		removeZome ( i ) {
 		    this.added_zomes.splice( i, 1 );
+		    this.input.zomes.splice( i, 1 );
 		},
 		addZome ( zome ) {
 		    if ( zome === undefined )
@@ -237,7 +232,7 @@ module.exports = async function ( client ) {
 
 			this.$router.push( `/dnas/${this.dna_id}/versions/${this.id}` );
 		    } catch ( err ) {
-			log.error("Failed to update Dna Version (%s):", String(this.id), err );
+			log.error("Failed to update DNA Version (%s):", String(this.id), err );
 			this.error	= err;
 		    }
 		},
@@ -283,7 +278,7 @@ module.exports = async function ( client ) {
 		},
 		package_filename () {
 		    if ( !this.dna )
-			return "Dna Package";
+			return "DNA Package";
 
 		    const filename	= this.dna.name.replace(/[/\\?%*:|"<>]/g, '_');
 		    return `${filename}_v${this.version.version}.dna`;

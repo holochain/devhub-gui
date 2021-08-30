@@ -68,9 +68,9 @@ module.exports = {
     },
 
     download ( filename, ...bytes ) {
-	log.normal("Downloading bytes (%s bytes) as '%s'", bytes.length, filename );
-
 	const blob			= new Blob( bytes );
+	log.normal("Downloading bytes (%s bytes) as '%s'", blob.size, filename );
+
 	const link			= document.createElement("a");
 	link.href			= URL.createObjectURL( blob );
 	link.download			= filename;

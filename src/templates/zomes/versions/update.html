@@ -17,7 +17,7 @@
 		<h2 class="fs-5 text-nowrap">
 		    <placeholder :when="!$version.current" size="fill">
 			<input-feedback class="w-auto">
-			    <input type="number" v-model="version.version"
+			    <input type="number" v-model.number="version.version"
 				   class="form-control d-inline-block" style="width: 6em;"
 				   @change="copy(version, input, 'version')"
 				   :disabled="$version.updating" required>

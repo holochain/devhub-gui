@@ -1,12 +1,12 @@
 const { Logger }			= require('@whi/weblogger');
-const log				= new Logger("dnas");
+const log				= new Logger("happs");
 
 
 module.exports = async function ( client ) {
 
     async function list () {
 	return {
-	    "template": (await import("./templates/dnas/list.html")).default,
+	    "template": (await import("./templates/happs/list.html")).default,
 	    "data": function() {
 		return {
 		    "order_by": "published_at",
@@ -16,24 +16,24 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
-		dnas () {
-		    const dnas		= this.$store.getters.dnas().collection;
-		    return this.sort_by_object_key( dnas, this.order_by );
+		happs () {
+		    const happs		= this.$store.getters.happs().collection;
+		    return this.sort_by_object_key( happs, this.order_by );
 		},
-		$dnas () {
-		    return this.$store.getters.dnas().metadata;
+		$happs () {
+		    return this.$store.getters.happs().metadata;
 		},
 	    },
 	    "methods": {
 		refresh () {
-		    if ( this.dnas.length === 0 )
-			this.fetchDnas();
+		    if ( this.happs.length === 0 )
+			this.fetchHapps();
 		},
-		async fetchDnas () {
+		async fetchHapps () {
 		    try {
-			await this.$store.dispatch("fetchDnas", { "agent": "me" });
+			await this.$store.dispatch("fetchHapps", { "agent": "me" });
 		    } catch (err) {
-			log.error("Failed to get dnas: %s", err.message, err );
+			log.error("Failed to get happs: %s", err.message, err );
 		    }
 		},
 	    },
@@ -42,12 +42,13 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/dnas/create.html")).default,
+	    "template": (await import("./templates/happs/create.html")).default,
 	    "data": function() {
 		return {
 		    "error": null,
 		    "input": {
-			"name": null,
+			"title": null,
+			"subtitle": null,
 			"description": null,
 		    },
 		    "validated": false,
@@ -68,11 +69,11 @@ module.exports = async function ( client ) {
 
 		    this.saving		= true;
 		    try {
-			const dna	= await this.$store.dispatch("createDna", this.input );
+			const happ	= await this.$store.dispatch("createHapp", this.input );
 
-			this.$router.push( "/dnas/" + dna.$id );
+			this.$router.push( "/happs/" + happ.$id );
 		    } catch ( err ) {
-			log.error("Failed to create DNA:", err );
+			log.error("Failed to create Happ:", err );
 			this.error	= err;
 		    } finally {
 			this.saving	= false;
@@ -84,7 +85,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/dnas/update.html")).default,
+	    "template": (await import("./templates/happs/update.html")).default,
 	    "data": function() {
 		return {
 		    "id": null,
@@ -94,12 +95,12 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		dna () {
-		    return this.$store.getters.dna( this.id ).entity;
+		happ () {
+		    return this.$store.getters.happ( this.id ).entity;
 		},
-		$dna () {
-		    console.log("DNA updating:", this.$store.getters.dna( this.id ).metadata.updating );
-		    return this.$store.getters.dna( this.id ).metadata;
+		$happ () {
+		    console.log("Happ updating:", this.$store.getters.happ( this.id ).metadata.updating );
+		    return this.$store.getters.happ( this.id ).metadata;
 		},
 		form () {
 		    return this.$refs["form"];
@@ -108,17 +109,17 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.id			= this.getPathId("id");
 
-		if ( !this.dna )
-		    this.fetchDna();
+		if ( !this.happ )
+		    this.fetchHapp();
 	    },
 	    "methods": {
-		async fetchDna () {
+		async fetchHapp () {
 		    try {
-			await this.$store.dispatch("fetchDna", this.id );
+			await this.$store.dispatch("fetchHapp", this.id );
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 
-			log.error("Failed to get dna (%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get happ (%s): %s", String(this.id), err.message, err );
 		    }
 		},
 		async update () {
@@ -128,11 +129,11 @@ module.exports = async function ( client ) {
 			return;
 
 		    try {
-			await this.$store.dispatch("updateDna", [ this.id, this.input ] );
+			await this.$store.dispatch("updateHapp", [ this.id, this.input ] );
 
-			this.$router.push( "/dnas/" + this.id );
+			this.$router.push( "/happs/" + this.id );
 		    } catch ( err ) {
-			log.error("Failed to update DNA (%s):", String(this.id), err );
+			log.error("Failed to update Happ (%s):", String(this.id), err );
 			this.error	= err;
 		    }
 		},
@@ -142,7 +143,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/dnas/single.html")).default,
+	    "template": (await import("./templates/happs/single.html")).default,
 	    "data": function() {
 		return {
 		    "id": null,
@@ -150,7 +151,7 @@ module.exports = async function ( client ) {
 			"message": null,
 		    },
 		    "validated": false,
-		    "version": null,
+		    "release": null,
 		};
 	    },
 	    async created () {
@@ -160,17 +161,17 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
-		dna () {
-		    return this.$store.getters.dna( this.id ).entity;
+		happ () {
+		    return this.$store.getters.happ( this.id ).entity;
 		},
-		$dna () {
-		    return this.$store.getters.dna( this.id ).metadata;
+		$happ () {
+		    return this.$store.getters.happ( this.id ).metadata;
 		},
-		versions () {
-		    return this.$store.getters.dna_versions( this.id ).collection;
+		releases () {
+		    return this.$store.getters.happ_releases( this.id ).collection;
 		},
-		$versions () {
-		    return this.$store.getters.dna_versions( this.id ).metadata;
+		$releases () {
+		    return this.$store.getters.happ_releases( this.id ).metadata;
 		},
 		form () {
 		    return this.$refs["form"];
@@ -182,31 +183,31 @@ module.exports = async function ( client ) {
 		    return this.$refs["unpublishModal"].modal;
 		},
 		deprecated () {
-		    return !!( this.dna && this.dna.deprecation );
+		    return !!( this.happ && this.happ.deprecation );
 		},
 	    },
 	    "methods": {
 		refresh () {
-		    if ( !this.dna )
-			this.fetchDna();
+		    if ( !this.happ )
+			this.fetchHapp();
 
-		    if ( this.versions.length === 0 )
-			this.fetchDnaVersions();
+		    if ( this.releases.length === 0 )
+			this.fetchHappReleases();
 		},
-		async fetchDna () {
+		async fetchHapp () {
 		    try {
-			await this.$store.dispatch("fetchDna", this.id );
+			await this.$store.dispatch("fetchHapp", this.id );
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 
-			log.error("Failed to get dna (%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get happ (%s): %s", String(this.id), err.message, err );
 		    }
 		},
-		async fetchDnaVersions () {
+		async fetchHappReleases () {
 		    try {
-			await this.$store.dispatch("fetchVersionsForDna", this.id );
+			await this.$store.dispatch("fetchReleasesForHapp", this.id );
 		    } catch (err) {
-			log.error("Failed to get versions for dna (%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get releases for happ (%s): %s", String(this.id), err.message, err );
 		    }
 		},
 		async deprecate () {
@@ -215,7 +216,7 @@ module.exports = async function ( client ) {
 		    if ( this.form.checkValidity() === false )
 			return;
 
-		    await this.$store.dispatch("deprecateDna", [ this.id, this.deprecation ] );
+		    await this.$store.dispatch("deprecateHapp", [ this.id, this.deprecation ] );
 
 		    this.deprecation	= {
 			"message": null,
@@ -223,17 +224,17 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 
-		    this.$store.dispatch("fetchDnas", { "agent": "me" });
+		    this.$store.dispatch("fetchHapps", { "agent": "me" });
 		},
-		promptUnpublish ( version ) {
-		    this.version	= version;
+		promptUnpublish ( release ) {
+		    this.release	= release;
 		    this.unpublishModal.show();
 		},
 		async unpublish () {
-		    await this.$store.dispatch("unpublishDnaVersion", this.version.$id );
+		    await this.$store.dispatch("unpublishHappRelease", this.release.$id );
 
 		    this.unpublishModal.hide();
-		    this.fetchDnaVersions();
+		    this.fetchHappReleases();
 		},
 	    },
 	};

@@ -6,13 +6,13 @@
     <div class="row">
 	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
 	    <template v-if="dna">
-		<label class="form-label fw-6">Dna Name</label>
+		<label class="form-label fw-6">DNA Name</label>
 		<input-feedback>
 		    <input type="text" @change="copy(dna, input, 'name')" v-model="dna.name"
 			   class="form-control" :disabled="$dna.updating" required>
 		</input-feedback>
 
-		<label class="form-label fw-6">Dna Description</label>
+		<label class="form-label fw-6">DNA Description</label>
 		<input-feedback>
 		    <textarea @change="copy(dna, input, 'description')" v-model="dna.description"
 			      class="form-control" rows="3" :disabled="$dna.updating" required></textarea>

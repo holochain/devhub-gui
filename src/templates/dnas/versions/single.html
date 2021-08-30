@@ -9,7 +9,7 @@
     <hr>
 
     <deprecation-alert v-if="dna_deprecated && $version.current"
-		       title="The parent Dna has been deprecated"></deprecation-alert>
+		       title="The parent DNA has been deprecated"></deprecation-alert>
 
     <div class="mb-4">
 	<h1 class="fs-2"><placeholder :when="!$version.current" size="25%">{{ dna.name }}</placeholder></h1>
@@ -88,8 +88,8 @@
 	</div>
     </div>
 
-    <modal v-if="version && dna" title="Unpublish Dna Version" ref="modal"
+    <modal v-if="version && dna" title="Unpublish DNA Version" ref="modal"
 	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
-	<p>Are you sure you want to unpublish the {{ dna.name }} Dna Version <strong>{{ version.version }}</strong>?</p>
+	<p>Are you sure you want to unpublish the {{ dna.name }} DNA Version <strong>{{ version.version }}</strong>?</p>
     </modal>
 </page-view>

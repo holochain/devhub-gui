@@ -21,6 +21,8 @@ const zomes_init			= require('./zome_controllers.js');
 const zome_versions_init		= require('./zome_version_controllers.js');
 const dnas_init				= require('./dna_controllers.js');
 const dna_versions_init			= require('./dna_version_controllers.js');
+const happs_init			= require('./happ_controllers.js');
+const happ_releases_init		= require('./happ_release_controllers.js');
 
 
 const AGENT_HASH			= window.localStorage.getItem("AGENT_PUBKEY");
@@ -66,6 +68,8 @@ window._Vue				= Vue;
     const zome_version_controllers	= await zome_versions_init( client );
     const dna_controllers		= await dnas_init( client );
     const dna_version_controllers	= await dna_versions_init( client );
+    const happ_controllers		= await happs_init( client );
+    const happ_release_controllers	= await happ_releases_init( client );
 
     const route_components		= [
 	[ "/",					zome_controllers.list,			"Dashboard" ],
@@ -77,13 +81,21 @@ window._Vue				= Vue;
 	[ "/zomes/:zome/versions/:id",		zome_version_controllers.single,	"Zome Version Info" ],
 	[ "/zomes/:zome/versions/:id/update",	zome_version_controllers.update,	"Edit Version" ],
 
-	[ "/dnas",				dna_controllers.list,			"Dnas" ],
-	[ "/dnas/new",				dna_controllers.create,			"Add Dna" ],
-	[ "/dnas/:id",				dna_controllers.single,			"Dna Info" ],
-	[ "/dnas/:id/update",			dna_controllers.update,			"Edit Dna" ],
-	[ "/dnas/:dna/versions/new",		dna_version_controllers.create,		"Add Dna Version" ],
-	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"Dna Version Info" ],
+	[ "/dnas",				dna_controllers.list,			"DNAs" ],
+	[ "/dnas/new",				dna_controllers.create,			"Add DNA" ],
+	[ "/dnas/:id",				dna_controllers.single,			"DNA Info" ],
+	[ "/dnas/:id/update",			dna_controllers.update,			"Edit DNA" ],
+	[ "/dnas/:dna/versions/new",		dna_version_controllers.create,		"Add DNA Version" ],
+	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"DNA Version Info" ],
 	[ "/dnas/:dna/versions/:id/update",	dna_version_controllers.update,		"Edit Version" ],
+
+	[ "/happs",				happ_controllers.list,			"Happs" ],
+	[ "/happs/new",				happ_controllers.create,		"Add Happ" ],
+	[ "/happs/:id",				happ_controllers.single,		"Happ Info" ],
+	[ "/happs/:id/update",			happ_controllers.update,		"Edit Happ" ],
+	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add Happ Release" ],
+	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"Happ Release Info" ],
+	[ "/happs/:happ/releases/:id/update",	happ_release_controllers.update,	"Edit Release" ],
     ];
 
     const breadcrumb_mapping		= {};

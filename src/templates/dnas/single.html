@@ -8,7 +8,7 @@
     <hr>
 
     <deprecation-alert v-if="deprecated && $dna.current"
-		       title="This Dna has been deprecated"
+		       title="This DNA has been deprecated"
 		       :message="dna.deprecation.message"></deprecation-alert>
 
     <page-header class="mb-3">
@@ -79,7 +79,7 @@
     <div class="mt-5">
 	<div class="d-flex mb-4">
 	    <h2 class="fs-4 flex-grow-1">
-		Dna Versions
+		DNA Versions
 		<a v-if="$versions.loaded" @click="fetchDnaVersions()" class="ms-2 fs-4">
 		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.loading }"></i>
 		</a>
@@ -93,7 +93,7 @@
             </router-link>
 	</div>
 
-	<list-group :list="versions" no-result-text="No Dna Versions" :loading="$versions.loading">
+	<list-group :list="versions" no-result-text="No DNA Versions" :loading="$versions.loading">
 	    <div class="row px-3">
 		<div class="col-2 fw-7">
 		    Version #
@@ -134,11 +134,11 @@
 	</list-group>
     </div>
 
-    <modal v-if="dna" title="Deprecate Dna" ref="modal"
+    <modal v-if="dna" title="Deprecate DNA" ref="modal"
 	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
 	<form ref="form" :class="{ 'was-validated': validated }">
 	    <div class="mb-4">
-		<p>Are you sure you want to deprecate the <strong>{{ dna.name }}</strong> Dna?</p>
+		<p>Are you sure you want to deprecate the <strong>{{ dna.name }}</strong> DNA?</p>
 	    </div>
 	    <input-feedback>
 		<textarea v-model="deprecation.message" class="form-control" rows="4"
@@ -147,10 +147,10 @@
 	</form>
     </modal>
 
-    <modal title="Unpublish Dna Version" ref="unpublishModal"
+    <modal title="Unpublish DNA Version" ref="unpublishModal"
 	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
 	<div v-if="dna && version">
-	    <p>Are you sure you want to unpublish the {{ dna.name }} Dna Version <strong>{{ version.version }}</strong>?</p>
+	    <p>Are you sure you want to unpublish the {{ dna.name }} DNA Version <strong>{{ version.version }}</strong>?</p>
 	</div>
     </modal>
 </page-view>
