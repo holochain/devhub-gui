@@ -144,3 +144,6 @@ clean-files-all:	clean-remove-chaff
 	git clean -ndx
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
+web_assets.zip:		dist/webpacked.app.js
+	rm -f dist/src_templates_*
+	zip -r web_assets.zip ./dist
