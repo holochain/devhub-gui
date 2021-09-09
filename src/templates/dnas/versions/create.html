@@ -1,0 +1,92 @@
+<page-view id="create-dna-version-page">
+    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+
+    <hr>
+
+    <form ref="form" class="row" :class="{ 'was-validated': validated }">
+	<div class="col-6">
+	    <label class="form-label fw-6">Version Number</label>
+	    <input-feedback>
+		<input type="number" v-model.number="input.version" class="form-control" :disabled="saving" required>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Changelog</label>
+	    <input-feedback>
+		<textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="saving"></textarea>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Search zomes</label>
+	    <div class="form-input-search" :class="{ 'show-results': filtered_zomes.length }">
+		<input type="text" class="form-control no-validate" placeholder="type at least 3 characters"
+		       v-model="zome_search_text" @keyup.enter="addZome( filtered_zomes[0] )">
+
+		<div class="list-group">
+		    <div class="list-group-item list-group-item-action d-flex align-items-center"
+			 v-for="zome in filtered_zomes">
+			<div class="flex-grow-1">
+			    <h5 class="my-1">{{ zome.name }}</h5>
+			    <p class="my-1">{{ zome.description }}</p>
+			</div>
+			<div>
+			    <button @click="addZome( zome )" class="btn btn-primary">
+				Add to DNA
+			    </button>
+			</div>
+		    </div>
+		</div>
+	    </div>
+
+	    <label class="form-label fw-6">Zomes</label>
+	    <list-group :list="added_zomes" no-result-text="No Zomes have been added"
+			class="mt-0">
+		<list-group-item v-for="(zome, index) in added_zomes" class="py-3"
+				 draggable="true" @dragstart="dragstartZome( $event, index )"
+				 @dragover="dragoverZome( $event )" @drop="dropZome( $event, index )">
+		    <div class="d-flex align-middle mb-1">
+			<h5 class="m-0">{{ zome.name }}</h5>
+			<span class="ms-2 flex-grow-1"> &mdash; {{ zome.description }}</span>
+			<button type="button" class="btn-close" @click="removeZome( index )"></button>
+		    </div>
+
+		    <loading :when="!zome_versions[zome.$id]">
+			<div class="ps-3 d-flex align-items-center">
+			    <strong class="mb-1 me-3 fw-4">Versions</strong>
+			    <input-feedback>
+				<div class="form-check form-check-inline"
+				     v-for="version in zome_versions[zome.$id]">
+				    <input class="form-check-input" type="radio" :name="'input.zomes[' + index + ']'"
+					   v-model="input.zomes[index].version" :value="version.$id" required :disabled="saving">
+				    <label class="form-check-label">v{{ version.version }}</label>
+				</div>
+			    </input-feedback>
+			</div>
+		    </loading>
+
+		    <input-feedback>
+			<div class="input-group">
+			      <span class="input-group-text">Nickname</span>
+			      <input type="text" v-model="input.zomes[index].name" class="form-control" required :disabled="saving">
+			</div>
+		    </input-feedback>
+		</list-group-item>
+	    </list-group>
+
+	    <display-error class="mt-5" :error="error"></display-error>
+
+	    <div class="row mt-5">
+		<div class="col-6"></div>
+		<div class="col-3">
+		    <router-link :to="'/dnas/' + dna_id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		</div>
+		<div class="col-3">
+		    <a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
+			<span v-if="saving"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Save
+		    </a>
+		</div>
+	    </div>
+	</div>
+    </form>
+
+</page-view>

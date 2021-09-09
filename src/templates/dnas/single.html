@@ -1,0 +1,156 @@
+<page-view id="single-dna-page">
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.name">
+	<a v-if="$dna.loaded" @click="fetchDna()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.loading }"></i>
+	</a>
+    </breadcrumbs>
+
+    <hr>
+
+    <deprecation-alert v-if="deprecated && $dna.current"
+		       title="This DNA has been deprecated"
+		       :message="dna.deprecation.message"></deprecation-alert>
+
+    <page-header class="mb-3">
+	<template #default>
+	    <h1 class="fs-2"><placeholder :when="!$dna.current" size="fill">{{ dna.name }}</placeholder></h1>
+	</template>
+
+	<template #title-extras v-if="!deprecated">
+            <router-link :to="'/dnas/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
+		<i class="bi-pencil"></i>
+		Edit
+            </router-link>
+
+            <a @click="modal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
+		<i class="bi-x-lg"></i>
+		Deprecate
+            </a>
+	</template>
+    </page-header>
+
+    <div class="mb-5">
+	<p><placeholder :when="!$dna.current" size="p">{{ dna.description }}</placeholder></p>
+    </div>
+
+    <div class="row align-items-stretch">
+	<div class="col-6">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Details
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-4">Created</dt>
+			<dd class="col-sm-8"><placeholder :when="!$dna.current">{{ $filters.time( dna.published_at, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-4">Last Updated</dt>
+			<dd class="col-sm-8"><placeholder :when="!$dna.current">{{ $filters.time( dna.last_updated, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-4">Authors</dt>
+			<dd class="col-sm-8"><placeholder :when="!$dna.current">N/A</placeholder></dd>
+		    </dl>
+		</div>
+	    </div>
+	</div>
+
+	<div class="col-6">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Developed by
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-12"><placeholder :when="!$dna.current">{{ dna.developer.pubkey }}</placeholder></dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$dna.current">
+				<span v-if="dna.developer.website">
+				    <a href="#" target="_blank">website</a>
+				</span>
+				<span v-else>No website</span>
+			    </placeholder>
+			</dd>
+		    </dl>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+    <div class="mt-5">
+	<div class="d-flex mb-4">
+	    <h2 class="fs-4 flex-grow-1">
+		DNA Versions
+		<a v-if="$versions.loaded" @click="fetchDnaVersions()" class="ms-2 fs-4">
+		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.loading }"></i>
+		</a>
+	    </h2>
+
+            <router-link v-if="dna" :to="'/dnas/' + id + '/versions/new'"
+			 class="btn btn-primary text-nowrap"
+			 :class="{ 'disabled': deprecated }">
+		<i class="bi-plus-lg"></i>
+		Create new version
+            </router-link>
+	</div>
+
+	<list-group :list="versions" no-result-text="No DNA Versions" :loading="$versions.loading">
+	    <div class="row px-3">
+		<div class="col-2 fw-7">
+		    Version #
+		</div>
+		<div class="col-4 fw-7">
+		    Created
+		</div>
+		<div class="col-2 fw-7">
+		    File size
+		</div>
+		<div class="col"></div>
+	    </div>
+
+	    <hr class="my-1">
+
+	    <list-group-item v-for="version in versions" class="py-3">
+		<div class="row align-items-center">
+		    <div class="col-2">
+			<h3 class="fs-6 m-0">{{ version.version }}</h3>
+		    </div>
+		    <div class="col-4">
+			Created on {{ $filters.time( version.published_at, "weekday+date" ) }}
+		    </div>
+		    <div class="col-2">
+			N/A
+		    </div>
+		    <div class="col text-end text-nowrap">
+			<a @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">
+			    Unpublish
+			</a>
+
+			<router-link :to="'/dnas/' + id + '/versions/' + version.$id" class="btn btn-light ms-5">
+			    More info
+			</router-link>
+		    </div>
+		</div>
+	    </list-group-item>
+	</list-group>
+    </div>
+
+    <modal v-if="dna" title="Deprecate DNA" ref="modal"
+	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
+	<form ref="form" :class="{ 'was-validated': validated }">
+	    <div class="mb-4">
+		<p>Are you sure you want to deprecate the <strong>{{ dna.name }}</strong> DNA?</p>
+	    </div>
+	    <input-feedback>
+		<textarea v-model="deprecation.message" class="form-control" rows="4"
+			  placeholder="Reason (optional)" required :disabled="$dna.deprecating"></textarea>
+	    </input-feedback>
+	</form>
+    </modal>
+
+    <modal title="Unpublish DNA Version" ref="unpublishModal"
+	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
+	<div v-if="dna && version">
+	    <p>Are you sure you want to unpublish the {{ dna.name }} DNA Version <strong>{{ version.version }}</strong>?</p>
+	</div>
+    </modal>
+</page-view>

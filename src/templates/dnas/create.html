@@ -1,0 +1,46 @@
+<page-view id="create-dna-page">
+    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+
+    <hr>
+
+    <div class="row">
+	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
+	    <label class="form-label fw-6">DNA Name</label>
+	    <input-feedback valid-message="That's a great name!">
+		<input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">DNA Description</label>
+	    <input-feedback>
+		<textarea v-model="input.description" class="form-control" rows="3" :disabled="saving" required></textarea>
+	    </input-feedback>
+
+	    <!-- <div class="mt-5"> -->
+	    <!-- 	<h6>Developed by</h6> -->
+
+	    <!-- 	<label class="form-label">Name</label> -->
+	    <!-- 	<input type="text" class="form-control"> -->
+
+	    <!-- 	<label class="form-label">Website</label> -->
+	    <!-- 	<input type="text" class="form-control"> -->
+	    <!-- </div> -->
+
+	    <display-error class="mt-5" :error="error"></display-error>
+
+	    <div class="row mt-5">
+		<div class="col-6"></div>
+		<div class="col-3">
+		    <router-link to="/dnas" class="btn btn-outline-primary w-100">Cancel</router-link>
+		</div>
+		<div class="col-3">
+		    <a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
+			<span v-if="saving"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Save
+		    </a>
+		</div>
+	    </div>
+	</form>
+    </div>
+
+</page-view>

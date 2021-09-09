@@ -1,0 +1,57 @@
+<page-view id="list-zomes-page">
+    <page-header controls-col="7">
+	<template #default>
+	    <h1 class="fs-2">My Zomes</h1>
+	    <a v-if="$zomes.loaded" @click="fetchZomes()" class="ms-2 fs-4">
+		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $zomes.loading }"></i>
+	    </a>
+	</template>
+
+	<template #title-extras>
+            <router-link to="/zomes/new" class="btn btn-primary me-5 text-nowrap">
+		<i class="bi-plus-lg"></i>
+		Add Zome
+            </router-link>
+	</template>
+
+	<template #controls>
+            <div class="row">
+		<div class="col-6">
+                    <div class="row align-items-center">
+			<label class="col-sm-3 text-end">Sort by</label>
+			<div class="col-sm-9">
+                            <select class="form-select" v-model="order_by">
+				<option value="published_at">Date created</option>
+				<option value="name">Zome name</option>
+                            </select>
+			</div>
+                    </div>
+		</div>
+		<div class="col-6">
+		    <search placeholder="Search for..."></search>
+		</div>
+	    </div>
+	</template>
+    </page-header>
+
+    <hr>
+
+    <list-group :list="zomes" no-result-text="No Zomes" :loading="$zomes.loading">
+	<list-group-item v-for="zome in zomes">
+	    <div class="row align-items-center">
+		<div class="col pt-3">
+		    <h3 class="fs-6">{{ zome.name }}</h3>
+		    <p>{{ zome.description }}</p>
+		</div>
+		<div class="col-4">
+		    <span class="badge badge-md bg-secondary">Created on {{ $filters.time( zome.published_at ) }}</span>
+		</div>
+		<div class="col-auto">
+		    <router-link :to="'/zomes/' + zome.$id" class="btn btn-light">
+			More info
+		    </router-link>
+		</div>
+	    </div>
+	</list-group-item>
+    </list-group>
+</page-view>

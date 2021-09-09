@@ -1,717 +1,228 @@
+const { Logger }			= require('@whi/weblogger');
+const log				= new Logger("main");
 
-window.Buffer				= require('buffer/').Buffer;
-const Vue				= require('vue');
-const Vuex				= require('vuex');
-const createLogger			= require('vuex/dist/logger');
-const { mapState,
-	mapMutations,
-	mapActions }			= require('vuex');
-const VueRouter				= require('vue-router').default;
-const VueMoment				= require('vue-moment').default;
+const { Client, HoloHashes,
+	logging }			= require('@holochain/devhub-entities');
+const { HoloHash,
+	DnaHash,
+	AgentPubKey }			= HoloHashes;
 
-const notify				= require('./notify.js');
-const { object_sorter,
-	load_file,
-	b64 }				= require('./utils.js');
-const orm				= require('./api_orm.js');
+log.level.trace && logging();
 
-const happs_controllers			= require('./happs_controllers.js');
+const store_init			= require('./store.js');
+const common				= require('./common.js');
+const filters				= require('./filters.js');
+const components			= require('./components.js');
 
-window.Vue				= Vue;
-Vue.use( Vuex );
-Vue.use( VueRouter );
-Vue.use( VueMoment );
-
-
-Vue.filter("number", function (value) {
-    return (new Number(value)).toLocaleString();
-});
-
-Vue.filter("base64", function (value) {
-    return Buffer.from( value ).toString("base64");
-});
-
-Vue.filter("time", function (value, format) {
-    switch (format) {
-    case 'full':
-	format				= "dddd, MMMM D (YYYY) @ HH:mm:ss";
-	break;
-    case 'date':
-	format				= "MMMM D (YYYY)";
-	break;
-    case 'date-weekday':
-	format				= "dddd, MMMM D (YYYY)";
-	break;
-    }
-    return Vue.filter("moment")(value, format);
-});
+const zomes_init			= require('./zome_controllers.js');
+const zome_versions_init		= require('./zome_version_controllers.js');
+const dnas_init				= require('./dna_controllers.js');
+const dna_versions_init			= require('./dna_version_controllers.js');
+const happs_init			= require('./happ_controllers.js');
+const happ_releases_init		= require('./happ_release_controllers.js');
 
 
-Vue.mixin({
-    "methods": {
-	dataImage ( bytes ) {
-	    return 'data:image/png;base64,' + Vue.filter("base64")( bytes );
-	},
-    },
+const AGENT_HASH			= window.localStorage.getItem("AGENT_PUBKEY");
+const PORT_VALUE			= window.localStorage.getItem("APP_PORT");
+const APP_PORT				= parseInt( PORT_VALUE );
+const CONDUCTOR_URI			= `devhub.holochain.org:${APP_PORT}`;
+
+if ( isNaN( APP_PORT ) )
+    throw new Error(`Invalid 'APP_PORT' (${PORT_VALUE}); run 'localStorage.setItem( "APP_PORT", "<port number>" );`);
+
+if ( typeof AGENT_HASH !== "string" )
+    throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
+
+log.warn("Using Agent hash: %s", AGENT_HASH );
+const AGENT_PUBKEY			= new AgentPubKey( AGENT_HASH );
+
+const DNAREPO_HASH			= new DnaHash( process.env.DNAREPO_HASH );
+const HAPPS_HASH			= new DnaHash( process.env.HAPPS_HASH );
+const WEBASSETS_HASH			= new DnaHash( process.env.WEBASSETS_HASH );
+
+log.normal("DNA Hashes");
+const dnas				= {
+    "dnarepo":		DNAREPO_HASH,
+    "happs":		HAPPS_HASH,
+    "webassets":	WEBASSETS_HASH,
+};
+log.level.normal && Object.entries( dnas ).forEach( ([nick, hash]) => {
+    log.normal("  %s : %s", nick.padStart( 10 ), String( hash ) );
 });
 
 
+window._Vue				= Vue;
 
 
 (async function(global) {
-    const PORT					= 44001;
-    const AGENT_HASH				= b64( process.env.AGENT_HASH );
-    // const PORT					= 44002;
-    // const AGENT_HASH				= b64("hCAkjuTWIKaNYPGA3VQneAjs3mc7tE89yTEBhMD0WHKXTMm2dPg1");
-    const DNAREPO_HASH				= b64( process.env.DNAREPO_HASH );
-
-    const DevHub				= await orm.connect( PORT, AGENT_HASH, {
-	"dnas": DNAREPO_HASH,
+    log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(AGENT_PUBKEY), CONDUCTOR_URI, WEBPACK_MODE );
+    const client			= new Client( AGENT_PUBKEY, dnas, CONDUCTOR_URI, {
+	"simulate_latency": (WEBPACK_MODE === "development"),
     });
-    console.log("ORM Object:", DevHub );
 
+    const store				= await store_init( client, Vue );
+    const zome_controllers		= await zomes_init( client );
+    const zome_version_controllers	= await zome_versions_init( client );
+    const dna_controllers		= await dnas_init( client );
+    const dna_version_controllers	= await dna_versions_init( client );
+    const happ_controllers		= await happs_init( client );
+    const happ_release_controllers	= await happ_releases_init( client );
 
-    const store					= new Vuex.Store({
-	plugins: process.env.NODE_ENV !== 'production' ? [
-	    createLogger({ collapsed: true, })
-	] : [],
-	state: () => { return {
-	    "whoami":	null,
-	}; },
-	mutations: {
-	    set_whoami: function ( state, payload ) {
-		if ( payload.id === -1 )
-		    payload			= null;
-		state.whoami			= payload;
-	    },
+    const route_components		= [
+	[ "/",					zome_controllers.list,			"Dashboard" ],
+	[ "/zomes",				zome_controllers.list,			"Zomes" ],
+	[ "/zomes/new",				zome_controllers.create,		"Add Zome" ],
+	[ "/zomes/:id",				zome_controllers.single,		"Zome Info" ],
+	[ "/zomes/:id/update",			zome_controllers.update,		"Edit Zome" ],
+	[ "/zomes/:zome/versions/new",		zome_version_controllers.create,	"Add Zome Version" ],
+	[ "/zomes/:zome/versions/:id",		zome_version_controllers.single,	"Zome Version Info" ],
+	[ "/zomes/:zome/versions/:id/update",	zome_version_controllers.update,	"Edit Version" ],
+
+	[ "/dnas",				dna_controllers.list,			"DNAs" ],
+	[ "/dnas/new",				dna_controllers.create,			"Add DNA" ],
+	[ "/dnas/:id",				dna_controllers.single,			"DNA Info" ],
+	[ "/dnas/:id/update",			dna_controllers.update,			"Edit DNA" ],
+	[ "/dnas/:dna/versions/new",		dna_version_controllers.create,		"Add DNA Version" ],
+	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"DNA Version Info" ],
+	[ "/dnas/:dna/versions/:id/update",	dna_version_controllers.update,		"Edit Version" ],
+
+	[ "/happs",				happ_controllers.list,			"Happs" ],
+	[ "/happs/new",				happ_controllers.create,		"Add Happ" ],
+	[ "/happs/:id",				happ_controllers.single,		"Happ Info" ],
+	[ "/happs/:id/update",			happ_controllers.update,		"Edit Happ" ],
+	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add Happ Release" ],
+	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"Happ Release Info" ],
+	[ "/happs/:happ/releases/:id/update",	happ_release_controllers.update,	"Edit Release" ],
+    ];
+
+    const breadcrumb_mapping		= {};
+    const routes			= [];
+    for (let [ path, component, name ] of route_components ) {
+	log.trace("Adding route path: %s", path );
+
+	if ( /\/(:[A-Za-z-_+]+)/.test( path ) ) {
+	    const re			= "^" + path.replace(/\/(:[A-Za-z-_+]+)/g, "/[A-Za-z0-9-_+]+") + "$";
+	    breadcrumb_mapping[ re ]	= name;
+	}
+	else
+	    breadcrumb_mapping[ path ]	= name;
+
+	routes.push({
+	    path,
+	    component,
+	});
+    }
+    log.normal("Configured %s routes for App", routes.length );
+
+    const router			= VueRouter.createRouter({
+	"history": VueRouter.createWebHistory(),
+	routes,
+	"linkActiveClass": "parent-active",
+	"linkExactActiveClass": "active",
+    });
+
+    const app				= Vue.createApp({
+	data () {
+	    return {
+		"status_view_data": null,
+		"status_view_html": null,
+	    };
 	},
-	actions: {
-	    get_whoami: async function ( ctx ) {
-		return await DevHub.getWhoAmI();
-		// return ctx.commit("set_whoami", "Someone" );
-	    },
+	created () {
+	    this.$router.afterEach( (to, from, failure) => {
+		log.normal("Navigated to:", to.path, from.path, failure );
 
-	    // Profile
-	    get_profile: async function ( ctx, { agent } = {} ) {
-		return (await DevHub.getProfile( agent ));
-	    },
-	    set_profile: async function ( ctx, input ) {
-		return await DevHub.setProfile( input );
-	    },
+		if ( to.matched.length === 0 )
+		    return this.showStatusView( 404 );
 
-	    // Following
-	    get_following: async function ( ctx ) {
-		return await DevHub.getFollowing();
-	    },
-	    follow_agent: async function ( ctx, { agent } ) {
-		return await DevHub.followAgent( agent );
-	    },
-
-	    // DNAs
-	    list_my_dnas: async function ( ctx ) {
-		return await DevHub.myDNAs();
-	    },
-	    list_dnas_for: async function ( ctx, { agent } ) {
-		return await DevHub.listDNAs( agent );
-	    },
-	    create_dna: async function ( ctx, input ) {
-		return await DevHub.createDNA( input );
-	    },
-	    get_dna: async function ( ctx, { hash } ) {
-		return await DevHub.getDNA( hash );
-	    },
-	    update_dna: async function ( ctx, [hash, input] ) {
-		return await DevHub.updateDNA( hash, input );
-	    },
-	    deprecate_dna: async function ( ctx, [hash, reason] ) {
-		return await DevHub.deprecateDNA( hash, reason );
-	    },
-
-	    // DNA Versions
-	    create_dna_version: async function ( ctx, input ) {
-		return await DevHub.createDNAVersion( input );
-	    },
-	    get_dna_version: async function ( ctx, { hash } ) {
-		return await DevHub.getDNAVersion( hash );
-	    },
-	    update_dna_version: async function ( ctx, [hash, input] ) {
-		return await DevHub.updateDNAVersion( hash, input );
-	    },
-	    delete_dna_version: async function ( ctx, { hash } ) {
-		return await DevHub.deleteDNAVersion( hash );
-	    },
-	    get_dna_chunk: async function ( ctx, { hash } ) {
-		return await DevHub.getDNAChunk( hash );
-	    },
+		this.showStatusView( false );
+	    });
 	},
     });
 
-    const hctls					= await happs_controllers();
+    app.mixin({
+	"methods": {
+	    async catchStatusCodes ( status_codes, err ) {
+		if ( !Array.isArray(status_codes) )
+		    status_codes	= [ status_codes ];
 
-    const routeComponents			= {
-	"/": {
-	    "template": (await import("./templates/home.html")).default,
-	    "data": function() {
-		return {
-		    "dnas": [],
-		};
-	    },
-	    async created () {
-		this.$root.setToolbarControls(null, [{
-		    "path": "/dna/new",
-		    "title": "Create New DNA",
-		    "icon": "plus-square",
-		}]);
-		await this.refresh();
-	    },
-	    "computed": {
-		...mapState([
-		    "whoami",
-		]),
-	    },
-	    "methods": {
-		async refresh () {
-		    let dnas			= await this.$store.dispatch("list_my_dnas");
-		    this.dnas			= dnas.sort( object_sorter("published_at") ).reverse();
-		},
-		...mapActions([
-		]),
-	    },
-	},
-	"/profile/edit": {
-	    "template": (await import("./templates/profile-update.html")).default,
-	    "data": function() {
-		return {
-		    "profile": null,
-		};
-	    },
-	    async created () {
-		this.$root.setToolbarControls([{
-		    "path": "/profile",
-		    "title": "Back to Profile",
-		    "icon": "arrow-left-square",
-		}], [{
-		    "path": "/profile",
-		    "title": "Cancel",
-		    "icon": "x-square",
-		}, "-", {
-		    "action": this.save,
-		    "title": "Save",
-		    "icon": "check-square-fill",
-		}]);
-		await this.refresh();
-	    },
-	    "methods": {
-		async refresh () {
-		    this.profile		= await this.$store.dispatch("get_profile");
-		},
-		async save () {
-		    console.log("Updating Profile with input:", this.profile );
-		    try {
-			let profile		= await this.$store.dispatch("set_profile", this.profile );
-			console.log("Updated Profile:", profile );
+		status_codes.forEach( (code, i) => {
+		    status_codes[i]	= parseInt( code );
+		});
 
-			notify.success("Updated Profile...");
-			this.$router.push("/profile");
-		    } catch (err) {
-			console.error( err );
-			notify.open({
-			    type: "error",
-			    message: `Failed to update Profile - ${err.toString()}`,
-			});
-		    }
+		if ( status_codes.includes( 404 ) && err.name === "EntryNotFoundError" )
+		    this.$root.showStatusView( 404 );
+		else if ( status_codes.includes( 500 ) )
+		    this.$root.showStatusView( 500 );
+	    },
+
+	    async showStatusView ( status, data = null ) {
+		if ( !status ) { // reset status view
+		    this.$root.status_view_html = null;
+		    return;
+		}
+
+		if ( data ) {
+		    this.$root.status_view_data = Object.assign( {
+			"code": status,
+			"title": "It's not me, it's you",
+			"message": "Default HTTP Code Name",
+			"details": null,
+		    }, data );
+		    this.$root.status_view_html = true;
+
+		    return;
+		}
+
+		try {
+		    this.$root.status_view_html = (await import(`./templates/${status}.html`)).default;
+		} catch (err) {
+		    log.error("%s", err.message, err );
+		    this.$root.status_view_html = (await import(`./templates/500.html`)).default;
 		}
 	    },
-	},
-	"/profile/:agent?": {
-	    "template": (await import("./templates/profile.html")).default,
-	    "data": function() {
-		return {
-		    "agent": null,
-		    "profile": null,
-		    "following": null,
-		    "follow_new_agent": "hCAk1TZLVbFPHO+FtU33/rMxruedVIQSUPeQljjNYS6pW+qWErwg",
-		};
-	    },
-	    async created () {
-		this.$root.setToolbarControls(null, [{
-		    "path": "/profile/edit",
-		    "title": "Update Profile",
-		    "icon": "pencil-square",
-		}]);
-		await this.refresh();
-	    },
-	    "computed": {
-		...mapState([
-		    "whoami",
-		]),
-	    },
-	    "methods": {
-		async refresh () {
-		    this.agent			= this.$route.params.agent;
-		    this.profile		= await this.$store.dispatch("get_profile", {
-			"agent": this.agent,
-		    });
 
-		    await this.refreshFollowing();
-		},
-		async refreshFollowing () {
-		    if ( !this.agent ) {
-			this.following		= await this.$store.dispatch("get_following");
+	    getPathId ( key ) {
+		const path_id		= this.$route.params[key];
 
-			for (let [i,link] of Object.entries(this.following) ) {
-			    console.log("Fetching profile for developer:", link.target );
-			    Vue.set(
-				this.following, i,
-				await this.$store.dispatch("get_profile", {
-				    "agent": link.id.toType("AgentPubKey"),
-				})
-			    );
-			}
-		    }
-		    else
-			console.log("Not getting followers because agent is specificied:", this.agent );
-		},
-		async followAgent ( agent ) {
-		    try {
-			await this.$store.dispatch("follow_agent", { agent } );
-			notify.success("Now following " + agent);
-			await this.refreshFollowing();
-		    } catch (err) {
-			console.error( err );
-			notify.open({
-			    type: "error",
-			    message: `Failed to follow Agent - ${err.toString()}`,
+		try {
+		    return new HoloHashes.EntryHash( path_id );
+		} catch (err) {
+		    if ( err instanceof HoloHashes.HoloHashError ) {
+			this.showStatusView( 400, {
+			    "title": "Invalid Identifier",
+			    "message": `Invalid Holo Hash in URL path`,
+			    "details": [
+				`<code>${path_id}</code>`,
+				`${err.name}: ${err.message}`,
+			    ],
 			});
 		    }
-		},
-		...mapActions([
-		]),
-	    },
-	},
-	"/happs": hctls.happs,
-	"/happ/new": hctls.create_happ,
-	"/happ/:entry_hash": hctls.happ_single,
-	"/happ/:entry_hash/release/new": hctls.create_release,
-	"/happ/release/:entry_hash": hctls.release_single,
-	"/dna/new": {
-	    "template": (await import("./templates/dna-create.html")).default,
-	    "data": function() {
-		return {
-		    "dna": {
-			"developer": {},
-		    },
-		};
-	    },
-	    async created () {
-		this.$root.setToolbarControls([{
-		    "path": "/",
-		    "title": "Back to Dashboard",
-		    "icon": "arrow-left-square",
-		}], [{
-		    "path": "/",
-		    "title": "Cancel",
-		    "icon": "x-square",
-		}, "-", {
-		    "action": this.save,
-		    "title": "Save",
-		    "icon": "check-square-fill",
-		}]);
-	    },
-	    "methods": {
-		async save () {
-		    console.log("Creating DNA with input:", this.dna );
-		    try {
-			let dna			= await this.$store.dispatch("create_dna", this.dna );
-			console.log("Created DNA:", dna );
 
-			notify.success("Created new DNA...");
-			this.$router.push("/");
-		    } catch (err) {
-			console.error( err );
-			notify.open({
-			    type: "error",
-			    message: `Failed to create DNA - ${err.toString()}`,
-			});
-		    }
+		    throw err;
 		}
 	    },
+
+	    ...common,
 	},
-	"/dna/:entry_hash": {
-	    "template": (await import("./templates/dna-single.html")).default,
-	    "data": function() {
-		return {
-		    "id": null,
-		    "dna": null,
-		    "next_version": null,
-		    "versions": [],
-		    "deprecation_prompt": null,
-		    "deprecation": {
-			"reason": null,
-		    },
-		};
-	    },
-	    "watch": {
-		dna () {
-		    this.setToolbar();
-		},
-	    },
-	    async created () {
-		this.id				= this.$route.params.entry_hash;
-		await this.refresh();
-		this.setToolbar();
-	    },
-	    "methods": {
-		setToolbar () {
-		    let bottom_controls		= [{
-			"path": "/dna/" + encodeURIComponent(this.id) + "/edit",
-			"title": "Edit",
-			"icon": "pencil-square",
-		    }];
+    });
 
-		    if ( !this.dna.deprecation ) {
-			bottom_controls.unshift({
-			    "action": this.deprecatePrompt,
-			    "title": "Deprecate",
-			    "icon": "trash",
-			}, "-");
-		    }
-
-		    this.$root.setToolbarControls([{
-			"path": "/",
-			"title": "Back to Dashboard",
-			"icon": "arrow-left-square",
-		    }], bottom_controls );
-		},
-		deprecationModal () {
-		    if ( this.deprecation_prompt === null )
-			this.deprecation_prompt = new bootstrap.Modal( document.getElementById("dna-deprecation-modal") );
-
-		    return this.deprecation_prompt;
-		},
-		async refresh () {
-		    let dna_obj			= await this.$store.dispatch("get_dna", { "hash": this.id });
-		    this.dna			= dna_obj.toJSON();
-
-		    let versions		= await dna_obj.versions();
-		    this.versions		= versions.sort( object_sorter("version") ).reverse();
-
-		    this.next_version		= this.versions.reduce( (acc, dv) => {
-			return dv.version > acc ? dv.version : acc;
-		    }, 0 ) + 1;
-		},
-		async deprecatePrompt () {
-		    let modal			= this.deprecationModal();
-		    modal.show();
-		},
-		async confirmDeprecation () {
-		    console.log("Deprecating now...", this.deprecation );
-		    this.dna			= (await this.$store.dispatch("deprecate_dna", [this.id, this.deprecation.reason])).toJSON();
-		    this.deprecation		= {
-			"reason": null,
-		    };
-
-		    let modal			= this.deprecationModal();
-		    modal.hide();
-		},
-	    },
-	},
-	"/dna/:entry_hash/edit": {
-	    "template": (await import("./templates/dna-update.html")).default,
-	    "data": function() {
-		return {
-		    "id": null,
-		    "dna": null,
-		};
-	    },
-	    async created () {
-		this.id				= this.$route.params.entry_hash;
-		this.$root.setToolbarControls([{
-		    "path": "/dna/" + encodeURIComponent(this.id),
-		    "title": "Back to Dashboard",
-		    "icon": "arrow-left-square",
-		}], [{
-		    "path": "/dna/" + encodeURIComponent(this.id),
-		    "title": "Cancel",
-		    "icon": "x-square",
-		}, "-", {
-		    "action": this.save,
-		    "title": "Save",
-		    "icon": "check-square-fill",
-		}]);
-		await this.refresh();
-	    },
-	    "methods": {
-		async refresh () {
-		    let dna_obj			= await this.$store.dispatch("get_dna", { "hash": this.id });
-		    this.dna			= dna_obj.toJSON();
-
-		    delete this.dna.last_updated; // Forces new timestamp in DNA
-		},
-		async save () {
-		    console.log("Updating DNA:", this.id );
-		    console.log("Updating DNA with input:", this.dna );
-		    try {
-			let input		= Object.assign( {}, this.dna );
-			input.published_at	= input.published_at.getTime();
-
-			let dna			= await this.$store.dispatch("update_dna", [this.id, input] );
-			console.log("Updated DNA:", dna );
-
-			notify.success("Updated DNA...");
-			this.$router.push("/dna/" + encodeURIComponent(this.id) );
-		    } catch (err) {
-			console.error( err );
-			notify.open({
-			    type: "error",
-			    message: `Failed to update DNA - ${err.toString()}`,
-			});
-		    }
-		}
-	    },
-	},
-	"/dna/:entry_hash/version/new": {
-	    "template": (await import("./templates/dna-version-create.html")).default,
-	    "data": function() {
-		return {
-		    "id": null,
-		    "dna_version": {},
-		    "published_date": (new Date()).toISOString().slice(0,10),
-		};
-	    },
-	    async created () {
-		this.id				= this.$route.params.entry_hash;
-		this.dna_version.for_dna	= b64( this.id );
-		this.dna_version.version	= parseInt(this.$route.query.version) || 1;
-
-		this.$root.setToolbarControls([{
-		    "path": "/dna/" + encodeURIComponent(this.id),
-		    "title": "Back to DNA",
-		    "icon": "arrow-left-square",
-		}], [{
-		    "path": "/dna/" + encodeURIComponent(this.id),
-		    "title": "Cancel",
-		    "icon": "x-square",
-		}, "-", {
-		    "action": this.save,
-		    "title": "Save",
-		    "icon": "check-square-fill",
-		}]);
-	    },
-	    "methods": {
-		async fileSelected ( event ) {
-		    let files			= event.target.files;
-		    this.dna_version.bytes	= await load_file( files[0] );
-		},
-		async save () {
-		    console.log("Creating DNA Version with input:", this.dna_version );
-		    let input			= this.dna_version;
-		    try {
-			input.published_at = (new Date( this.published_date + "T00:00:00.000Z" )).getTime();
-
-			let dna_version		= await this.$store.dispatch("create_dna_version", input );
-			console.log("Created DNA Version:", dna_version );
-
-			notify.success("Created new DNA Version...");
-			this.$router.push("/dna/" + encodeURIComponent(this.id) );
-		    } catch (err) {
-			console.error( err );
-			notify.open({
-			    type: "error",
-			    message: `Failed to create DNA Version - ${err.toString()}`,
-			});
-		    }
-		}
-	    },
-	},
-	"/dna/version/:entry_hash": {
-	    "template": (await import("./templates/dna-version-single.html")).default,
-	    "data": function() {
-		return {
-		    "id": null,
-		    "dna_version": null,
-		    "delete_prompt": null,
-		    "delete_reason": null,
-		};
-	    },
-	    async created () {
-		this.id				= this.$route.params.entry_hash;
-		await this.refresh();
-
-		this.$root.setToolbarControls([{
-		    "path": "/dna/" + this.dna_version.for_dna.$id,
-		    "title": "Back to DNA",
-		    "icon": "arrow-left-square",
-		}], [{
-		    "action": this.deletePrompt,
-		    "title": "Delete",
-		    "icon": "trash",
-		}, "-", {
-		    "path": "/dna/version/" + encodeURIComponent(this.id) + "/edit",
-		    "title": "Edit",
-		    "icon": "pencil-square",
-		}]);
-	    },
-	    "methods": {
-		deleteModal () {
-		    if ( this.delete_prompt === null )
-			this.delete_prompt = new bootstrap.Modal( document.getElementById("dna-version-delete-modal") );
-
-		    return this.delete_prompt;
-		},
-		async refresh () {
-		    let version_obj		= await this.$store.dispatch("get_dna_version", { "hash": this.id });
-		    this.dna_version		= version_obj.toJSON();
-		    console.log( this.dna_version );
-		},
-		async download () {
-		    let chunks			= [];
-		    for ( let chunk_hash of this.dna_version.chunk_addresses ) {
-			let $chunk		= await this.$store.dispatch("get_dna_chunk", { "hash": chunk_hash });
-			chunks.push( $chunk.toJSON().bytes );
-		    }
-		    console.log( chunks );
-
-		    let blob			= new Blob(chunks);
-		    let link			= document.createElement("a");
-		    link.href			= URL.createObjectURL(blob);
-
-		    let filename		= this.dna_version.for_dna.name.replace(/[/\\?%*:|"<>]/g, '_');
-		    link.download		= `${filename}-v${this.dna_version.version}.dna`;
-		    link.click();
-		},
-		async deletePrompt () {
-		    let modal			= this.deleteModal();
-		    modal.show();
-		},
-		async confirmDelete () {
-		    console.log("Deleting now...", this.delete_reason );
-		    try {
-			await this.$store.dispatch("delete_dna_version", { "hash": this.id });
-			let modal		= this.deleteModal();
-			modal.hide();
-
-			notify.success("Deleted DNA Version...");
-			this.$router.push("/dna/" + this.dna_version.for_dna.$id );
-		    } catch (err) {
-			console.error( err );
-			notify.open({
-			    type: "error",
-			    message: `Failed to delete DNA Version - ${err.toString()}`,
-			});
-		    }
-		},
-	    },
-	},
-	"/dna/version/:entry_hash/edit": {
-	    "template": (await import("./templates/dna-version-update.html")).default,
-	    "data": function() {
-		return {
-		    "id": null,
-		    "dna_version": null,
-		    "published_date": null,
-		};
-	    },
-	    async created () {
-		this.id				= this.$route.params.entry_hash;
-		this.$root.setToolbarControls([{
-		    "path": "/dna/version/" + encodeURIComponent(this.id),
-		    "title": "Back to DNA Version",
-		    "icon": "arrow-left-square",
-		}], [{
-		    "path": "/dna/version/" + encodeURIComponent(this.id),
-		    "title": "Cancel",
-		    "icon": "x-square",
-		}, "-", {
-		    "action": this.save,
-		    "title": "Save",
-		    "icon": "check-square-fill",
-		}]);
-		await this.refresh();
-	    },
-	    "methods": {
-		async refresh () {
-		    let version_obj		= await this.$store.dispatch("get_dna_version", { "hash": this.id });
-		    this.dna_version		= version_obj.toJSON();
-		    this.published_date		= (new Date(this.dna_version.published_at)).toISOString().slice(0,10);
-		},
-		async save () {
-		    console.log("Updating DNA Version:", this.id );
-		    let input			= this.dna_version;
-		    console.log("Updating DNA Version with input:", input );
-		    try {
-			input.published_at = (new Date( this.published_date + "T00:00:00.000Z" )).getTime();
-			let dna			= await this.$store.dispatch("update_dna_version", [this.id, input] );
-			console.log("Updated DNA Version:", dna );
-
-			notify.success("Updated DNA Version...");
-			this.$router.push("/dna/version/" + encodeURIComponent(this.id) );
-		    } catch (err) {
-			console.error( err );
-			notify.open({
-			    type: "error",
-			    message: `Failed to update DNA Version - ${err.toString()}`,
-			});
-		    }
-		}
-	    },
-	},
+    app.config.globalProperties.breadcrumb_mapping	= breadcrumb_mapping;
+    app.config.globalProperties.$filters		= filters;
+    app.config.errorHandler		= function (err, vm, info) {
+	log.error("Vue App Error (%s):", info, err, vm );
     };
 
-    const routes				= [];
-    for (let [ path, component ] of Object.entries( routeComponents )) {
-	routes.push({ path, component });
+    for ( let tag in components ) {
+	app.component( tag, components[tag] );
     }
-    console.log("Vue.js routers config:", routes );
 
-    const router				= new VueRouter({
-	mode: "history",
-	routes,
-	linkActiveClass: "parent-active",
-	linkExactActiveClass: "active",
-    });
+    app.use( router );
+    app.use( store );
+    app.mount("#app");
 
-    const app					= new Vue({
-	router,
-	store,
-	data: {
-	    "toolbar_top_controls": [],
-	    "toolbar_bottom_controls": [],
-	},
-	computed: {
-	    ...mapState([
-		"whoami",
-	    ]),
-	},
-	created: async function () {
-	    this.$store.dispatch("get_whoami");
-	},
-	methods: {
-	    iconClass ( id ) {
-		return 'bi-' + id;
-	    },
-	    setToolbarControls (top, bottom) {
-		this.toolbar_top_controls	= top || [{
-		    "path": "/",
-		    "title": "Dashboard",
-		    "icon": "house",
-		}, {
-		    "path": "/happs",
-		    "title": "hApps",
-		    "icon": "window",
-		}, {
-		    "path": "/profile",
-		    "title": "Profile",
-		    "icon": "person",
-		}];
-		this.toolbar_bottom_controls	= bottom || [];
-	    },
-	    ...mapActions([
-		"get_whoami",
-	    ]),
-	}
-    }).$mount("#app");
+    global._App				= app;
+    global._Router			= router;
 
-    global.App					= app;
-
+    log.info("Finished App configuration and mounting");
 })(window);
