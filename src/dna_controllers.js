@@ -70,6 +70,7 @@ module.exports = async function ( client ) {
 		    try {
 			const dna	= await this.$store.dispatch("createDna", this.input );
 
+			this.$store.dispatch("fetchDnas", { "agent": "me" });
 			this.$router.push( "/dnas/" + dna.$id );
 		    } catch ( err ) {
 			log.error("Failed to create DNA:", err );

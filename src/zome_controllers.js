@@ -70,6 +70,7 @@ module.exports = async function ( client ) {
 		    try {
 			const zome	= await this.$store.dispatch("createZome", this.input );
 
+			this.$store.dispatch("fetchZomes", { "agent": "me" });
 			this.$router.push( "/zomes/" + zome.$id );
 		    } catch ( err ) {
 			log.error("Failed to create Zome:", err );

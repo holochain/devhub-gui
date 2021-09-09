@@ -19,7 +19,7 @@
   "homepage": "https://github.com/holochain/devhub-gui#readme",
   "dependencies": {
     "@babel/runtime": "^7.15.3",
-    "@holochain/devhub-entities": "file:../devhub-dnas/js-devhub-entities/holochain-devhub-entities-0.2.0.tgz",
+    "@holochain/devhub-entities": "^0.3.0",
     "@whi/weblogger": "^0.1.2",
     "showdown": "^1.9.1",
     "vue": "^3.2.4",
@@ -32,7 +32,7 @@
     "@babel/plugin-transform-runtime": "^7.15.0",
     "@babel/preset-env": "^7.14.2",
     "@holo-host/holo-cli": "file:../holo-cli",
-    "@whi/holochain-backdrop": "file:../node-holochain-backdrop",
+    "@whi/holochain-backdrop": "^0.1.1",
     "@whi/stdlog": "^0.3.4",
     "babel-loader": "^8.2.2",
     "chai": "^4.3.4",

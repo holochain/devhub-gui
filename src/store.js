@@ -1,8 +1,6 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("store");
 
-const Vuex				= require('vuex');
-
 const DEFAULT_METADATA_STATES		= {
     "loaded": false,
     "loading": false,

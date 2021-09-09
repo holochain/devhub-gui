@@ -1,9 +1,6 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("main");
 
-const Vue				= require('vue');
-const VueRouter				= require('vue-router');
-
 const { Client, HoloHashes,
 	logging }			= require('@holochain/devhub-entities');
 const { HoloHash,

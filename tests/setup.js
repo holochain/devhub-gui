@@ -13,7 +13,7 @@ const { AdminClient,
 const DNAREPO				= path.resolve( __dirname, "../dnas/dnarepo.dna" );
 const HAPPS				= path.resolve( __dirname, "../dnas/happs.dna" );
 const WEBASSETS				= path.resolve( __dirname, "../dnas/webassets.dna" );
-const PORT				= 34459;
+const PORT				= 35678;
 
 const admin				= new AdminClient( PORT );
 

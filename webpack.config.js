@@ -1,5 +1,6 @@
 const path			= require('path');
 const webpack			= require('webpack');
+const TerserPlugin		= require("terser-webpack-plugin");
 const fs			= require('fs');
 
 const Copy			= require('copy-webpack-plugin');
@@ -7,7 +8,7 @@ const Copy			= require('copy-webpack-plugin');
 const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH",	"utf8").trim();
 const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH",		"utf8").trim();
 const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH",	"utf8").trim();
-const WEBPACK_MODE		= "development"; // production | development
+const WEBPACK_MODE		= "production"; // production | development
 
 
 module.exports = {
@@ -15,12 +16,7 @@ module.exports = {
     mode: WEBPACK_MODE,
     entry: [ "./src/index.js" ],
     resolve: {
-	// mainFields: ["main"],
-	alias: {
-	    "vue":		"vue/dist/vue.esm-bundler.js",
-	    "vuex":		"vuex/dist/vuex.esm-bundler.js",
-	    "vue-router":	"vue-router/dist/vue-router.esm-bundler.js",
-	},
+	mainFields: ["main"],
     },
     output: {
 	publicPath: "/",
@@ -68,6 +64,10 @@ module.exports = {
 			ignore: ["**/*~"],
 		    },
 		},
+		{ from: "./node_modules/vue/dist/vue.global.prod.js", to: "vue.prod.js" },
+		{ from: "./node_modules/vuex/dist/vuex.global.prod.js", to: "vuex.prod.js" },
+		{ from: "./node_modules/vue-router/dist/vue-router.global.prod.js", to: "vue-router.prod.js" },
+		// { from: "./node_modules/showdown/dist/showdown.min.js", to: "showdown.min.js" },
 	    ],
 	}),
 	new webpack.DefinePlugin({
@@ -87,4 +87,17 @@ module.exports = {
 	errorDetails: true,
     },
     devtool: "source-map",
+    optimization: {
+	minimizer: [
+	    new TerserPlugin({
+		terserOptions: {
+		    keep_classnames: true,
+		},
+	    }),
+	],
+    },
+    performance: {
+	maxEntrypointSize:	300_000, // 300kb
+	maxAssetSize:		300_000, // 300kb
+    },
 };

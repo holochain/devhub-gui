@@ -71,6 +71,7 @@ module.exports = async function ( client ) {
 		    try {
 			const happ	= await this.$store.dispatch("createHapp", this.input );
 
+			this.$store.dispatch("fetchHapps", { "agent": "me" });
 			this.$router.push( "/happs/" + happ.$id );
 		    } catch ( err ) {
 			log.error("Failed to create Happ:", err );
