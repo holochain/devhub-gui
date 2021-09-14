@@ -2,10 +2,12 @@ const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("main");
 
 const { Client, HoloHashes,
+	HolochainClient,
 	logging }			= require('@holochain/devhub-entities');
 const { HoloHash,
 	DnaHash,
 	AgentPubKey }			= HoloHashes;
+const { TimeoutError }			= HolochainClient;
 
 log.level.trace && logging();
 
@@ -22,10 +24,13 @@ const happs_init			= require('./happ_controllers.js');
 const happ_releases_init		= require('./happ_release_controllers.js');
 
 
+const HISTORY_PUSH_STATE		= window.localStorage.getItem("PUSH_STATE");
 const AGENT_HASH			= window.localStorage.getItem("AGENT_PUBKEY");
+const HOST_VALUE			= window.localStorage.getItem("APP_HOST");
 const PORT_VALUE			= window.localStorage.getItem("APP_PORT");
-const APP_PORT				= parseInt( PORT_VALUE );
-const CONDUCTOR_URI			= `devhub.holochain.org:${APP_PORT}`;
+const APP_PORT				= parseInt( PORT_VALUE ) || 44001;
+const APP_HOST				= HOST_VALUE || "localhost";
+const CONDUCTOR_URI			= `${APP_HOST}:${APP_PORT}`;
 
 if ( isNaN( APP_PORT ) )
     throw new Error(`Invalid 'APP_PORT' (${PORT_VALUE}); run 'localStorage.setItem( "APP_PORT", "<port number>" );`);
@@ -122,7 +127,9 @@ window.PersistentStorage		= {
     log.normal("Configured %s routes for App", routes.length );
 
     const router			= VueRouter.createRouter({
-	"history": VueRouter.createWebHistory(),
+	"history": HISTORY_PUSH_STATE === "true"
+	    ? VueRouter.createWebHistory()
+	    : VueRouter.createWebHashHistory(),
 	routes,
 	"linkActiveClass": "parent-active",
 	"linkExactActiveClass": "active",
@@ -158,9 +165,23 @@ window.PersistentStorage		= {
 		this.showStatusView( false );
 	    });
 
-	    let agent_info		= await this.$store.dispatch("fetchAgent");
+	    try {
+		let agent_info		= await this.$store.dispatch("fetchAgent");
 
-	    this.agent_id		= agent_info.pubkey.initial;
+		this.agent_id		= agent_info.pubkey.initial;
+	    } catch (err) {
+		if ( err instanceof TimeoutError )
+		    return this.showStatusView( 408, {
+			"title": "Connection Timeout",
+			"message": `Request Timeout - Client could not connect to the Conductor interface`,
+			"details": [
+			    `${err.name}: ${err.message}`,
+			],
+		    });
+		else
+		    console.log( err );
+	    }
+
 	},
 	"methods": {
 	    copyAgentId () {

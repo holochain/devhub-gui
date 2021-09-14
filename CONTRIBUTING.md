@@ -104,7 +104,11 @@ No automated testing.
 updating.
 
 Visit [http://devhub.holochain.org](http://devhub.holochain.org) after completing the following
-setup instructions.
+setup instructions.  Don't forget to change the `APP_HOST` in the browser console
+
+```javascript
+localStorage.setItem( "APP_HOST", "devhub.holochain.org" );
+```
 
 ### Install
 If you don't already have `nginx` installed

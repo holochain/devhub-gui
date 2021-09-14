@@ -34,18 +34,26 @@ uhCAkQ1xBkDZwHKD05MKrLaIJQDvJG_RwlDbKNfMbEoqwDvrqs5Wx
 
 #### Browser `console` commands
 
-Set the app port that was attached during `make setup`
-```javascript
-localStorage.setItem( "APP_PORT", 44001 );
-```
-
 Set the agent pubkey that was created during `make setup`
 ```javascript
 // Example - you must replace this Agent pubkey with the one in ./tests/AGENT
 localStorage.setItem( "AGENT_PUBKEY", "uhCAkQ1xBkDZwHKD05MKrLaIJQDvJG_RwlDbKNfMbEoqwDvrqs5Wx" );
 ```
 
-Turn on logging *(optional)*
+**Optional settings**
+
+If you change the app port in `./tests/setup.js`, override the default port with `APP_PORT`
+```javascript
+localStorage.setItem( "APP_PORT", 44001 );
+```
+
+If you follow the `CONTRIBUTING.md` instructions for setting up an SPA for push state, you can set the app host with `APP_HOST`.
+```javascript
+localStorage.setItem( "APP_HOST", "devhub.holochain.org" );
+localStorage.setItem( "PUSH_STATE", "true" );
+```
+
+Turn on logging
 ```javascript
 localStorage.setItem( "LOG_LEVEL", "trace" );
 // trace, debug, info, normal, warn, error, fatal
