@@ -8,8 +8,15 @@ multi-conductor multi-agent testing using real-world networking.
 
 ### Testing Setup
 
+Enter nix shell for Holochain and Lair binaries
 ```bash
 nix-shell
+```
+
+Run Holochain
+```bash
+[nix-shell:devhub-gui]$ npm i
+[nix-shell:devhub-gui]$ make run-holochain
 ```
 
 The required DNAs must be downloaded into the `./dnas/` directory.
@@ -32,9 +39,22 @@ View the created agent pubkey
 uhCAkQ1xBkDZwHKD05MKrLaIJQDvJG_RwlDbKNfMbEoqwDvrqs5Wx
 ```
 
+Build GUI assets
+```bash
+[nix-shell:devhub-gui]$ npm run build
+```
+
+Run any simple HTTP server from the `dist` directory.
+
+Example
+```bash
+cd dist; python3 -m http.server 8888
+```
+
+
 #### Browser `console` commands
 
-Set the agent pubkey that was created during `make setup`
+Set the agent pubkey that was created during `make setup`.
 ```javascript
 // Example - you must replace this Agent pubkey with the one in ./tests/AGENT
 localStorage.setItem( "AGENT_PUBKEY", "uhCAkQ1xBkDZwHKD05MKrLaIJQDvJG_RwlDbKNfMbEoqwDvrqs5Wx" );

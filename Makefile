@@ -13,16 +13,15 @@ setup:			dna_packages
 setup-%:		dna_packages
 	node tests/setup.js $*
 
-../devhub-dnas/bundled/%.dna:
-	$(error Missing DNA @ $@)
 dnas:
 	mkdir dnas
-dnas/dnarepo.dna:	../devhub-dnas/bundled/dnarepo/dnarepo.dna dnas
-	cp $< $@
-dnas/happs.dna:		../devhub-dnas/bundled/happs/happs.dna dnas
-	cp $< $@
-dnas/webassets.dna:	../devhub-dnas/bundled/web_assets/web_assets.dna dnas
-	cp $< $@
+dnas/%.dna:		dnas
+	$(error Download missing DNA ($*.dna) into location ./$@)
+
+copy-dnas-from-local:
+	cp ~/projects/devhub-dnas/bundled/dnarepo/dnarepo.dna		dnas/dnarepo.dna
+	cp ~/projects/devhub-dnas/bundled/happs/happs.dna		dnas/happs.dna
+	cp ~/projects/devhub-dnas/bundled/web_assets/web_assets.dna	dnas/webassets.dna
 
 
 #
