@@ -9,7 +9,7 @@ const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH",	"utf8").trim();
 const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH",		"utf8").trim();
 const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH",	"utf8").trim();
 const WEBPACK_MODE		= "production"; // production | development
-
+const DEVMODE			= WEBPACK_MODE === "development";
 
 module.exports = {
     target: "web",
@@ -64,10 +64,24 @@ module.exports = {
 			ignore: ["**/*~"],
 		    },
 		},
-		{ from: "./node_modules/vue/dist/vue.global.prod.js", to: "vue.prod.js" },
-		{ from: "./node_modules/vuex/dist/vuex.global.prod.js", to: "vuex.prod.js" },
-		{ from: "./node_modules/vue-router/dist/vue-router.global.prod.js", to: "vue-router.prod.js" },
-		// { from: "./node_modules/showdown/dist/showdown.min.js", to: "showdown.min.js" },
+		{
+		    from: DEVMODE
+			? "./node_modules/vue/dist/vue.global.js"
+			: "./node_modules/vue/dist/vue.global.prod.js",
+		    to: "vue.js"
+		},
+		{
+		    from: DEVMODE
+			? "./node_modules/vuex/dist/vuex.global.js"
+			: "./node_modules/vuex/dist/vuex.global.prod.js",
+		    to: "vuex.js"
+		},
+		{
+		    from: DEVMODE
+			? "./node_modules/vue-router/dist/vue-router.global.js"
+			: "./node_modules/vue-router/dist/vue-router.global.prod.js",
+		    to: "vue-router.js"
+		},
 	    ],
 	}),
 	new webpack.DefinePlugin({

@@ -16,7 +16,7 @@
 	    <h1 class="fs-2"><placeholder :when="!$dna.current" size="fill">{{ dna.name }}</placeholder></h1>
 	</template>
 
-	<template #title-extras v-if="!deprecated">
+	<template #title-extras v-if="!deprecated && $dna.writable">
             <router-link :to="'/dnas/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
 		<i class="bi-pencil"></i>
 		Edit
@@ -85,7 +85,7 @@
 		</a>
 	    </h2>
 
-            <router-link v-if="dna" :to="'/dnas/' + id + '/versions/new'"
+            <router-link v-if="dna && $dna.writable" :to="'/dnas/' + id + '/versions/new'"
 			 class="btn btn-primary text-nowrap"
 			 :class="{ 'disabled': deprecated }">
 		<i class="bi-plus-lg"></i>
@@ -121,7 +121,7 @@
 			N/A
 		    </div>
 		    <div class="col text-end text-nowrap">
-			<a @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">
+			<a v-if="$dna.writable" @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">
 			    Unpublish
 			</a>
 

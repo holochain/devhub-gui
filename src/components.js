@@ -120,6 +120,13 @@ const InputFeedback = {
     },
     mounted () {
 	this.input			= this.$refs.container.children[0];
+
+	if ( !["INPUT", "TEXTAREA", "SELECT"].includes( this.input.tagName ) )
+	    this.input			= this.input.querySelector("input, textarea, select");
+
+	if ( !["INPUT", "TEXTAREA", "SELECT"].includes( this.input.tagName ) )
+	    throw new Error(`<input-feedback> requires one of the following form inputs; input, textarea, select`);
+
 	this.invalidMessage		= this.input.validationMessage; // default value
 	log.info("Initial validation message: '%s' for", this.invalidMessage, this.input );
 
@@ -173,6 +180,9 @@ const InputFeedback = {
 	    });
 	},
 	updateInvalidMessage ( msg = "" ) {
+	    if ( msg === false )
+		msg			= "Validator returned false";
+
 	    this.input.setCustomValidity( msg );
 
 	    if ( this.invalidMessage === this.input.validationMessage )
@@ -427,9 +437,14 @@ const PageView = {
 };
 
 const Search = {
+    "props": {
+	"modelValue": String,
+    },
+    "emits": [ "update:modelValue" ],
     "template": `
 <div class="form-input-search">
-    <input v-bind="$attrs" type="text" class="form-control">
+    <input :value="modelValue" @input="$emit('update:modelValue', $event.target.value)"
+           v-bind="$attrs" type="text" class="form-control">
 </div>`,
 };
 

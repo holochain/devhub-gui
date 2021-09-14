@@ -51,7 +51,14 @@ log.level.normal && Object.entries( dnas ).forEach( ([nick, hash]) => {
 });
 
 
-window._Vue				= Vue;
+window.PersistentStorage		= {
+    setItem ( key, value ) {
+	return window.localStorage.setItem( key, JSON.stringify(value) );
+    },
+    getItem ( key ) {
+	return JSON.parse( window.localStorage.getItem( key ) );
+    },
+};
 
 
 (async function(global) {
@@ -124,19 +131,46 @@ window._Vue				= Vue;
     const app				= Vue.createApp({
 	data () {
 	    return {
+		"agent_id": null,
+		"show_copied_message": false,
 		"status_view_data": null,
 		"status_view_html": null,
 	    };
 	},
-	created () {
+	"computed": {
+	    agent () {
+		return this.$store.getters.agent.entity;
+	    },
+	    $agent () {
+		return this.$store.getters.agent.metadata;
+	    },
+	},
+	async created () {
 	    this.$router.afterEach( (to, from, failure) => {
-		log.normal("Navigated to:", to.path, from.path, failure );
+		if ( failure instanceof Error )
+		    return log.error("Failed to Navigate:", failure );
+
+		log.normal("Navigated to:", to.path, from.path );
 
 		if ( to.matched.length === 0 )
 		    return this.showStatusView( 404 );
 
 		this.showStatusView( false );
 	    });
+
+	    let agent_info		= await this.$store.dispatch("fetchAgent");
+
+	    this.agent_id		= agent_info.pubkey.initial;
+	},
+	"methods": {
+	    copyAgentId () {
+		this.copyToClipboard( this.agent_id );
+		this.show_copied_message	= true;
+
+		setTimeout( () => {
+		    this.show_copied_message	= false;
+		}, 5_000 );
+	    },
 	},
     });
 

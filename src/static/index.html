@@ -11,10 +11,9 @@
 	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
 	<!-- Application -->
-	<script src="/vue.prod.js"></script>
-	<script src="/vuex.prod.js"></script>
-	<script src="/vue-router.prod.js"></script>
-	<!-- <script src="/showdown.min.js"></script> -->
+	<script src="/vue.js"></script>
+	<script src="/vuex.js"></script>
+	<script src="/vue-router.js"></script>
 	<script src="/webpacked.app.js" async></script>
 
 	<!-- Responsive mobile-first framework -->
@@ -42,20 +41,33 @@
 			</li>
 			<li class="list-group-item list-group-item-action">
 			    <router-link to="/happs" class="nav-link">
-				My hApps
+				hApps
 			    </router-link>
 			</li>
 			<li class="list-group-item list-group-item-action">
 			    <router-link to="/dnas" class="nav-link">
-				My DNAs
+				DNAs
 			    </router-link>
 			</li>
 			<li class="list-group-item list-group-item-action">
 			    <router-link to="/zomes" class="nav-link">
-				My Zomes
+				Zomes
 			    </router-link>
 			</li>
 		    </ul>
+
+		    <div class="px-3 mt-3">
+			<label>My Agent ID</label>
+			<div class="input-group">
+			    <input type="text" class="form-control is-valid no-validate" v-model="agent_id" readonly>
+			    <div v-if="show_copied_message" class="valid-tooltip">
+				Copied Agent ID
+			    </div>
+			    <span class="input-group-text cursor-pointer" @click="copyAgentId()">
+				<i class="bi-clipboard"></i>
+			    </span>
+			</div>
+		    </div>
 		</div>
 	    </div>
 

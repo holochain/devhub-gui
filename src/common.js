@@ -1,9 +1,32 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("common");
 
+const { HoloHashes }			= require('@holochain/devhub-entities');
+const { HoloHash,
+	AgentPubKey }			= HoloHashes;
+
 
 const _debounce_timers			= {};
 
+function fallbackCopyTextToClipboard ( text ) {
+    let textArea			= document.createElement("textarea");
+    textArea.value			= text;
+
+    textArea.style.bottom		= "0";
+    textArea.style.right		= "0";
+    textArea.style.position		= "fixed";
+
+    document.body.appendChild( textArea );
+    textArea.focus();
+    textArea.select();
+
+    try {
+	if ( !document.execCommand('copy') )
+	    throw new Error(`Unable to copy to clipboard`);
+    } finally {
+	document.body.removeChild( textArea );
+    }
+}
 
 module.exports = {
     sort_by_object_key ( list_of_objects, key ) {
@@ -43,6 +66,13 @@ module.exports = {
 	return dest;
     },
 
+    async copyToClipboard ( text ) {
+	if ( !navigator.clipboard )
+	    return fallbackCopyTextToClipboard( text );
+
+	await navigator.clipboard.writeText( text );
+    },
+
     load_file ( file ) {
 	log.normal("Load file:", file );
 	return new Promise((f,r) => {
@@ -80,9 +110,9 @@ module.exports = {
 
     debounce ( callback, delay = 1_000, id ) {
 	if ( id === undefined )
-	    id			= String(callback);
+	    id				= String(callback);
 
-	const toid		= _debounce_timers[id];
+	const toid			= _debounce_timers[id];
 
 	if ( toid ) {
 	    clearTimeout( toid );
@@ -93,5 +123,29 @@ module.exports = {
 	    callback.bind(this);
 	    delete _debounce_timers[id];
 	}, delay );
+    },
+
+    isMyPubKey ( hash ) {
+	if ( !this.$root.agent )
+	    return false;
+
+	if ( hash instanceof Uint8Array )
+	    hash			= new AgentPubKey( hash )
+	if ( hash instanceof HoloHash )
+	    hash			= hash.toString();
+
+	if ( typeof hash !== "string" )
+	    throw new TypeError(`Invalid AgentPubKey; expected string or Uint8Array`);
+
+	return hash === String( this.$root.agent.pubkey.initial );
+    },
+
+    isAgentPubKey ( hash ) {
+	try {
+	    new AgentPubKey( hash );
+	} catch (err) {
+	    return false;
+	}
+	return true;
     },
 };

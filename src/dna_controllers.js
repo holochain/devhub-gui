@@ -1,6 +1,9 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dnas");
 
+const { HoloHashes }			= require('@holochain/devhub-entities');
+const { AgentPubKey }			= HoloHashes;
+
 
 module.exports = async function ( client ) {
 
@@ -8,7 +11,10 @@ module.exports = async function ( client ) {
 	return {
 	    "template": (await import("./templates/dnas/list.html")).default,
 	    "data": function() {
+		const agent_hash	= PersistentStorage.getItem("LIST_FILTER");
 		return {
+		    "agent_search": agent_hash || null,
+		    "agent_filter": agent_hash || null,
 		    "order_by": "published_at",
 		};
 	    },
@@ -16,12 +22,18 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
+		title () {
+		    return this.agent === "me" ? "My DNAs" : "DNAs found";
+		},
+		agent () {
+		    return this.agent_filter || "me";
+		},
 		dnas () {
-		    const dnas		= this.$store.getters.dnas().collection;
+		    const dnas		= this.$store.getters.dnas( this.agent ).collection;
 		    return this.sort_by_object_key( dnas, this.order_by );
 		},
 		$dnas () {
-		    return this.$store.getters.dnas().metadata;
+		    return this.$store.getters.dnas( this.agent ).metadata;
 		},
 	    },
 	    "methods": {
@@ -29,9 +41,22 @@ module.exports = async function ( client ) {
 		    if ( this.dnas.length === 0 )
 			this.fetchDnas();
 		},
+		updateAgent ( input ) {
+		    if ( input === "" )
+			this.agent_filter = null;
+		    else if ( this.isAgentPubKey( input ) )
+			this.agent_filter	= new AgentPubKey( input );
+		    else
+			return;
+
+		    PersistentStorage.setItem("LIST_FILTER", this.agent_filter );
+
+		    if ( !this.dnas.length )
+			this.fetchDnas();
+		},
 		async fetchDnas () {
 		    try {
-			await this.$store.dispatch("fetchDnas", { "agent": "me" });
+			await this.$store.dispatch("fetchDnas", { "agent": this.agent  });
 		    } catch (err) {
 			log.error("Failed to get dnas: %s", err.message, err );
 		    }
@@ -99,7 +124,6 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.dna( this.id ).entity;
 		},
 		$dna () {
-		    console.log("DNA updating:", this.$store.getters.dna( this.id ).metadata.updating );
 		    return this.$store.getters.dna( this.id ).metadata;
 		},
 		form () {

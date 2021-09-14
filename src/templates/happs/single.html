@@ -27,7 +27,7 @@
 	    </div>
 	</template>
 
-	<template #title-extras v-if="!deprecated">
+	<template #title-extras v-if="!deprecated && $happ.writable">
             <router-link :to="'/happs/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
 		<i class="bi-pencil"></i>
 		Edit
@@ -91,7 +91,7 @@
 		</a>
 	    </h2>
 
-            <router-link v-if="happ" :to="'/happs/' + id + '/releases/new'"
+            <router-link v-if="happ && $happ.writable" :to="'/happs/' + id + '/releases/new'"
 			 class="btn btn-primary text-nowrap"
 			 :class="{ 'disabled': deprecated }">
 		<i class="bi-plus-lg"></i>
@@ -127,7 +127,7 @@
 			N/A
 		    </div>
 		    <div class="col text-end text-nowrap">
-			<a @click="promptUnpublish( release )" class="btn btn-secondary text-nowrap">
+			<a v-if="$happ.writable" @click="promptUnpublish( release )" class="btn btn-secondary text-nowrap">
 			    Unpublish
 			</a>
 

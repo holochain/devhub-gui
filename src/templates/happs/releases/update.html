@@ -19,7 +19,7 @@
 			<input-feedback class="w-auto">
 			    <input type="text" v-model="release.name"
 				   class="form-control d-inline-block" style="width: 6em;"
-				   @change="copy(release, input, 'release')"
+				   @change="copy(release, input, 'name')"
 				   :disabled="$release.updating" required>
 			</input-feedback>
 			<span class="fw-3 ms-3">({{ $filters.time( release.published_at, "date" ) }})</span>

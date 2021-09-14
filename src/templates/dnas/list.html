@@ -1,7 +1,7 @@
 <page-view id="list-dnas-page">
     <page-header controls-col="7">
 	<template #default>
-	    <h1 class="fs-2">My DNAs</h1>
+	    <h1 class="fs-2">{{ title }}</h1>
 	    <a v-if="$dnas.loaded" @click="fetchDnas()" class="ms-2 fs-4">
 		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $dnas.loading }"></i>
 	    </a>
@@ -28,7 +28,9 @@
                     </div>
 		</div>
 		<div class="col-6">
-		    <search placeholder="Search for..."></search>
+		    <input-feedback :validator="isAgentPubKey">
+			<search v-model="agent_search" @change="updateAgent( agent_search )" placeholder="Paste Agent PubKey..."></search>
+		    </input-feedback>
 		</div>
 	    </div>
 	</template>

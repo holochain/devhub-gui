@@ -60,6 +60,9 @@ a.text-primary:hover {
    background-color: #5C5F6B !important;
 }
 
+.cursor-pointer {
+  cursor: pointer;
+}
 
 
 .btn {
@@ -185,6 +188,7 @@ a.text-primary:hover {
   border-color: #ced4da !important;
   padding-right: .75rem !important;
   background: none !important;
+  box-shadow: none !important;
 }
 .form-select {
   padding: .26rem 2.25rem .26rem .9rem;

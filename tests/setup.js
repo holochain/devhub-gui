@@ -17,6 +17,10 @@ const PORT				= 35678;
 
 const admin				= new AdminClient( PORT );
 
+function print ( msg, ...args ) {
+    console.log(`\x1b[37m${msg}\x1b[0m`, ...args );
+}
+
 (async function () {
     try {
 	try {
@@ -27,39 +31,58 @@ const admin				= new AdminClient( PORT );
 		throw err;
 	}
 
+	const AGENT_NICKNAME		= process.argv[2] || null;
+	const AGENT_FILENAME		= AGENT_NICKNAME === null
+	      ? "AGENT" : `AGENT_${AGENT_NICKNAME}`;
+	const APP_ID			= AGENT_NICKNAME === null
+	      ? "devhub" : `devhub-${AGENT_NICKNAME}`;
+
+	const dna_resources		= {
+	    "dnarepo":		DNAREPO,
+	    "happs":		HAPPS,
+	    "webassets":	WEBASSETS,
+	};
+	const dna_hashes		= {};
+
+	for (let [nickname, package_filepath] of Object.entries( dna_resources ) ) {
+	    const hash			= await admin.registerDna( package_filepath );
+
+	    const hash_file		= path.resolve( __dirname, `${nickname.toUpperCase()}_HASH` );
+	    print("'%s' storing hash @ %s: %s", nickname, hash_file, hash.toString() );
+	    console.log(hash);
+
+	    fs.writeFileSync( hash_file, hash.toString() );
+
+	    dna_hashes[nickname]	= hash;
+	}
+
+	const agent_file		= path.resolve( __dirname, AGENT_FILENAME );
+	if ( fs.existsSync( agent_file ) )
+	    return print("Not installing because `%s` already exists", agent_file );
+
 	const agent_hash		= await admin.generateAgent();
+	print("Agent hash: %s (%s)", agent_hash.toString(), AGENT_NICKNAME );
 	console.log( agent_hash );
-
-	const dnarepo_hash		= await admin.registerDna( DNAREPO );
-	console.log( dnarepo_hash );
-	fs.writeFileSync( path.resolve( __dirname, "DNAREPO_HASH" ), dnarepo_hash.toString() );
-
-	const happs_hash		= await admin.registerDna( HAPPS );
-	console.log( happs_hash );
-	fs.writeFileSync( path.resolve( __dirname, "HAPPS_HASH" ), happs_hash.toString() );
-
-	const webassets_hash		= await admin.registerDna( WEBASSETS );
-	console.log( webassets_hash );
-	fs.writeFileSync( path.resolve( __dirname, "WEBASSETS_HASH" ), webassets_hash.toString() );
+	fs.writeFileSync( agent_file, agent_hash.toString() );
 
 	try {
-	    const installation		= await admin.installApp( "devhub", agent_hash, {
-		"dnarepo":	dnarepo_hash,
-		"happs":	happs_hash,
-		"webassets":	webassets_hash,
-	    });
+	    const installation		= await admin.installApp( APP_ID, agent_hash, dna_hashes );
 	    console.log( installation );
 	} catch (err) {
-	    if ( !( err instanceof ConductorError
-		    && err.message.includes("AppAlreadyInstalled") ) )
+	    if ( err instanceof ConductorError
+		 && err.message.includes("AppAlreadyInstalled") )
+		print("App '%s' is already installed", APP_ID );
+	    else
 		throw err;
 	}
 
 	try {
-	    await admin.activateApp( "devhub" );
+	    await admin.activateApp( APP_ID );
 	} catch (err) {
-	    if ( !( err instanceof ConductorError
-		    && err.message.includes("AppNotInstalled") ) ) // already active
+	    if ( err instanceof ConductorError
+		 && err.message.includes("AppNotInstalled") ) // already active
+		print("App '%s' is already activated", APP_ID );
+	    else
 		throw err;
 	}
     } finally {

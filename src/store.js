@@ -1,10 +1,15 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("store");
 
+const { HoloHashes }			= require('@holochain/devhub-entities');
+const { HoloHash,
+	AgentPubKey }			= HoloHashes;
+
 const DEFAULT_METADATA_STATES		= {
     "loaded": false,
     "loading": false,
     "current": false,
+    "writable": false,
     "stored_at": Infinity,
 };
 const CACHE_EXPIRATION_LIMIT		= 1_000 * 60 * 10; // 10 minutes
@@ -31,6 +36,28 @@ const dataTypePath			= {
     dnaVersionPackage:	( addr )	=> store_path( "dna",  "version", addr, "package_bytes" ),
     happReleasePackage:	( addr )	=> store_path( "happ", "release", addr, "package_bytes" ),
 };
+
+
+function hashesAreEqual ( hash1, hash2 ) {
+    if ( hash1 instanceof Uint8Array )
+	hash1		= new HoloHash( hash1 )
+    if ( hash1 instanceof HoloHash )
+	hash1		= hash1.toString();
+
+    if ( hash2 instanceof Uint8Array )
+	hash2		= new HoloHash( hash2 )
+    if ( hash2 instanceof HoloHash )
+	hash2		= hash2.toString();
+
+    if ( typeof hash1 !== "string" )
+	throw new TypeError(`Invalid first argument; expected string or Uint8Array; not type of ${typeof hash1}`);
+
+    if ( typeof hash2 !== "string" )
+	throw new TypeError(`Invalid second argument; expected string or Uint8Array; not type of ${typeof hash2}`);
+
+    return hash1 === hash2;
+}
+
 
 module.exports = async function ( client, Vue ) {
     return new Vuex.Store({
@@ -59,6 +86,17 @@ module.exports = async function ( client, Vue ) {
 	    },
 	    metadata: ( state, getters ) => ( path ) => {
 		return state.metadata[ path ] || copy( DEFAULT_METADATA_STATES );
+	    },
+
+	    //
+	    // Agent
+	    //
+	    agent: ( state, getters ) => {
+		const path		= "me";
+		return {
+		    "entity":		getters.entity( path ),
+		    "metadata":		getters.metadata( path ),
+		};
 	    },
 
 	    //
@@ -232,6 +270,37 @@ module.exports = async function ( client, Vue ) {
 	    //
 	    // Agent
 	    //
+	    async getAgent ({ getters, dispatch }) {
+		if ( getters.agent.entity )
+		    return getters.agent.entity;
+		else
+		    return await dispatch("fetchAgent");
+	    },
+
+	    async fetchAgent ({ commit }) {
+		const path		= "me";
+
+		commit("signalLoading", path );
+
+		log.debug("Getting agent info (whoami)");
+		let info		= await client.call(
+		    "dnarepo", "dna_library", "whoami"
+		);
+		info			= {
+		    "pubkey": {
+			"initial": new AgentPubKey( info.agent_initial_pubkey ),
+			"current": new AgentPubKey( info.agent_latest_pubkey ),
+		    },
+		};
+
+		log.info("Found agent info:", info );
+
+		commit("cacheEntity", [ path, info ] );
+		commit("recordLoaded", path );
+
+		return info;
+	    },
+
 	    async fetchZomes ({ commit }, { agent } ) {
 		const path		= dataTypePath.zomes( agent );
 
@@ -314,7 +383,7 @@ module.exports = async function ( client, Vue ) {
 	    //
 	    // Zome
 	    //
-	    async fetchZome ({ commit }, id ) {
+	    async fetchZome ({ commit, getters, dispatch }, id ) {
 		const path		= dataTypePath.zome( id );
 
 		commit("signalLoading", path );
@@ -326,6 +395,10 @@ module.exports = async function ( client, Vue ) {
 
 		log.info("Received zome: %s", zome.name, zome );
 
+		let agent_info		= await dispatch("getAgent");
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( zome.developer.pubkey, agent_info.pubkey.initial ),
+		}] );
 		commit("cacheEntity", [ path, zome ] );
 		commit("recordLoaded", path );
 
@@ -358,6 +431,7 @@ module.exports = async function ( client, Vue ) {
 
 		const path		= dataTypePath.zome( zome.$id );
 		commit("cacheEntity", [ path, zome ] );
+		commit("metadata", [ path, { "writable": true }] );
 
 		return zome;
 	    },
@@ -414,7 +488,7 @@ module.exports = async function ( client, Vue ) {
 	    //
 	    // Zome Version
 	    //
-	    async fetchZomeVersion ({ commit }, id ) {
+	    async fetchZomeVersion ({ commit, dispatch }, id ) {
 		const path		= dataTypePath.zomeVersion( id );
 
 		commit("signalLoading", path );
@@ -426,6 +500,10 @@ module.exports = async function ( client, Vue ) {
 
 		log.info("Received zome version: %s", version.version, version );
 
+		let agent_info		= await dispatch("getAgent");
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( version.for_zome.developer, agent_info.pubkey.initial ),
+		}] );
 		commit("cacheEntity", [ path, version ] );
 		commit("recordLoaded", path );
 
@@ -459,6 +537,7 @@ module.exports = async function ( client, Vue ) {
 
 		const path		= dataTypePath.zomeVersion( version.$id );
 		commit("cacheEntity", [ path, version ] );
+		commit("metadata", [ path, { "writable": true }] );
 
 		return version;
 	    },
@@ -510,7 +589,7 @@ module.exports = async function ( client, Vue ) {
 	    //
 	    // DNA
 	    //
-	    async fetchDna ({ commit }, id ) {
+	    async fetchDna ({ commit, dispatch }, id ) {
 		const path		= dataTypePath.dna( id );
 
 		commit("signalLoading", path );
@@ -522,6 +601,10 @@ module.exports = async function ( client, Vue ) {
 
 		log.info("Received dna: %s", dna.name, dna );
 
+		let agent_info		= await dispatch("getAgent");
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( dna.developer.pubkey, agent_info.pubkey.initial ),
+		}] );
 		commit("cacheEntity", [ path, dna ] );
 		commit("recordLoaded", path );
 
@@ -554,6 +637,7 @@ module.exports = async function ( client, Vue ) {
 
 		const path		= dataTypePath.dna( dna.$id );
 		commit("cacheEntity", [ path, dna ] );
+		commit("metadata", [ path, { "writable": true }] );
 
 		return dna;
 	    },
@@ -610,7 +694,7 @@ module.exports = async function ( client, Vue ) {
 	    //
 	    // DNA Version
 	    //
-	    async fetchDnaVersion ({ commit }, id ) {
+	    async fetchDnaVersion ({ commit, dispatch }, id ) {
 		const path		= dataTypePath.dnaVersion( id );
 
 		commit("signalLoading", path );
@@ -622,6 +706,10 @@ module.exports = async function ( client, Vue ) {
 
 		log.info("Received dna version: %s", version.version, version );
 
+		let agent_info		= await dispatch("getAgent");
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( version.for_dna.developer, agent_info.pubkey.initial ),
+		}] );
 		commit("cacheEntity", [ path, version ] );
 		commit("recordLoaded", path );
 
@@ -657,6 +745,7 @@ module.exports = async function ( client, Vue ) {
 
 		const path		= dataTypePath.dnaVersion( version.$id );
 		commit("cacheEntity", [ path, version ] );
+		commit("metadata", [ path, { "writable": true }] );
 
 		return version;
 	    },
@@ -708,7 +797,7 @@ module.exports = async function ( client, Vue ) {
 	    //
 	    // Happ
 	    //
-	    async fetchHapp ({ commit }, id ) {
+	    async fetchHapp ({ commit, dispatch }, id ) {
 		const path		= dataTypePath.happ( id );
 
 		commit("signalLoading", path );
@@ -720,6 +809,10 @@ module.exports = async function ( client, Vue ) {
 
 		log.info("Received happ: %s", happ.name, happ );
 
+		let agent_info		= await dispatch("getAgent");
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
+		}] );
 		commit("cacheEntity", [ path, happ ] );
 		commit("recordLoaded", path );
 
@@ -752,6 +845,7 @@ module.exports = async function ( client, Vue ) {
 
 		const path		= dataTypePath.happ( happ.$id );
 		commit("cacheEntity", [ path, happ ] );
+		commit("metadata", [ path, { "writable": true }] );
 
 		return happ;
 	    },
@@ -808,7 +902,7 @@ module.exports = async function ( client, Vue ) {
 	    //
 	    // Happ Release
 	    //
-	    async fetchHappRelease ({ commit }, id ) {
+	    async fetchHappRelease ({ commit, dispatch }, id ) {
 		const path		= dataTypePath.happRelease( id );
 
 		commit("signalLoading", path );
@@ -820,6 +914,10 @@ module.exports = async function ( client, Vue ) {
 
 		log.info("Received happ release: %s", release.release, release );
 
+		let agent_info		= await dispatch("getAgent");
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( release.for_happ.designer, agent_info.pubkey.initial ),
+		}] );
 		commit("cacheEntity", [ path, release ] );
 		commit("recordLoaded", path );
 
@@ -861,6 +959,7 @@ module.exports = async function ( client, Vue ) {
 
 		const path		= dataTypePath.happRelease( release.$id );
 		commit("cacheEntity", [ path, release ] );
+		commit("metadata", [ path, { "writable": true }] );
 
 		return release;
 	    },

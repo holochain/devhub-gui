@@ -1,6 +1,9 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zomes");
 
+const { HoloHashes }			= require('@holochain/devhub-entities');
+const { AgentPubKey }			= HoloHashes;
+
 
 module.exports = async function ( client ) {
 
@@ -8,7 +11,10 @@ module.exports = async function ( client ) {
 	return {
 	    "template": (await import("./templates/zomes/list.html")).default,
 	    "data": function() {
+		const agent_hash	= PersistentStorage.getItem("LIST_FILTER");
 		return {
+		    "agent_search": agent_hash || null,
+		    "agent_filter": agent_hash || null,
 		    "order_by": "published_at",
 		};
 	    },
@@ -16,12 +22,18 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
+		title () {
+		    return this.agent === "me" ? "My Zomes" : "Zomes found";
+		},
+		agent () {
+		    return this.agent_filter || "me";
+		},
 		zomes () {
-		    const zomes		= this.$store.getters.zomes().collection;
+		    const zomes		= this.$store.getters.zomes( this.agent ).collection;
 		    return this.sort_by_object_key( zomes, this.order_by );
 		},
 		$zomes () {
-		    return this.$store.getters.zomes().metadata;
+		    return this.$store.getters.zomes( this.agent ).metadata;
 		},
 	    },
 	    "methods": {
@@ -29,9 +41,22 @@ module.exports = async function ( client ) {
 		    if ( this.zomes.length === 0 )
 			this.fetchZomes();
 		},
+		updateAgent ( input ) {
+		    if ( input === "" )
+			this.agent_filter = null;
+		    else if ( this.isAgentPubKey( input ) )
+			this.agent_filter	= new AgentPubKey( input );
+		    else
+			return;
+
+		    PersistentStorage.setItem("LIST_FILTER", this.agent_filter );
+
+		    if ( !this.zomes.length )
+			this.fetchZomes();
+		},
 		async fetchZomes () {
 		    try {
-			await this.$store.dispatch("fetchZomes", { "agent": "me" });
+			await this.$store.dispatch("fetchZomes", { "agent": this.agent });
 		    } catch (err) {
 			log.error("Failed to get zomes: %s", err.message, err );
 		    }
@@ -99,7 +124,6 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.zome( this.id ).entity;
 		},
 		$zome () {
-		    console.log("Zome updating:", this.$store.getters.zome( this.id ).metadata.updating );
 		    return this.$store.getters.zome( this.id ).metadata;
 		},
 		form () {

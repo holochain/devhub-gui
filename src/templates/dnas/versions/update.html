@@ -20,7 +20,7 @@
 			    <input type="number" v-model.number="version.version"
 				   class="form-control d-inline-block" style="width: 6em;"
 				   @change="copy(version, input, 'version')"
-				   :disabled="$version.updating" required>
+				   :disabled="$version.updating" required readonly>
 			</input-feedback>
 			<span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
 		    </placeholder>

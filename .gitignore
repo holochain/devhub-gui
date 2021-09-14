@@ -1,5 +1,7 @@
 node_modules
 dist
-holochain
-dnas/*.dna
+*.log
+tests/AGENT*
 tests/*_HASH
+dnas/*.dna
+holochain

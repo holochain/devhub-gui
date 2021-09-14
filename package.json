@@ -31,7 +31,6 @@
     "@babel/plugin-transform-modules-commonjs": "^7.15.0",
     "@babel/plugin-transform-runtime": "^7.15.0",
     "@babel/preset-env": "^7.14.2",
-    "@holo-host/holo-cli": "file:../holo-cli",
     "@whi/holochain-backdrop": "^0.1.1",
     "@whi/stdlog": "^0.3.4",
     "babel-loader": "^8.2.2",

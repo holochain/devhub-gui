@@ -1,6 +1,9 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happs");
 
+const { HoloHashes }			= require('@holochain/devhub-entities');
+const { AgentPubKey }			= HoloHashes;
+
 
 module.exports = async function ( client ) {
 
@@ -8,7 +11,10 @@ module.exports = async function ( client ) {
 	return {
 	    "template": (await import("./templates/happs/list.html")).default,
 	    "data": function() {
+		const agent_hash	= PersistentStorage.getItem("LIST_FILTER");
 		return {
+		    "agent_search": agent_hash || null,
+		    "agent_filter": agent_hash || null,
 		    "order_by": "published_at",
 		};
 	    },
@@ -16,12 +22,18 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
+		title () {
+		    return this.agent === "me" ? "My hApps" : "hApps found";
+		},
+		agent () {
+		    return this.agent_filter || "me";
+		},
 		happs () {
-		    const happs		= this.$store.getters.happs().collection;
+		    const happs		= this.$store.getters.happs( this.agent ).collection;
 		    return this.sort_by_object_key( happs, this.order_by );
 		},
 		$happs () {
-		    return this.$store.getters.happs().metadata;
+		    return this.$store.getters.happs( this.agent ).metadata;
 		},
 	    },
 	    "methods": {
@@ -29,9 +41,22 @@ module.exports = async function ( client ) {
 		    if ( this.happs.length === 0 )
 			this.fetchHapps();
 		},
+		updateAgent ( input ) {
+		    if ( input === "" )
+			this.agent_filter = null;
+		    else if ( this.isAgentPubKey( input ) )
+			this.agent_filter	= new AgentPubKey( input );
+		    else
+			return;
+
+		    PersistentStorage.setItem("LIST_FILTER", this.agent_filter );
+
+		    if ( !this.happs.length )
+			this.fetchHapps();
+		},
 		async fetchHapps () {
 		    try {
-			await this.$store.dispatch("fetchHapps", { "agent": "me" });
+			await this.$store.dispatch("fetchHapps", { "agent": this.agent });
 		    } catch (err) {
 			log.error("Failed to get happs: %s", err.message, err );
 		    }
@@ -100,7 +125,6 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.happ( this.id ).entity;
 		},
 		$happ () {
-		    console.log("Happ updating:", this.$store.getters.happ( this.id ).metadata.updating );
 		    return this.$store.getters.happ( this.id ).metadata;
 		},
 		form () {

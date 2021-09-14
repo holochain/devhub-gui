@@ -16,7 +16,7 @@
 	    <h1 class="fs-2"><placeholder :when="!$zome.current" size="fill">{{ zome.name }}</placeholder></h1>
 	</template>
 
-	<template #title-extras v-if="!deprecated">
+	<template #title-extras v-if="!deprecated && $zome.writable">
             <router-link :to="'/zomes/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
 		<i class="bi-pencil"></i>
 		Edit
@@ -85,7 +85,7 @@
 		</a>
 	    </h2>
 
-            <router-link v-if="zome" :to="'/zomes/' + id + '/versions/new'"
+            <router-link v-if="zome && $zome.writable" :to="'/zomes/' + id + '/versions/new'"
 			 class="btn btn-primary text-nowrap"
 			 :class="{ 'disabled': deprecated }">
 		<i class="bi-plus-lg"></i>
@@ -121,7 +121,7 @@
 			N/A
 		    </div>
 		    <div class="col text-end text-nowrap">
-			<a @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">
+			<a v-if="$zome.writable" @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">
 			    Unpublish
 			</a>
 
