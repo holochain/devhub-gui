@@ -10,6 +10,9 @@ const { AdminClient,
 	ConductorError,
 	...hc_client }			= require('@whi/holochain-client');
 
+if ( process.env.LOG_LEVEL )
+    hc_client.logging();
+
 const DNAREPO				= path.resolve( __dirname, "../dnas/dnarepo.dna" );
 const HAPPS				= path.resolve( __dirname, "../dnas/happs.dna" );
 const WEBASSETS				= path.resolve( __dirname, "../dnas/webassets.dna" );
@@ -77,7 +80,7 @@ function print ( msg, ...args ) {
 	}
 
 	try {
-	    await admin.activateApp( APP_ID );
+	    await admin.enableApp( APP_ID );
 	} catch (err) {
 	    if ( err instanceof ConductorError
 		 && err.message.includes("AppNotInstalled") ) // already active

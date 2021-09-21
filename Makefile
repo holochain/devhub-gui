@@ -7,6 +7,8 @@ PROJECT_NAME	= devhub
 #
 run-holochain:
 	npx holochain-backdrop --admin-port 35678 --config holochain/config.yaml -vv
+reset-holochain:
+	rm -rf holochain tests/AGENT* tests/*_HASH
 dna_packages:		dnas/dnarepo.dna dnas/happs.dna dnas/webassets.dna
 setup:			dna_packages
 	node tests/setup.js
@@ -27,6 +29,8 @@ copy-dnas-from-local:
 #
 # HTTP Server
 #
+run-simple-http-server:
+	cd dist; python3 -m http.server 8765;
 /etc/nginx/sites-available/$(PROJECT_NAME):	tests/nginx/$(PROJECT_NAME)
 	sed -e "s|PWD|$(shell pwd)|g" \
 	    < $< | sudo tee $@;

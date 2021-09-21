@@ -6,6 +6,7 @@ A web-based UI that works with Holochain's collection of DevHub DNAs.
 This project has completed single conductor multi-agent testing.  It is now ready for
 multi-conductor multi-agent testing using real-world networking.
 
+
 ### Testing Setup
 
 Enter nix shell for Holochain and Lair binaries
@@ -78,6 +79,16 @@ Turn on logging
 localStorage.setItem( "LOG_LEVEL", "trace" );
 // trace, debug, info, normal, warn, error, fatal
 ```
+
+
+### Reset Environment
+This will reset the environment by removing the Holochain databases & configuration, Lair databases,
+and saved hash files.
+
+```bash
+make reset-holochain
+```
+
 
 ## Contributing
 
