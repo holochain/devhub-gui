@@ -1,13 +1,27 @@
 
 # DevHub GUI
-A web-based UI that works with Holochain's collection of DevHub DNAs.
+A web-based UI that works with Holochain's collection of [DevHub DNAs](https://github.com/holochain/devhub-dnas).
+
+
+[![](https://img.shields.io/github/issues-raw/holochain/devhub-gui?style=flat-square)](https://github.com/holochain/devhub-gui/issues)
+[![](https://img.shields.io/github/issues-closed-raw/holochain/devhub-gui?style=flat-square)](https://github.com/holochain/devhub-gui/issues?q=is%3Aissue+is%3Aclosed)
+[![](https://img.shields.io/github/issues-pr-raw/holochain/devhub-gui?style=flat-square)](https://github.com/holochain/devhub-gui/pulls)
+
 
 ## Beta User Testing
 This project has completed single conductor multi-agent testing.  It is now ready for
 multi-conductor multi-agent testing using real-world networking.
 
+Currently works with [Holochain `v0.0.106`](https://github.com/holochain/holochain/tree/b11908875a9f6a09e8939fbf6f45ff658e3d10a6)
+
 
 ### Testing Setup
+
+Clone repo
+```bash
+git clone git@github.com:holochain/devhub-gui.git --branch develop
+cd devhub-gui
+```
 
 Enter nix shell for Holochain and Lair binaries
 ```bash
