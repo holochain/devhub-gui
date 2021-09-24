@@ -19,8 +19,8 @@
   "homepage": "https://github.com/holochain/devhub-gui#readme",
   "dependencies": {
     "@babel/runtime": "^7.15.3",
-    "@holochain/devhub-entities": "^0.4.0",
-    "@whi/weblogger": "^0.1.2",
+    "@holochain/devhub-entities": "^0.4.1",
+    "@whi/weblogger": "^0.1.4",
     "showdown": "^1.9.1",
     "vue": "^3.2.4",
     "vue-router": "^4.0.11",
