@@ -14,7 +14,7 @@ module.exports = async function ( client ) {
 		const agent_hash	= PersistentStorage.getItem("LIST_FILTER");
 		return {
 		    "agent_search": agent_hash || null,
-		    "agent_filter": agent_hash || null,
+		    "agent_filter": agent_hash ? new AgentPubKey( agent_hash ) : null,
 		    "order_by": "published_at",
 		};
 	    },
