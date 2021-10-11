@@ -21,9 +21,9 @@ dnas/%.dna:		dnas
 	$(error Download missing DNA ($*.dna) into location ./$@)
 
 copy-dnas-from-local:
-	cp ~/projects/devhub-dnas/bundled/dnarepo/dnarepo.dna		dnas/dnarepo.dna
-	cp ~/projects/devhub-dnas/bundled/happs/happs.dna		dnas/happs.dna
-	cp ~/projects/devhub-dnas/bundled/web_assets/web_assets.dna	dnas/webassets.dna
+	cp ~/projects/devhub-dnas/bundled/dnarepo.dna		dnas/dnarepo.dna
+	cp ~/projects/devhub-dnas/bundled/happs.dna		dnas/happs.dna
+	cp ~/projects/devhub-dnas/bundled/web_assets.dna	dnas/webassets.dna
 
 
 #
