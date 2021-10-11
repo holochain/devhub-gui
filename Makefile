@@ -16,14 +16,18 @@ setup-%:		dna_packages
 	node tests/setup.js $*
 
 dnas:
-	mkdir dnas
+	mkdir $@
+zome_wasm:
+	mkdir $@
 dnas/%.dna:		dnas
 	$(error Download missing DNA ($*.dna) into location ./$@)
 
-copy-dnas-from-local:
+copy-dnas-from-local:	dnas
 	cp ~/projects/devhub-dnas/bundled/dnarepo.dna		dnas/dnarepo.dna
 	cp ~/projects/devhub-dnas/bundled/happs.dna		dnas/happs.dna
 	cp ~/projects/devhub-dnas/bundled/web_assets.dna	dnas/webassets.dna
+copy-zomes-from-local:	zome_wasm
+	cp ~/projects/devhub-dnas/zomes/*.wasm			./zome_wasm/
 
 
 #

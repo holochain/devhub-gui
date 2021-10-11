@@ -4,4 +4,5 @@ dist
 tests/AGENT*
 tests/*_HASH
 dnas/*.dna
+zome_wasm/*.wasm
 holochain

@@ -3,14 +3,17 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
     level: process.env.LOG_LEVEL || 'silly',
 });
 
+global.WebSocket			= require('ws');
+
 const fs				= require('fs');
-const faker				= require('faker');
-const Identicon				= require('identicon.js');
-const { Client, logging }		= require('@holochain/devhub-entities');
-const { xor_digest }			= require('@whi/xor-digest');
+// const faker				= require('faker');
+// const { xor_digest }			= require('@whi/xor-digest');
+const { Client,
+	HoloHashes,
+	logging }			= require('@holochain/devhub-entities');
+const { DnaHash,
+	AgentPubKey }			= HoloHashes;
 
-
-const b64				= input => typeof input === "string" ? Buffer.from(input, "base64") : input.toString("base64");
 
 const APP_PORT				= 44001;
 const AGENT_B64				= fs.readFileSync( path.resolve(__dirname, 'AGENT'), "utf8" );
@@ -18,173 +21,193 @@ const DNAREPO_B64			= fs.readFileSync( path.resolve(__dirname, 'DNAREPO_HASH'), 
 const HAPPS_B64				= fs.readFileSync( path.resolve(__dirname, 'HAPPS_HASH'), "utf8" );
 const WEBASSETS_B64			= fs.readFileSync( path.resolve(__dirname, 'WEBASSETS_HASH'), "utf8" );
 
-const AGENT_HASH			= b64( AGENT_B64 );
-const DNAREPO_HASH			= b64( DNAREPO_B64 );
-const HAPPS_HASH			= b64( HAPPS_B64 );
-const WEBASSETS_HASH			= b64( WEBASSETS_B64 );
+console.log( AGENT_B64 );
+const AGENT_HASH			= new AgentPubKey( AGENT_B64 );
+const DNAREPO_HASH			= new DnaHash( DNAREPO_B64 );
+const HAPPS_HASH			= new DnaHash( HAPPS_B64 );
+const WEBASSETS_HASH			= new DnaHash( WEBASSETS_B64 );
 
 
-const DNAREPO_DNA			= fs.readFileSync( path.resolve(__dirname, '../dnas/dnarepo.dna') );
-const HAPPS_DNA				= fs.readFileSync( path.resolve(__dirname, '../dnas/happs.dna') );
-const WEBASSETS_DNA			= fs.readFileSync( path.resolve(__dirname, '../dnas/webassets.dna') );
+const DNALIB_WASM			= fs.readFileSync( path.resolve(__dirname, '../zome_wasm/dna_library.wasm') );
+const HAPPLIB_WASM			= fs.readFileSync( path.resolve(__dirname, '../zome_wasm/happ_library.wasm') );
+const WEBASSETS_WASM			= fs.readFileSync( path.resolve(__dirname, '../zome_wasm/web_assets.wasm') );
+const MEMORY_WASM			= fs.readFileSync( path.resolve(__dirname, '../zome_wasm/mere_memory.wasm') );
 
 
-const dnarepo				= new Client( APP_PORT, DNAREPO_HASH,	AGENT_HASH );
-const happs				= new Client( APP_PORT, HAPPS_HASH,	AGENT_HASH );
-const webassets				= new Client( APP_PORT, WEBASSETS_HASH,	AGENT_HASH );
+const dnas				= {
+    "dnarepo":		DNAREPO_HASH,
+    "happs":		HAPPS_HASH,
+    "webassets":	WEBASSETS_HASH,
+};
 
-const manifest_yaml			= `
----
-manifest_version: "1"
+console.log( dnas );
+const client				= new Client( AGENT_HASH, dnas, APP_PORT );
 
-name: Holochain DevHub
-description: A hApp for publishing, searching, and organizing hApp resources
-slots:
-  - id: dnarepo
-    provisioning:
-      strategy: create
-      deferred: false
-    dna:
-      path: ./dnarepo/dnarepo.dna
-  - id: happs
-    provisioning:
-      strategy: create
-      deferred: false
-    dna:
-      path: ./happs/happs.dna
-  - id: webassets
-    provisioning:
-      strategy: create
-      deferred: false
-    dna:
-      path: ./web_assets/web_assets.dna
-`;
 
 
 function print( msg, ...args ) {
     console.log(`\x1b[37m${msg}\x1b[0m`, ...args );
 }
 
-function dna_icon_bytes ( agent, name ) {
-    let input				= Buffer.concat([ agent, Buffer.from(name) ]);
-    let unique_input			= xor_digest( input, 8 );
-    let idcon				= new Identicon( Buffer.from(unique_input).toString("hex") );
-
-    return Buffer.from( String(idcon), "base64" );
-}
-
-const chunk_size			= (2**20 /*1 megabyte*/) * 2;
-async function upload_dna ( client, bytes ) {
-    let chunk_hashes		= [];
-    let chunk_count		= Math.ceil( bytes.length / chunk_size );
-    for (let i=0; i < chunk_count; i++) {
-	let chunk		= await client.call( "storage", "create_dna_chunk", {
-	    "sequence": {
-		"position": i+1,
-		"length": chunk_count,
-	    },
-	    "bytes": bytes.slice( i*chunk_size, (i+1)*chunk_size ),
-	});
-	log.info("Chunk %s/%s hash: %s", i+1, chunk_count, String(chunk.$address) );
-
-	chunk_hashes.push( chunk.$address );
-    }
-    log.debug("Final chunks: %s", chunk_hashes );
-
-    return chunk_hashes;
-}
-
 
 (async function main () {
     try {
-	await Promise.all([
-	    dnarepo.connect(),
-	    happs.connect(),
-	    webassets.connect(),
-	]);
-
-	print("Uploading DNArepo DNA...");
-	const dna1			= await dnarepo.call( "storage", "create_dna", {
-	    "name": "DNArepo",
-	    "description": faker.commerce.productDescription(),
-	    "icon": dna_icon_bytes( AGENT_HASH, "DNArepo" ),
-	    "developer": {
-		"name": faker.name.findName(),
-		"website": faker.internet.url(),
-	    },
+	print("Creating zome for DNA Library...");
+	const zome1			= await client.call( "dnarepo", "dna_library", "create_zome", {
+	    "name": "DNA Library",
+	    "description": "",
 	});
-	const dnarepo_chunks		= await upload_dna( dnarepo, DNAREPO_DNA );
-	const dna1version		= await dnarepo.call( "storage", "create_dna_version", {
-	    "for_dna": dna1.$id,
-	    "version": 1,
-	    "changelog": faker.lorem.paragraph(50),
-	    "file_size": DNAREPO_DNA.length,
-	    "chunk_addresses": dnarepo_chunks,
+	const zome1_version1		= await client.call( "dnarepo", "dna_library", "create_zome_version", {
+	    "for_zome":		zome1.$id,
+	    "version":		1,
+	    "changelog":	"...",
+	    "zome_bytes":	DNALIB_WASM,
 	});
 
-	print("Uploading hApps DNA...");
-	const dna2			= await dnarepo.call( "storage", "create_dna", {
-	    "name": "hApps",
-	    "description": faker.commerce.productDescription(),
-	    "icon": dna_icon_bytes( AGENT_HASH, "hApps" ),
-	    "developer": {
-		"name": faker.name.findName(),
-		"website": faker.internet.url(),
-	    },
+	print("Creating zome for hApp Library...");
+	const zome2			= await client.call( "dnarepo", "dna_library", "create_zome", {
+	    "name": "hApp Library",
+	    "description": "",
 	});
-	const happs_chunks		= await upload_dna( dnarepo, HAPPS_DNA );
-	const dna2version		= await dnarepo.call( "storage", "create_dna_version", {
-	    "for_dna": dna2.$id,
-	    "version": 1,
-	    "changelog": faker.lorem.paragraph(50),
-	    "file_size": HAPPS_DNA.length,
-	    "chunk_addresses": happs_chunks,
+	const zome2_version1		= await client.call( "dnarepo", "dna_library", "create_zome_version", {
+	    "for_zome":		zome2.$id,
+	    "version":		1,
+	    "changelog":	"...",
+	    "zome_bytes":	HAPPLIB_WASM,
 	});
 
-	print("Uploading WebAssets DNA...");
-	const dna3			= await dnarepo.call( "storage", "create_dna", {
-	    "name": "WebAssets",
-	    "description": faker.commerce.productDescription(),
-	    "icon": dna_icon_bytes( AGENT_HASH, "WebAssets" ),
-	    "developer": {
-		"name": faker.name.findName(),
-		"website": faker.internet.url(),
-	    },
+	print("Creating zome for Web Assets...");
+	const zome3			= await client.call( "dnarepo", "dna_library", "create_zome", {
+	    "name": "Web Assets",
+	    "description": "",
 	});
-	const webassets_chunks		= await upload_dna( dnarepo, WEBASSETS_DNA );
-	const dna3version		= await dnarepo.call( "storage", "create_dna_version", {
-	    "for_dna": dna3.$id,
-	    "version": 1,
-	    "changelog": faker.lorem.paragraph(50),
-	    "file_size": WEBASSETS_DNA.length,
-	    "chunk_addresses": webassets_chunks,
+	const zome3_version1		= await client.call( "dnarepo", "dna_library", "create_zome_version", {
+	    "for_zome":		zome3.$id,
+	    "version":		1,
+	    "changelog":	"...",
+	    "zome_bytes":	WEBASSETS_WASM,
 	});
 
-	print("Creating hApp...");
-	let happ			= await happs.call( "store", "create_happ", {
+	print("Creating zome for Mere Memory...");
+	const zome4			= await client.call( "dnarepo", "dna_library", "create_zome", {
+	    "name": "Mere Memory",
+	    "description": "",
+	});
+	const zome4_version1		= await client.call( "dnarepo", "dna_library", "create_zome_version", {
+	    "for_zome":		zome4.$id,
+	    "version":		1,
+	    "changelog":	"...",
+	    "zome_bytes":	MEMORY_WASM,
+	});
+
+
+	print("Creating DNA for DNA Repository...");
+	const dna1			= await client.call( "dnarepo", "dna_library", "create_dna", {
+	    "name": "DNA Repository",
+	    "description": "",
+	});
+	const dna1_version1		= await client.call( "dnarepo", "dna_library", "create_dna_version", {
+	    "for_dna":		dna1.$id,
+	    "version":		1,
+	    "changelog":	"...",
+	    "zomes": [{
+		"name":		"dna_library",
+		"zome":		zome1.$id,
+		"version":	zome1_version1.$id,
+		"resource":	zome1_version1.mere_memory_addr,
+	    }, {
+		"name":		"mere_memory",
+		"zome":		zome4.$id,
+		"version":	zome4_version1.$id,
+		"resource":	zome4_version1.mere_memory_addr,
+	    }],
+	});
+
+	print("Creating DNA for hApp Repository...");
+	const dna2			= await client.call( "dnarepo", "dna_library", "create_dna", {
+	    "name": "hApp Repository",
+	    "description": "",
+	});
+	const dna2_version1		= await client.call( "dnarepo", "dna_library", "create_dna_version", {
+	    "for_dna":		dna2.$id,
+	    "version":		1,
+	    "changelog":	"...",
+	    "zomes": [{
+		"name":		"happ_library",
+		"zome":		zome2.$id,
+		"version":	zome2_version1.$id,
+		"resource":	zome2_version1.mere_memory_addr,
+	    }],
+	});
+
+	print("Creating DNA for Web Assets...");
+	const dna3			= await client.call( "dnarepo", "dna_library", "create_dna", {
+	    "name": "Web Assets",
+	    "description": "",
+	});
+	const dna3_version1		= await client.call( "dnarepo", "dna_library", "create_dna_version", {
+	    "for_dna":		dna3.$id,
+	    "version":		1,
+	    "changelog":	"...",
+	    "zomes": [{
+		"name":		"web_assets",
+		"zome":		zome3.$id,
+		"version":	zome3_version1.$id,
+		"resource":	zome3_version1.mere_memory_addr,
+	    }],
+	});
+
+
+	print("Creating hApp for DevHub...");
+	let happ1			= await client.call( "happs", "happ_library", "create_happ", {
 	    "title": "DevHub",
 	    "subtitle": "",
 	    "description": "",
 	    "gui": null,
 	});
-
-	print("Creating release...");
-	let release			= await happs.call( "store", "create_happ_release", {
+	let happ1_release1		= await client.call( "happs", "happ_library", "create_happ_release", {
 	    "name": "v0.1.0",
-	    "description": faker.lorem.paragraph(5),
-	    "for_happ": happ.$id,
-	    manifest_yaml,
-	    "resources": {
-		"dnarepo":	dna1version.$id,
-		"happs":	dna2version.$id,
-		"webassets":	dna3version.$id,
+	    "description": "",
+	    "for_happ": happ1.$id,
+	    "manifest": {
+		"manifest_version": "1",
+		"slots": [{
+		    "id": "dnarepo",
+		    "dna": {
+			"path": `./dnarepo.dna`,
+		    },
+		    "clone_limit": 0,
+		}, {
+		    "id": "happs",
+		    "dna": {
+			"path": `./happs.dna`,
+		    },
+		    "clone_limit": 0,
+		}, {
+		    "id": "webassets",
+		    "dna": {
+			"path": `./webassets.dna`,
+		    },
+		    "clone_limit": 0,
+		}],
 	    },
+	    "dnas": [{
+		"name":		"dnarepo",
+		"dna":		dna1.$id,
+		"version":	dna1_version1.$id,
+	    }, {
+		"name":		"happs",
+		"dna":		dna2.$id,
+		"version":	dna2_version1.$id,
+	    }, {
+		"name":		"webassets",
+		"dna":		dna3.$id,
+		"version":	dna3_version1.$id,
+	    }],
 	});
     } catch (err) {
 	console.error("Main failed:", err );
     } finally {
-	dnarepo.destroy();
-	happs.destroy();
-	webassets.destroy();
+	client.destroy();
     }
 })();
