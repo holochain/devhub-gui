@@ -150,7 +150,7 @@ function print( msg, ...args ) {
 	    "version":		1,
 	    "changelog":	"...",
 	    "zomes": [{
-		"name":		"web_assets",
+		"name":		"webassets",
 		"zome":		zome3.$id,
 		"version":	zome3_version1.$id,
 		"resource":	zome3_version1.mere_memory_addr,
@@ -186,7 +186,7 @@ function print( msg, ...args ) {
 		}, {
 		    "id": "webassets",
 		    "dna": {
-			"path": `./webassets.dna`,
+			"path": `./web_assets.dna`,
 		    },
 		    "clone_limit": 0,
 		}],
