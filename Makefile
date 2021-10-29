@@ -3,17 +3,24 @@ SHELL		= bash
 PROJECT_NAME	= devhub
 
 #
+# Project
+#
+package-lock.json:	package.json
+	touch $@
+node_modules:		package-lock.json
+	npm install
+	touch $@
+#
 # Runtime Setup
 #
-run-holochain:
+run-holochain:		node_modules
 	npx holochain-backdrop --admin-port 35678 --config holochain/config.yaml -vv
-reset-holochain:
+reset-holochain:	node_modules
 	rm -rf holochain tests/AGENT* tests/*_HASH
 dna_packages:		dnas/dnarepo.dna dnas/happs.dna dnas/web_assets.dna
-	echo "Run 'make copy-from-local' to access DNAs from ../devhub-dnas repo (run 'make build' there)"
-setup:			dna_packages
+setup:			dna_packages node_modules
 	node tests/setup.js
-setup-%:		dna_packages
+setup-%:		dna_packages node_modules
 	node tests/setup.js $*
 
 dnas:
@@ -23,12 +30,12 @@ zome_wasm:
 dnas/%.dna:		dnas
 	$(error Download missing DNA ($*.dna) into location ./$@ (eg. run `make copy-from-local`))
 
-copy-dnas-from-local:
-	cp ../devhub-dnas/bundled/dnarepo.dna		dnas/dnarepo.dna
-	cp ../devhub-dnas/bundled/happs.dna		dnas/happs.dna
-	cp ../devhub-dnas/bundled/web_assets.dna	dnas/web_assets.dna
+copy-dnas-from-local:	dnas
+	cp ../devhub-dnas/bundled/*.dna			./dnas/
+	touch dnas/*.dna
 copy-zomes-from-local:	zome_wasm
 	cp ../devhub-dnas/zomes/*.wasm			./zome_wasm/
+	touch zome_wasm/*.wasm
 
 copy-from-local: copy-dnas-from-local copy-zomes-from-local
 
