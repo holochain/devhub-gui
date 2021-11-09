@@ -55,7 +55,7 @@ function print( msg, ...args ) {
 	print("Creating zome for DNA Library...");
 	const zome1			= await client.call( "dnarepo", "dna_library", "create_zome", {
 	    "name": "DNA Library",
-	    "description": "",
+	    "description": "Collections of Zomes that define a DNA",
 	});
 	const zome1_version1		= await client.call( "dnarepo", "dna_library", "create_zome_version", {
 	    "for_zome":		zome1.$id,
@@ -67,7 +67,7 @@ function print( msg, ...args ) {
 	print("Creating zome for hApp Library...");
 	const zome2			= await client.call( "dnarepo", "dna_library", "create_zome", {
 	    "name": "hApp Library",
-	    "description": "",
+	    "description": "Collections of DNAs that define a hApp configuration",
 	});
 	const zome2_version1		= await client.call( "dnarepo", "dna_library", "create_zome_version", {
 	    "for_zome":		zome2.$id,
@@ -79,7 +79,7 @@ function print( msg, ...args ) {
 	print("Creating zome for Web Assets...");
 	const zome3			= await client.call( "dnarepo", "dna_library", "create_zome", {
 	    "name": "Web Assets",
-	    "description": "",
+	    "description": "Something about web assets",
 	});
 	const zome3_version1		= await client.call( "dnarepo", "dna_library", "create_zome_version", {
 	    "for_zome":		zome3.$id,
@@ -91,7 +91,7 @@ function print( msg, ...args ) {
 	print("Creating zome for Mere Memory...");
 	const zome4			= await client.call( "dnarepo", "dna_library", "create_zome", {
 	    "name": "Mere Memory",
-	    "description": "",
+	    "description": "A Holochain Zome for storing large or small byte values",
 	});
 	const zome4_version1		= await client.call( "dnarepo", "dna_library", "create_zome_version", {
 	    "for_zome":		zome4.$id,
@@ -161,8 +161,8 @@ function print( msg, ...args ) {
 	print("Creating hApp for DevHub...");
 	let happ1			= await client.call( "happs", "happ_library", "create_happ", {
 	    "title": "DevHub",
-	    "subtitle": "",
-	    "description": "",
+	    "subtitle": "A hApp Developer Hub",
+	    "description": "A place for sharing Zomes, constructing DNAs, and configuring hApp bundles.",
 	    "gui": null,
 	});
 	let happ1_release1		= await client.call( "happs", "happ_library", "create_happ_release", {

@@ -37,6 +37,7 @@
 	    </div>
 
 	    <label class="form-label fw-6">Zomes</label>
+
 	    <list-group :list="added_zomes" no-result-text="No Zomes have been added"
 			class="mt-0">
 		<list-group-item v-for="(zome, index) in added_zomes" class="py-3"
@@ -44,7 +45,7 @@
 				 @dragover="dragoverZome( $event )" @drop="dropZome( $event, index )">
 		    <div class="d-flex align-middle mb-1">
 			<h5 class="m-0">{{ zome.name }}</h5>
-			<span class="ms-2 flex-grow-1"> &mdash; {{ zome.description }}</span>
+			<span class="ms-2 flx-grow-1"> &mdash; {{ zome.description }}</span>
 			<button type="button" class="btn-close" @click="removeZome( index )"></button>
 		    </div>
 
