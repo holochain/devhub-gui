@@ -195,6 +195,18 @@ a.text-primary:hover {
   cursor: pointer;
 }
 
+.form-table .row {
+  margin-bottom: 1em;
+}
+.form-table .row:last-child {
+  margin-bottom: 0;
+}
+.form-input-clean {
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
 /* .input-group-text { */
 /*   background-color: transparent; */
 /* } */
@@ -401,6 +413,14 @@ dl dt {
 .page-header h5,
 .page-header h6 {
   margin: 0;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #4820E30f;
+  color: #4820E3;
+}
+.accordion-button::after {
+  display: none;
 }
 
 

@@ -66,6 +66,10 @@ module.exports = {
 	return dest;
     },
 
+    deleteProperty ( key, obj ) {
+	delete obj[key];
+    },
+
     async copyToClipboard ( text ) {
 	if ( !navigator.clipboard )
 	    return fallbackCopyTextToClipboard( text );

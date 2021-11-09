@@ -15,6 +15,12 @@
 		<textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="saving"></textarea>
 	    </input-feedback>
 
+	    <label class="form-label fw-6">Properties</label>
+	    <object-editor class="my-3"
+			   :object="input.properties"></object-editor>
+
+	    <pre class="code">{{ JSON.stringify( input.properties, null, 4 ) }}</pre>
+
 	    <label class="form-label fw-6">Search zomes</label>
 	    <div class="form-input-search" :class="{ 'show-results': filtered_zomes.length }">
 		<input type="text" class="form-control no-validate" placeholder="type at least 3 characters"

@@ -30,6 +30,14 @@ module.exports = async function ( client ) {
 		    "input": {
 			"version": null,
 			"changelog": null,
+			"properties": {
+			    "name": "Robin Hood",
+			    "age": 36,
+			    "adult": true,
+			    "hobbies": {
+				"reading": true,
+			    },
+			},
 			"zomes": [],
 		    },
 		    "added_zomes": [],

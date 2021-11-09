@@ -534,6 +534,258 @@ const Loading = {
 <slot v-else></slot>`,
 };
 
+const ObjectEditor = {
+    "props": {
+	"object": {
+	    "type": Object,
+	    "required": true,
+	},
+    },
+    data () {
+	return {
+	    "key": null,
+	    "value": null,
+	    "new_key": null,
+	    "invalid_add": false,
+	    "type_map": {},
+	};
+    },
+    created () {
+	for ( let k in this.object ) {
+	    let type			= typeof this.object[k];
+	    this.type_map[k]		= type === "object"
+		? ( this.object[k] === null ? "null" : "object" )
+		: type;
+	}
+    },
+    "computed": {
+	property_list () {
+	    return Object.keys( this.object ).map(k => [k, k]); // [ current, updated ]
+	},
+    },
+    "methods": {
+	setProperty ( key, value ) {
+	    if ( this.object[key] && !value )
+		return;
+
+	    this.object[key]		= value || "";
+	    this.type_map[key]		= "string";
+	},
+	validateNewKey ( key, input, _feedback ) {
+	    const value			= this.$refs['key-value'].value;
+	    console.log("Validating new key/value:", key, value, this.object );
+
+	    if ( this.object[key] ) {	// key already exists
+		if ( value )		// existing key with changing value
+		    return "Key already exists";
+	    }
+	    return true;
+	},
+	validateKey ( key, input, _feedback ) {
+	    console.log("Validating key '%s'", key, this.object, input.dataset );
+	    if ( key === input.dataset.originalKey )
+		return true;
+
+	    if ( this.object[key] === undefined )
+		return true;
+	    else
+		return "Key already exists";
+	},
+	addProperty ( enter = false ) {
+	    if ( !this.key )
+		return;
+
+	    const key			= this.key;
+	    const value			= this.value;
+	    console.log("Add property %s:", key, value, this.$refs );
+
+	    let failed			= true;
+	    console.log("Checking validity of key '%s':", key, this.$refs['key'].checkValidity() );
+	    if ( this.$refs['key'].checkValidity() ) {
+		this.setProperty( key, value );
+
+		console.log("Reset key/value adders");
+		this.key		= null;
+		this.value		= null;
+
+		failed			= false;
+
+		if ( !enter ) {
+		    // When we add a new property, we want to focus on its value input rather than
+		    // the new-property value input.  This naturally covers the scenario where a key
+		    // was entered that already exists.  In which case, the focus will go to the
+		    // existing key's value input regardless of where it is in the table.
+		    this.$nextTick(() => {
+			this.$refs[key + '-value'].focus();
+		    });
+		}
+	    }
+
+	    return !failed;
+	},
+	renameProperty ( key, new_key ) {
+	    if ( key === new_key )
+		return true;
+
+	    console.log("Rename property %s => %s:", key, new_key, this.$refs );
+	    if ( !this.$refs[key].checkValidity() )
+		return false;
+
+	    let updated			= false;
+
+	    for ( let k in this.object ) {
+		if ( updated ) {
+		    let value		= this.object[k];
+		    delete this.object[k];
+		    this.object[k]	= value;
+		}
+		else if ( k === key ) {
+		    this.object[new_key]	= this.object[key];
+
+		    delete this.object[key];
+
+		    this.new_key	= null;
+		    updated		= true;
+		}
+	    }
+
+	    this.type_map[new_key]	= this.type_map[key];
+	    delete this.type_map[key];
+	},
+	focusAndSelect ( input ) {
+	    input.focus();
+	    input.select && input.select();
+	},
+	focusFromContext ( row, col, event ) { // this method is only called by the "enter" event
+	    // if row is null, it means the context is the 'add property' row
+	    console.log("Triggered focus from context:", row, col, event );
+
+	    this.$nextTick(() => {
+		if ( row === null ) {
+		    if ( event.shiftKey ) {
+			const last_row_key	= this.property_list[this.property_list.length - 1][0];
+
+			this.focusAndSelect( this.$refs[last_row_key + (col === "value" ? "-value" : "" )] );
+		    }
+		    else
+			this.focusAndSelect( this.$refs['key'] ); // go to key regardless of current position
+		}
+		else {
+		    const offset		= event.shiftKey ? -1 : 1;
+		    const potential_row	= row + offset;
+		    const keypair		= this.property_list[potential_row];
+		    const key		= keypair === undefined
+			  ? "key"		// go to new props
+			  : keypair[0];	// go to next row
+
+		    if ( col === "key" )
+			this.focusAndSelect( this.$refs[key] );
+		    else
+			this.focusAndSelect( this.$refs[key + "-value"] );
+		}
+	    });
+	},
+	changePropType ( key, type ) {
+	    this.type_map[key]			= type;
+
+	    if ( type === "number" ) {
+		this.object[key]		= isNaN( this.object[key] )
+		    ? 0
+		    : parseInt( this.object[key] );
+
+		if ( isNaN( this.object[key] ) ) // catch Javascript inconsistency for null, true, and false becoming NaN
+		    this.object[key]		= 0;
+	    }
+	    else if ( type === "boolean" )
+		this.object[key]		= !!this.object[key];
+	    else if ( type === "null" )
+		this.object[key]		= null;
+	    else if ( type === "object" )
+		this.object[key]		= {};
+	    else
+		this.object[key]		= String( this.object[key] );
+	},
+    },
+    "template": `
+<div class="form-table">
+    <div class="row align-items-center"
+         v-for="(keypair, i) in property_list">
+        <div class="col-sm-4">
+            <input-feedback :hide-valid="true" :validator="validateKey">
+                <input type="text" class="form-control form-input-clean text-end"
+                       :ref="keypair[0]"
+                       :data-original-key="keypair[0]"
+                       v-model="keypair[1]"
+                       @keydown.enter="renameProperty( keypair[0], $event.target.value ); focusFromContext( i, 'key', $event )"
+                       @blur="renameProperty( keypair[0], $event.target.value )">
+            </input-feedback>
+        </div>
+        <div class="col-sm">
+            <select v-if="type_map[keypair[0]] === 'boolean'" class="form-select"
+                    v-model="object[keypair[0]]"
+                    :ref="keypair[0] + '-value'"
+                    @keydown.enter="console.log( $event )">
+                <option :value="true">True</option>
+                <option :value="false">False</option>
+            </select>
+            <input v-else-if="type_map[keypair[0]] === 'number'" type="number" class="form-control form-input-clean"
+                   :ref="keypair[0] + '-value'"
+                   v-model.number="object[keypair[0]]"
+                   @keydown.enter="focusFromContext( i, 'value', $event )">
+            <input v-else-if="type_map[keypair[0]] === 'null'" type="text" class="form-control form-input-clean" :readonly="true"
+                   :ref="keypair[0] + '-value'"
+                   value="None"
+                   :value="null"
+                   @keydown.enter="focusFromContext( i, 'value', $event )">
+            <input v-else-if="type_map[keypair[0]] === 'string'" type="text" class="form-control form-input-clean"
+                   :ref="keypair[0] + '-value'"
+                   v-model="object[keypair[0]]"
+                   @keydown.enter="focusFromContext( i, 'value', $event )">
+        </div>
+        <div class="col-sm">
+            <select v-model="type_map[keypair[0]]" class="form-select" @change="changePropType( keypair[0], $event.target.value )">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="boolean">Boolean</option>
+                <option value="null">None</option>
+                <option value="object">Object</option>
+            </select>
+        </div>
+        <div class="col-sm-auto">
+            <a @click="deleteProperty( keypair[0], object )" tabindex="-1"><i class="bi-x-lg text-secondary p-1"></i></a>
+        </div>
+        <div v-if="type_map[keypair[0]] === 'object'" class="col-12 p-2">
+            <object-editor v-else-if="type_map[keypair[0]] === 'object'"
+                           class="ms-5 p-3" style="background-color: #00000006;"
+                           :object="object[keypair[0]]"></object-editor>
+        </div>
+    </div>
+    <div class="row align-items-center">
+        <div class="col-sm-4">
+            <input-feedback :hide-valid="true" :validator="validateNewKey" :auto-validation-reset="false">
+                <input type="text" name="key" class="form-control form-input-clean text-end"
+                       ref="key"
+                       v-model="key"
+                       placeholder="Key"
+                       @keydown.enter.prevent="addProperty( true ); focusFromContext( null, 'key', $event )"
+                       @blur="addProperty()">
+            </input-feedback>
+        </div>
+        <div class="col-sm">
+            <input-feedback :hide-valid="true" :validator="validateValue">
+                <input type="text" name="value" class="form-control form-input-clean"
+                       ref="key-value"
+                       v-model="value"
+                       placeholder="Value"
+                       @keydown.enter.prevent="focusFromContext( null, 'value', $event )">
+            </input-feedback>
+        </div>
+        <div class="col-sm-auto"><i class="bi-x-lg text-light p-1"></i></div>
+    </div>
+</div>`,
+};
+
+
 
 module.exports = {
     "deprecation-alert":	DeprecationAlert,
@@ -548,4 +800,5 @@ module.exports = {
     "search":			Search,
     "placeholder":		Placeholder,
     "loading":			Loading,
+    "object-editor":		ObjectEditor,
 };
