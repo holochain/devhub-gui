@@ -807,7 +807,7 @@ module.exports = async function ( client, Vue ) {
 		    "happs", "happ_library", "get_happ", { id }
 		);
 
-		log.info("Received happ: %s", happ.name, happ );
+		log.info("Received happ: %s", happ.title, happ );
 
 		let agent_info		= await dispatch("getAgent");
 		commit("metadata", [ path, {
@@ -912,7 +912,7 @@ module.exports = async function ( client, Vue ) {
 		    "happs", "happ_library", "get_happ_release", { id }
 		);
 
-		log.info("Received happ release: %s", release.release, release );
+		log.info("Received happ release: %s", release.name, release );
 
 		let agent_info		= await dispatch("getAgent");
 		commit("metadata", [ path, {

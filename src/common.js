@@ -148,4 +148,8 @@ module.exports = {
 	}
 	return true;
     },
+
+    toHex ( uint8_array ) {
+	return [].map.call( uint8_array, n => n.toString(16).padStart(2,"0") ).join("");
+    },
 };

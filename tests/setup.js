@@ -60,13 +60,17 @@ function print ( msg, ...args ) {
 	}
 
 	const agent_file		= path.resolve( __dirname, AGENT_FILENAME );
-	if ( fs.existsSync( agent_file ) )
-	    return print("Not installing because `%s` already exists", agent_file );
+	let agent_hash;
 
-	const agent_hash		= await admin.generateAgent();
-	print("Agent hash: %s (%s)", agent_hash.toString(), AGENT_NICKNAME );
+	if ( fs.existsSync( agent_file ) ) {
+	    print("Not creating Agent because `%s` already exists", agent_file )
+	    agent_hash			= new hc_client.HoloHash( fs.readFileSync( agent_file, "utf8" ) );
+	} else {
+	    agent_hash			= await admin.generateAgent();
+	    print("Agent hash: %s (%s)", agent_hash.toString(), AGENT_NICKNAME );
+	    fs.writeFileSync( agent_file, agent_hash.toString() );
+	}
 	console.log( agent_hash );
-	fs.writeFileSync( agent_file, agent_hash.toString() );
 
 	try {
 	    const installation		= await admin.installApp( APP_ID, agent_hash, dna_hashes );

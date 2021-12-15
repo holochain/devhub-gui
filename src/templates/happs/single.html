@@ -91,6 +91,13 @@
 		</a>
 	    </h2>
 
+            <router-link v-if="happ && $happ.writable" :to="'/happs/' + id + '/upload'"
+			 class="btn btn-primary text-nowrap me-3"
+			 :class="{ 'disabled': deprecated }">
+		<i class="bi-upload"></i>
+		Upload Bundle
+            </router-link>
+
             <router-link v-if="happ && $happ.writable" :to="'/happs/' + id + '/releases/new'"
 			 class="btn btn-primary text-nowrap"
 			 :class="{ 'disabled': deprecated }">

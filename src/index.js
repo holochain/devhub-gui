@@ -98,12 +98,13 @@ window.PersistentStorage		= {
 	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"DNA Version Info" ],
 	[ "/dnas/:dna/versions/:id/update",	dna_version_controllers.update,		"Edit Version" ],
 
-	[ "/happs",				happ_controllers.list,			"Happs" ],
-	[ "/happs/new",				happ_controllers.create,		"Add Happ" ],
-	[ "/happs/:id",				happ_controllers.single,		"Happ Info" ],
-	[ "/happs/:id/update",			happ_controllers.update,		"Edit Happ" ],
-	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add Happ Release" ],
-	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"Happ Release Info" ],
+	[ "/happs",				happ_controllers.list,			"hApps" ],
+	[ "/happs/new",				happ_controllers.create,		"Add hApp" ],
+	[ "/happs/:id",				happ_controllers.single,		"hApp Info" ],
+	[ "/happs/:id/update",			happ_controllers.update,		"Edit hApp" ],
+	[ "/happs/:id/upload",			happ_controllers.upload,		"Upload Bundle" ],
+	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add hApp Release" ],
+	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"hApp Release Info" ],
 	[ "/happs/:happ/releases/:id/update",	happ_release_controllers.update,	"Edit Release" ],
     ];
 
@@ -262,8 +263,9 @@ window.PersistentStorage		= {
 	},
     });
 
-    app.config.globalProperties.breadcrumb_mapping	= breadcrumb_mapping;
+    app.config.globalProperties.$client			= client;
     app.config.globalProperties.$filters		= filters;
+    app.config.globalProperties.breadcrumb_mapping	= breadcrumb_mapping;
     app.config.errorHandler		= function (err, vm, info) {
 	log.error("Vue App Error (%s):", info, err, vm );
     };

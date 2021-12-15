@@ -513,9 +513,8 @@ const Placeholder = {
 	},
     },
     "template": `
-<span class="ph-glow" :class="classes" :style="styles">
-    <slot v-if="!when"></slot>
-</span>`,
+<slot v-if="!when"></slot>
+<span v-else class="ph-glow" :class="classes" :style="styles"></span>`,
 };
 
 const Loading = {

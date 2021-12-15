@@ -6,9 +6,12 @@ PROJECT_NAME	= devhub
 # Runtime Setup
 #
 run-holochain:
-	npx holochain-backdrop --admin-port 35678 --config holochain/config.yaml -vv
+	npx holochain-backdrop --admin-port 35678 --config holochain/config.yaml -v
 reset-holochain:
-	rm -rf holochain tests/AGENT* tests/*_HASH
+	rm -rf holochain/databases holochain/config.yaml tests/*_HASH
+reset-lair:
+	rm -rf holochain/lair tests/AGENT*
+reset-all:		reset-holochain reset-lair
 dna_packages:		dnas/dnarepo.dna dnas/happs.dna dnas/webassets.dna
 setup:			dna_packages
 	node tests/setup.js
@@ -42,6 +45,17 @@ run-simple-http-server:
 	sudo ln -fs ../sites-available/$(PROJECT_NAME) /etc/nginx/sites-enabled/
 	sudo systemctl reload nginx.service
 	systemctl status nginx
+
+
+#
+# Project
+#
+use-local-devhub-entities:
+	npm uninstall @holochain/devhub-entities
+	npm install ../devhub-dnas/js-devhub-entities/holochain-devhub-entities-0.4.2.tgz
+use-npm-devhub-entities:
+	npm uninstall @holochain/devhub-entities
+	npm install @holochain/devhub-entities
 
 
 #
