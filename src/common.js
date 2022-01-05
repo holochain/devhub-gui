@@ -152,4 +152,8 @@ module.exports = {
     toHex ( uint8_array ) {
 	return [].map.call( uint8_array, n => n.toString(16).padStart(2,"0") ).join("");
     },
+
+    delay ( ms = 0 ) {
+	return new Promise( f => setTimeout(f,ms) );
+    },
 };

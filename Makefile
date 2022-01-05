@@ -17,6 +17,9 @@ setup:			dna_packages
 	node tests/setup.js
 setup-%:		dna_packages
 	node tests/setup.js $*
+setup-demo:		setup
+	node tests/add_devhub_to_devhub.js
+	npm run webpack
 
 dnas:
 	mkdir $@
@@ -56,6 +59,10 @@ use-local-devhub-entities:
 use-npm-devhub-entities:
 	npm uninstall @holochain/devhub-entities
 	npm install @holochain/devhub-entities
+bundled/DevHub.happ:	../devhub-dnas/DevHub.happ
+	cp $< $@
+bundled/DevHub.webhapp:	web_assets.zip bundled/DevHub.happ
+	hc web pack ./bundled
 
 
 #
@@ -71,6 +78,5 @@ clean-files-all:	clean-remove-chaff
 	git clean -ndx
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
-web_assets.zip:		dist/webpacked.app.js
-	rm -f dist/src_templates_*
-	zip -r web_assets.zip ./dist
+web_assets.zip:		dist/* Makefile
+	cd dist; zip -r ../web_assets.zip ./*

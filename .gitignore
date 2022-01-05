@@ -6,3 +6,7 @@ tests/*_HASH
 dnas/*.dna
 zome_wasm/*.wasm
 holochain
+tests/demo_bundles
+web_assets.zip
+bundled/DevHub.happ
+bundled/*.webhapp

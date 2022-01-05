@@ -11,9 +11,6 @@
 	<template #default>
 	    <div>
 		<h1 class="fs-2">Upload hApp Bundle</h1>
-		<placeholder :when="!$happ.current" size="fill">
-		    <code>{{ happ.$id }}</code>
-		</placeholder>
 	    </div>
 	</template>
     </page-header>
@@ -21,219 +18,202 @@
     <form ref="form" :class="{ 'was-validated': validated }">
 	<div class="row">
 	    <div class="col-6">
-		<div v-if="bundle_file" class="alert alert-primary alert-dismissible fade show" role="alert">
-		    <div v-html="file_valid_feedback"></div>
-		    <button type="button" class="btn-close" aria-label="Close" @click="reset_file()"></button>
-		</div>
-	    </div>
-	    <div class="col-6">
-		<h1 class="fs-2">
-		    <placeholder :when="!$happ.current" size="fill">
-			{{ happ.title }}
-		    </placeholder>
-		</h1>
-		<h2 class="fs-5 text-muted">
-		    <placeholder :when="!$happ.current" size="fill">
-			{{ happ.subtitle }}
-		    </placeholder>
-		</h2>
+		<loading v-if="bundle_file" :when="bundle_unpacking">
+		    <div v-if="bundle_file" class="alert alert-primary alert-dismissible fade show" role="alert">
+			<div v-html="file_valid_feedback"></div>
+			<button type="button" class="btn-close" aria-label="Close" @click="reset_file()"></button>
+		    </div>
+		</loading>
 	    </div>
 	</div>
 
-	<h2 class="mt-4">
-	    hApp
-	    <span v-if="bundle">
-		<i v-if="happ_changed" class="bi-x-circle-fill text-danger"></i>
-		<i v-else class="bi-check-circle-fill text-success"></i>
-	    </span>
-	</h2>
 	<div class="row">
 	    <div class="col-6">
-		<div v-if="!bundle_file">
-		    <label class="form-label fw-6">Drag and drop hApp bundle here</label>
-		    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-			<input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving" required>
-		    </input-feedback>
-		</div>
-		<loading v-else :when="bundle_unpacking">
-		    <label class="form-label fw-6">Release Name</label>
-		    <input-feedback>
-			<input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
-		    </input-feedback>
-
-		    <label class="form-label fw-6">Description</label>
-		    <input-feedback>
-			<textarea v-model="input.description" class="form-control" rows="10"
-				  :disabled="saving" required></textarea>
-		    </input-feedback>
-
-		    <dl class="row">
-			<dt class="col-sm-3">hApp Version ID</dt>
-			<dd class="col-sm-9"><code>Exists? or new?</code></dd>
-
-			<dt class="col-sm-3">DNA(s) Hash</dt>
-			<dd class="col-sm-9"><code>{{ bundle.manifest.dna_hash }}</code></dd>
-		    </dl>
-		</loading>
-	    </div>
-	    <div class="col-6" v-if="$releases.loaded">
-		<div v-if="happ_release">
-		    <h3 class="font-monospace">{{ happ_release.name }}</h3>
-		    <dl class="row">
-			<dt class="col-sm-3">hApp Version ID</dt>
-			<dd class="col-sm-9"><code>{{ happ_release.$id }}</code></dd>
-
-			<dt class="col-sm-3">DNA(s) Hash</dt>
-			<dd class="col-sm-9"><code>{{ happ_release.dna_hash }}</code></dd>
-		    </dl>
-		</div>
-		<div v-else class="card my-4">
-		    <div class="card-body text-center">
-			No previous releases
+		<loading v-if="!bundle_file" :when="(latest_release && !$happ_release.current)">
+		    <div>
+			<label class="form-label fw-6">Drag and drop hApp bundle here</label>
+			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
+			    <input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving" required>
+			</input-feedback>
 		    </div>
-		</div>
+		</loading>
 	    </div>
 	</div>
 
 	<h2 class="mt-4">DNAs</h2>
-	<list-group :list="Object.keys( dnas )" no-result-text="No DNAs" :loading="$happ_release.loading">
-	    <list-group-item v-for="(sources, roll_id) in dnas">
-		<div class="row">
-		    <div class="col-12 text-center">
-			<h3 class="mt-4 font-monospace">
-			    {{ roll_id }}
-
-			    <span v-if="bundle">
-				<i v-if="!sources.exists" class="bi-x-circle-fill text-danger"></i>
-				<i v-else class="bi-check-circle-fill text-success"></i>
-			    </span>
-
-			    <a v-if="sources.exists === false"
-			       class="btn btn-outline-secondary"
-			       @click="create_dna_version( sources )">
-				Quick Create
-			    </a>
-			</h3>
+	<div v-if="Object.keys(dnas).length === 0" class="card col-6">
+	    <div class="card-body text-center">
+		Waiting for first upload...
+	    </div>
+	</div>
+	<div v-else class="row" v-for="(sources, role_id) in dnas">
+	    <div v-if="sources.upload == null"
+		 class="card col-6 mt-2">
+		<div class="card-body">
+		    <h4 class="card-title font-monospace">{{ role_id }}</h4>
+		    <p class="card-text text-truncate">
+			Waiting for upload...
+		    </p>
+		</div>
+	    </div>
+	    <div v-else-if="sources.upload.dna_version_id"
+		 class="card col-6 mt-2">
+		<div class="card-body">
+		    <div class="float-end">
+			<span class="badge rounded-pill bg-light text-dark font-monospace">
+			    {{ sources.upload.dna_version_id }}
+			</span>
+			<a v-if="sources.changed && sources.dna_version_search_results && sources.dna_version_search_results.length"
+			   @click="select_dna_version( sources.upload, {} )">
+			    <i class="bi-x-circle"></i>
+			</a>
 		    </div>
-		    <div class="col-6">
-			<loading :when="bundle_unpacking">
-			    <div v-if="sources.upload">
-				<dl class="row">
-				    <dt class="col-sm-3">Version ID</dt>
-				    <dd class="col-sm-9"><code>?</code></dd>
+		    <h4 class="card-title font-monospace">
+			{{ role_id }}
+			&mdash; <span class="fw-1">v{{ sources.upload.dna_version.version }}</span>
+		    </h4>
+		    <p class="card-text text-truncate">
+			{{ $filters.time( sources.upload.dna_version.published_at, "weekday+date" ) }}
+		    </p>
 
-				    <dt class="col-sm-3">WASM(s) Hash</dt>
-				    <dd class="col-sm-9"><code>{{ sources.upload.wasm_hash }}</code></dd>
-
-				    <dt class="col-sm-3">DNA ID</dt>
-				    <dd class="col-sm-9"><code>?</code></dd>
-				</dl>
-
-				<h5>Properties</h5>
-				<table v-if="sources.upload.properties" class="table">
-				    <thead>
-					<tr>
-					    <th scope="col">Name</th>
-					    <th scope="col">Default</th>
-					</tr>
-				    </thead>
-				    <tbody>
-					<tr v-for="(key, value) in sources.upload.properties">
-					    <td>{{ key }}</td>
-					    <td>{{ value }}</td>
-					</tr>
-				    </tbody>
-				</table>
-				<div v-else class="card my-4">
-				    <div class="card-body text-center">
-					No Properties
-				    </div>
-				</div>
-			    </div>
-			    <div v-else class="card">
-				<div class="card-body text-center">
-				    Nothing uploaded yet
-				</div>
-			    </div>
-			</loading>
-		    </div>
-		    <div class="col-6">
-			<div v-if="sources.last">
-			    <dl class="row">
-				<dt class="col-sm-3">Version ID</dt>
-				<dd class="col-sm-9"><code>{{ sources.last.dna_version_id }}</code></dd>
-
-				<dt class="col-sm-3">WASM(s) Hash</dt>
-				<dd class="col-sm-9"><code>{{ sources.last.wasm_hash }}</code></dd>
-
-				<dt class="col-sm-3">DNA ID</dt>
-				<dd class="col-sm-9"><code>{{ sources.last.dna_id }}</code></dd>
-			    </dl>
-
-			    <h5>Properties</h5>
-			    <table v-if="sources.last.properties" class="table">
-				<thead>
-				    <tr>
-					<th scope="col">Name</th>
-					<th scope="col">Default</th>
-				    </tr>
-				</thead>
-				<tbody>
-				    <tr v-for="(key, value) in sources.last.properties">
-					<td>{{ key }}</td>
-					<td>{{ value }}</td>
-				    </tr>
-				</tbody>
-			    </table>
-			    <div v-else class="card my-4">
-				<div class="card-body text-center">
-				    No Properties
-				</div>
-			    </div>
+		    <h5>Properties</h5>
+		    <div class="card">
+			<div class="card-body text-center">
+			    No Properties
 			</div>
 		    </div>
 		</div>
-		<div v-if="!sources.exists" class="row">
-		    <div class="col-12">
-			<h5>Zomes</h5>
+	    </div>
+	    <div v-else-if="sources.dna_version_search_results && sources.dna_version_search_results.length"
+		 class="card col-6 mt-2">
+		<div class="card-body">
+		    <h4 class="card-title font-monospace">{{ role_id }}</h4>
 
-			<div class="row" v-for="(zome_sources, zome_name) in sources.zomes">
-			    <div class="col-2">
-				<span v-if="zome_sources.name_exists !== undefined">
-				    <i v-if="!zome_sources.name_exists" class="bi-x-circle-fill text-danger"></i>
-				    <i v-else class="bi-check-circle-fill text-success"></i>
-				</span>
-				{{ zome_name }}
+		    Search results
+		    <div class="list-group mt-2">
+			<a class="list-group-item list-group-item-action"
+			   v-for="dna_version in sources.dna_version_search_results"
+			   @click="select_dna_version( sources.upload, dna_version )">
+			    <strong>v{{ dna_version.version }}</strong>
+			    &mdash;
+			    {{ $filters.time( dna_version.published_at, "weekday+date" ) }}
+			</a>
+		    </div>
+		</div>
+	    </div>
+	    <div v-else
+		 class="card col-6 mt-2">
+		<div class="card-body">
+		    <a class="btn btn-outline-secondary btn-sm float-end"
+		       :class="{ 'disabled': missing_zome_version( sources ) }"
+		       @click="create_dna_version( sources )">
+			<span v-if="sources.saving"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Quick create
+		    </a>
+		    <h4 class="card-title font-monospace">
+			{{ role_id }} &mdash; <span class="fw-1">v1</span>
+		    </h4>
+		    <p class="card-text text-truncate">
+			<code>{{ sources.upload.wasm_hash }}</code>
+		    </p>
 
-				<a v-if="zome_sources.exists === false"
-					class="btn btn-outline-secondary btn-sm"
-					@click="create_zome_version( zome_name, zome_sources )">
-				    Quick Create
-				</a>
-			    </div>
-			    <div class="col-5">
-				<div v-if="zome_sources.upload">
-				    <span v-if="zome_sources.exists !== undefined">
-					<i v-if="!zome_sources.exists" class="bi-x-circle-fill text-danger"></i>
-					<i v-else class="bi-check-circle-fill text-success"></i>
+		    <h5>Zomes</h5>
+		    <div class="mt-2" v-for="(zome_sources, zome_name) in sources.zomes">
+			<div v-if="zome_sources.changed && zome_sources.upload.zome_version_id" class="card">
+			    <div class="card-body">
+				<div class="float-end">
+				    <span class="badge rounded-pill bg-light text-dark font-monospace">
+					{{ zome_sources.upload.zome_version_id }}
 				    </span>
-				    <code>{{ zome_sources.upload.wasm_resource_hash }}</code>
+				    <a v-if="zome_sources.zome_version_search_results && zome_sources.zome_version_search_results.length"
+				       @click="select_zome_version( zome_sources.upload, {} )">
+					<i class="bi-x-circle"></i>
+				    </a>
+				</div>
+				<h6 class="card-title font-monospace">
+				    {{ zome_name }}
+				    &mdash; <span class="fw-1">v{{ zome_sources.upload.zome_version.version }}</span>
+				</h6>
+				<p class="card-text text-truncate">
+				    {{ $filters.time( zome_sources.upload.zome_version.published_at, "weekday+date" ) }}
+				</p>
+			    </div>
+			</div>
+			<div v-else-if="zome_sources.upload.zome_version_id" class="card">
+			    <div class="card-body">
+				<div class="float-end">
+				    <span class="badge rounded-pill bg-light text-dark font-monospace">
+					{{ zome_sources.upload.zome_version_id }}
+				    </span>
+				</div>
+				<h6 class="card-title font-monospace">
+				    {{ zome_name }}
+				    &mdash; <span class="fw-1">(unchanged)</span>
+				</h6>
+				<p v-if="zome_sources.upload.zome_version.published_at" class="card-text text-truncate">
+				    {{ $filters.time( zome_sources.upload.zome_version.published_at, "weekday+date" ) }}
+				</p>
+			    </div>
+			</div>
+			<div v-else-if="zome_sources.changed && zome_sources.zome_version_search_results && zome_sources.zome_version_search_results.length"
+			     class="card mt-2">
+			    <div class="card-body">
+				<h6 class="card-title font-monospace">{{ zome_name }}</h6>
+
+				Search results
+				<div class="list-group mt-2">
+				    <a class="list-group-item list-group-item-action"
+				       v-for="zome_version in zome_sources.zome_version_search_results"
+				       @click="select_zome_version( zome_sources.upload, zome_version )">
+					<strong>v{{ zome_version.version }}</strong>
+					&mdash; 
+					{{ $filters.time( zome_version.published_at, "weekday+date" ) }}
+				    </a>
 				</div>
 			    </div>
-			    <div class="col-5">
-				<div v-if="zome_sources.last">
-				    <loading :when="$dna_version( sources.last.dna_version_id ).loading">
-					<div v-if="dna_version( sources.last.dna_version_id )">
-					    <code>{{ zome_sources.last.wasm_resource_hash }}</code>
-					</div>
-				    </loading>
-				</div>
+			</div>
+			<div v-else class="card">
+			    <div class="card-body">
+				<a class="btn btn-outline-secondary btn-sm float-end"
+				   @click="create_zome_version( zome_name, zome_sources )">
+				    <span v-if="zome_sources.saving"
+					  class="spinner-border spinner-border-sm me-3"></span>
+				    Quick create
+				</a>
+				<h6 class="card-title font-monospace">
+				    {{ zome_name }} &mdash; <span class="fw-1">v1</span>
+				</h6>
+				<p class="card-text text-truncate">
+				    WASM ({{ $filters.number( zome_sources.upload.bytes.length ) }} bytes)
+				    <code>{{ zome_sources.upload.wasm_resource_hash }}</code>
+				</p>
 			    </div>
 			</div>
 		    </div>
 		</div>
-	    </list-group-item>
-	</list-group>
+	    </div>
+	</div>
+
+	<div v-if="bundle_file" class="row">
+	    <div class="col-6">
+		<label class="form-label fw-6">Release Name</label>
+		<input-feedback>
+		    <input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
+		</input-feedback>
+
+		<label class="form-label fw-6">Description</label>
+		<input-feedback>
+		    <textarea v-model="input.description" class="form-control" rows="10"
+			      :disabled="saving" required></textarea>
+		</input-feedback>
+
+		    <!-- <dl class="row"> -->
+		    <!-- 	<dt class="col-sm-3">DNA(s) Hash</dt> -->
+		    <!-- 	<dd class="col-sm-9"><code>{{ bundle.manifest.dna_hash }}</code></dd> -->
+		    <!-- </dl> -->
+	    </div>
+	</div>
 
 	<div class="row">
 	    <div class="col-6">

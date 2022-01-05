@@ -415,6 +415,10 @@ module.exports = async function ( client ) {
 			    const zome_sources	= dna_sources.zomes[ zome.name ];
 
 			    zome_sources.last	= {
+				"zome_id": zome.zome,
+				"zome_version_id": zome.version,
+				"zome_version": zome,
+				"resource": zome.resource,
 				"wasm_resource_hash": zome.resource_hash,
 			    };
 			});
@@ -473,6 +477,34 @@ module.exports = async function ( client ) {
 			sources.upload		= null;
 		    }
 		},
+		missing_zome_version ( dna ) {
+		    for ( let zome_sources of Object.values( dna.zomes ) ) {
+			if ( !zome_sources.upload.zome_version_id )
+			    return true;
+		    }
+		    return false;
+		},
+		select_dna_version ( dna_sources, dna_version ) {
+		    dna_sources.dna_id		= dna_version.for_dna;
+		    dna_sources.dna_version_id	= dna_version.$id;
+		    dna_sources.dna_version	= dna_version;
+		},
+		select_dna ( dna_sources, dna ) {
+		    dna_sources.dna_id		= dna.$id;
+		    dna_sources.dna		= dna;
+		},
+		select_zome_version ( zome_sources, zome_version ) {
+		    zome_sources.zome_id		= zome_version.for_zome;
+		    zome_sources.zome_version_id	= zome_version.$id;
+		    zome_sources.zome_version		= zome_version;
+		    zome_sources.resource		= zome_version.mere_memory_addr;
+		    zome_sources.wasm_resource_hash	= zome_version.mere_memory_hash;
+		},
+		select_zome ( zome_sources, zome ) {
+		    zome_sources.zome_id	= zome.$id;
+		    zome_sources.zome		= zome;
+		},
+
 		async file_selected ( event ) {
 		    const files			= event.target.files;
 		    const file			= files[0];
@@ -538,10 +570,23 @@ module.exports = async function ( client ) {
 			    }
 			    const zome_sources	= dna_sources.zomes[ zome.name ];
 
-			    zome_sources.upload	= {
-				"wasm_resource_hash": digest_hex,
-				"bytes": wasm_bytes,
-			    };
+			    console.log("Check if zome changed: %s", digest_hex, zome_sources.last );
+			    if ( zome_sources.last
+				 && zome_sources.last.wasm_resource_hash === digest_hex ) {
+				zome_sources.changed	= false;
+				zome_sources.upload	= {
+				    "bytes": wasm_bytes,
+				};
+				Object.assign( zome_sources.upload, zome_sources.last );
+				console.log("Used previous zome info:", zome_sources.upload );
+			    }
+			    else {
+				zome_sources.changed	= true;
+				zome_sources.upload	= {
+				    "wasm_resource_hash": digest_hex,
+				    "bytes": wasm_bytes,
+				};
+			    }
 
 			    wasm_hashes.push( digest );
 			}
@@ -551,15 +596,30 @@ module.exports = async function ( client ) {
 			const digest			= wasm_hash.digest();
 			const digest_hex		= this.toHex( digest );
 
-			dna_sources.upload		= {
-			    "wasm_hash": digest_hex,
-			    "dna_id": null,
-			    "dna_version_id": null,
-			    "properties": null,
-			    "uid": null,
-			    "bundle": dna_bundle,
-			};
-			dna_sources.changed		= !dna_sources.last || dna_sources.last.wasm_hash !== dna_sources.upload.wasm_hash;
+			if ( dna_sources.last
+			     && dna_sources.last.wasm_hash === digest_hex ) {
+			    dna_sources.changed		= false;
+			    dna_sources.upload		= {
+				"wasm_hash": digest_hex,
+				"dna_id": dna_sources.last.dna_id,
+				"dna_version_id": dna_sources.last.dna_version_id,
+				"dna_version": dna_sources.last.dna_version,
+				"properties": null,
+				"uid": null,
+				"bundle": dna_bundle,
+			    };
+			}
+			else {
+			    dna_sources.changed		= true;
+			    dna_sources.upload		= {
+				"wasm_hash": digest_hex,
+				"dna_id": null,
+				"dna_version_id": null,
+				"properties": null,
+				"uid": null,
+				"bundle": dna_bundle,
+			    };
+			}
 
 			dna_hashes.push( digest );
 
@@ -576,17 +636,17 @@ module.exports = async function ( client ) {
 		    if ( this.happ_changed ) {
 			await Promise.all( Object.entries(this.dnas).map(async ([dna_name, dna_sources]) => {
 			    log.debug("Searching for DNA version with hash:", dna_sources.upload.wasm_hash );
-			    const dna_versions		= await this.$client.call(
-				"dnarepo", "dna_library", "get_dna_versions_by_filter", {
-				    "filter": "uniqueness_hash",
-				    "keyword": dna_sources.upload.wasm_hash,
-				}
-			    );
-			    dna_sources.exists		= dna_versions.length > 0;
-
-			    if ( dna_sources.exists ) {
-				dna_sources.upload.dna_id		= dna_versions[0].for_dna;
-				dna_sources.upload.dna_version_id	= dna_versions[0].$id;
+			    try {
+				const dna_versions		= await this.$client.call(
+				    "dnarepo", "dna_library", "get_dna_versions_by_filter", {
+					"filter": "uniqueness_hash",
+					"keyword": dna_sources.upload.wasm_hash,
+				    }
+				);
+				dna_sources.exists			= dna_versions.length > 0;
+				dna_sources.dna_version_search_results	= dna_versions;
+			    } catch (err) {
+				console.log("Catching cornercase", err );
 			    }
 
 			    if ( dna_sources.exists === false ) {
@@ -612,13 +672,8 @@ module.exports = async function ( client ) {
 				    }
 				);
 				zome.exists		= zome_versions.length > 0;
-
-				if ( zome.exists ) {
-				    zome.upload.zome_id		= zome_versions[0].for_zome;
-				    zome.upload.zome_version_id	= zome_versions[0].$id;
-				    zome.upload.resource	= zome_versions[0].mere_memory_addr;
-				    zome.upload.resource_hash	= zome_versions[0].mere_memory_hash;
-				}
+				zome.zome_version_search_results	= zome_versions;
+				console.log("After searching for zome version matches:", zome );
 
 				if ( zome.exists === false ) {
 				    log.debug("Searching for zome context by name:", name );
@@ -663,7 +718,11 @@ module.exports = async function ( client ) {
 
 		    this.release_name_exists	= happs.length > 0;
 		},
+
 		async create_zome_version ( name, zome_info ) {
+		    zome_info.saving		= true;
+		    await this.delay();
+
 		    const upload		= zome_info.upload;
 
 		    if ( !upload.zome_id ) {
@@ -678,25 +737,39 @@ module.exports = async function ( client ) {
 			zome_info.name_exists	= true;
 		    }
 
+		    let next_version_number;
+		    if ( zome_info.last ) {
+			console.log("Calculate next version number", zome_info );
+			const last_version	= await this.$store.dispatch("fetchZomeVersion", zome_info.last.zome_version_id );
+			next_version_number	= last_version.version + 1;
+		    }
+		    else {
+			next_version_number	= 1;
+		    }
+
 		    log.debug("Create zome version #1: (%s bytes) %s", upload.bytes.length, upload.wasm_resource_hash );
 		    const version		= await this.$client.call(
 			"dnarepo", "dna_library", "create_zome_version", {
 			    "for_zome": upload.zome_id,
-			    "version": 1,
+			    "version": next_version_number,
 			    "zome_bytes": upload.bytes,
 			}
 		    );
 		    upload.zome_version_id	= version.$id;
 		    upload.resource		= version.mere_memory_addr;
-		    upload.resource_hash	= version.mere_memory_hash;
+		    upload.wasm_resource_hash	= version.mere_memory_hash;
+		    upload.zome_version		= version;
 
 		    zome_info.exists		= true;
+		    zome_info.saving		= false;
 		},
+
 		async create_dna_version ( dna_info ) {
+		    dna_info.saving		= true;
 		    const name			= dna_info.upload.bundle.manifest.name;
 		    const upload		= dna_info.upload;
 
-		    console.log( name, upload );
+		    console.log( name, upload, dna_info );
 
 		    if ( !upload.dna_id ) {
 			log.debug("Create DNA context:", name );
@@ -710,18 +783,21 @@ module.exports = async function ( client ) {
 			dna_info.name_exists	= true;
 		    }
 
+		    const next_dna_version_number = dna_info.last
+			  ? dna_info.last.dna_version.version + 1
+			  : 1;
 		    const zome_list		= Object.entries( dna_info.zomes );
 		    log.debug("Create DNA version #1: (%s zomes) %s", zome_list.length, upload.wasm_resource_hash );
 		    const input			= {
 			"for_dna": upload.dna_id,
-			"version": 1,
+			"version": next_dna_version_number,
 			"zomes": zome_list.map( ([zome_name, zome_sources]) => {
 			    return {
 				"name":			zome_name,
 				"zome":			zome_sources.upload.zome_id,
 				"version":		zome_sources.upload.zome_version_id,
 				"resource":		zome_sources.upload.resource,
-				"resource_hash":	zome_sources.upload.resource_hash,
+				"resource_hash":	zome_sources.upload.wasm_resource_hash,
 			    };
 			}),
 		    };
@@ -732,9 +808,12 @@ module.exports = async function ( client ) {
 		    );
 		    upload.dna_version_id	= version.$id;
 		    upload.wasm_hash		= version.wasm_hash;
+		    upload.dna_version		= version;
 
 		    dna_info.exists		= true;
+		    dna_info.saving		= false;
 		},
+
 		async create () {
 		    this.validated	= true;
 
@@ -752,20 +831,6 @@ module.exports = async function ( client ) {
 				"wasm_hash":	dna.wasm_hash,
 			    });
 			});
-
-			// delete this.input.manifest.name;
-			// delete this.input.manifest.description;
-			// delete this.input.manifest.dna_hash;
-
-			// this.input.manifest.slots.map( slot => {
-			//     slot.dna.path	= slot.dna.bundled;
-			//     delete slot.provisioning;
-			//     delete slot.dna.bundled;
-			//     delete slot.dna.clone_limit;
-			//     delete slot.dna.properties;
-			//     delete slot.dna.version;
-			//     delete slot.dna.uid;
-			// });
 
 			console.log("Input for create happ", this.id, this.input );
 			const release	= await this.$store.dispatch("createHappRelease", [ this.id, this.input ] );
