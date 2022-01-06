@@ -2,6 +2,7 @@ const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("main");
 
 const { Client, HoloHashes,
+	AgentClient,
 	HolochainClient,
 	logging }			= require('@holochain/devhub-entities');
 const { HoloHash,
@@ -35,15 +36,31 @@ const CONDUCTOR_URI			= `${APP_HOST}:${APP_PORT}`;
 if ( isNaN( APP_PORT ) )
     throw new Error(`Invalid 'APP_PORT' (${PORT_VALUE}); run 'localStorage.setItem( "APP_PORT", "<port number>" );`);
 
-if ( typeof AGENT_HASH !== "string" )
-    throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
-
-log.warn("Using Agent hash: %s", AGENT_HASH );
-const AGENT_PUBKEY			= new AgentPubKey( AGENT_HASH );
-
 const DNAREPO_HASH			= new DnaHash( process.env.DNAREPO_HASH );
 const HAPPS_HASH			= new DnaHash( process.env.HAPPS_HASH );
 const WEBASSETS_HASH			= new DnaHash( process.env.WEBASSETS_HASH );
+
+async function resolve_client () {
+    try {
+	const resp			= await fetch("./.launcher-env.json");
+	const launcher_config		= await resp.json();
+
+	return await AgentClient.createFromAppInfo(
+	    launcher_config.INSTALLED_APP_ID,
+	    launcher_config.APP_INTERFACE_PORT
+	);
+    } catch (err) {
+	log.warn("Using hard-coded configuration because launcher config produced error: %s", err.toString() );
+    }
+
+    if ( typeof AGENT_HASH !== "string" )
+	throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
+
+    log.warn("Using Agent hash: %s", AGENT_HASH );
+    const AGENT_PUBKEY			= new AgentPubKey( AGENT_HASH );
+
+    return new AgentClient( AGENT_PUBKEY, dnas, CONDUCTOR_URI );
+}
 
 log.normal("DNA Hashes");
 const dnas				= {
@@ -67,9 +84,11 @@ window.PersistentStorage		= {
 
 
 (async function(global) {
-    log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(AGENT_PUBKEY), CONDUCTOR_URI, WEBPACK_MODE );
-    const client			= new Client( AGENT_PUBKEY, dnas, CONDUCTOR_URI, {
-	"simulate_latency": (WEBPACK_MODE === "development"),
+    const agent_client			= await resolve_client();
+    log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(agent_client._agent), agent_client._conn._uri, WEBPACK_MODE );
+
+    const client			= new Client( agent_client, {
+	// "simulate_latency": (WEBPACK_MODE === "development"),
     });
 
     const store				= await store_init( client, Vue );

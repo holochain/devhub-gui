@@ -32,6 +32,7 @@ module.exports = async function ( client ) {
 			"description": null,
 			"manifest": {
 			    "manifest_version": "1",
+			    "slots": null,
 			},
 			"dnas": [],
 		    },
@@ -103,17 +104,19 @@ module.exports = async function ( client ) {
 
 		    this.saving		= true;
 		    try {
+			this.input.manifest.slots		= [];
 			this.input.dnas.forEach( (dna, i) => {
 			    const dna_version			= this.all_dna_versions[dna.version];
 
+			    console.log( dna_version );
 			    this.input.dnas[i].dna		= dna_version.for_dna;
-			    this.input.manifest.slots		= [];
+			    this.input.dnas[i].wasm_hash	= dna_version.wasm_hash;
 			    this.input.manifest.slots.push({
-				"id":		dna.name,
+				"id":		dna.role_id,
 				"dna": {
 				    "path":	`./${dna.name}.dna`,
+				    "clone_limit": 0,
 				},
-				"clone_limit": 0,
 			    });
 			});
 
@@ -144,9 +147,10 @@ module.exports = async function ( client ) {
 		    this.fetchDnaVersions ( dna.$id );
 		    this.added_dnas.push( dna );
 		    this.input.dnas.push({
-			"name": dna.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
+			"role_id": dna.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
 			"dna": null,
 			"version": null,
+			"wasm_hash": null,
 		    });
 		},
 		dragstartDna ( event, index ) {

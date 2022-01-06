@@ -63,7 +63,7 @@
 			<dt class="col-sm-12">Last Updated</dt>
 			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
 
-			<dt class="col-sm-12">WASM Hash</dt>
+			<dt class="col-sm-12">Resource Hash</dt>
 			<dd class="col-sm-12"><placeholder :when="!$version.current"><code>{{ version.wasm_hash }}</code></placeholder></dd>
 		    </dl>
 

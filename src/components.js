@@ -207,13 +207,10 @@ const InputFeedback = {
 
 	    this.invalidMessage; // cause reactivity for this property
 
-	    console.log( this.input.checkValidity(), this.input );
 	    if ( this.input.checkValidity() ) {
-		console.log("Show valid feedback?", this.blurred, !this.hideValid );
 		return this.blurred && !this.hideValid;
 	    }
 	    else {
-		console.log("Show invalid feedback?", this.blurred, this.showFeedback );
 		return this.blurred && this.showFeedback;
 	    }
 	},

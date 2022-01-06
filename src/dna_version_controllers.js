@@ -105,6 +105,7 @@ module.exports = async function ( client ) {
 
 			    this.input.zomes[i].zome		= zome_version.for_zome;
 			    this.input.zomes[i].resource	= zome_version.mere_memory_addr;
+			    this.input.zomes[i].resource_hash	= zome_version.mere_memory_hash;
 			});
 
 			const version	= await this.$store.dispatch("createDnaVersion", [ this.dna_id, this.input ] );

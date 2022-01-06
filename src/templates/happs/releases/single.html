@@ -62,6 +62,9 @@
 
 			<dt class="col-sm-12">Last Updated</dt>
 			<dd class="col-sm-12"><placeholder :when="!$release.current">{{ $filters.time( release.last_updated, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-12">Resource Hash</dt>
+			<dd class="col-sm-12"><placeholder :when="!$release.current"><code>{{ release.dna_hash }}</code></placeholder></dd>
 		    </dl>
 
 		    <list-group v-if="happ" :list="release.dnas" no-result-text="No DNAs" class="my-5" :loading="!$release.current">
