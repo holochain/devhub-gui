@@ -19,7 +19,7 @@
   "homepage": "https://github.com/holochain/devhub-gui#readme",
   "dependencies": {
     "@babel/runtime": "^7.15.3",
-    "@holochain/devhub-entities": "file:../devhub-dnas/js-devhub-entities/holochain-devhub-entities-0.4.2.tgz",
+    "@holochain/devhub-entities": "^0.4.2",
     "@msgpack/msgpack": "^2.7.1",
     "@whi/weblogger": "^0.1.4",
     "gzip-js": "^0.3.2",
