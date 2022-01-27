@@ -1,0 +1,100 @@
+<page-view id="single-happ release-page">
+    <breadcrumbs v-if="release && happ" :skip-base="true" :path-mapping="breadcrumb_mapping"
+		 :sub-1="happ.title" :sub-3="'Release ' + release.name">
+	<a v-if="$release.loaded" @click="fetchRelease()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $release.loading }"></i>
+	</a>
+    </breadcrumbs>
+
+    <hr>
+
+    <deprecation-alert v-if="happ_deprecated && $release.current"
+		       title="The parent hApp has been deprecated"></deprecation-alert>
+
+    <div class="mb-4">
+	<h1 class="fs-2"><placeholder :when="!$release.current" size="25%">{{ happ.title }}</placeholder></h1>
+    </div>
+
+    <page-header class="mb-2 p-3">
+	<template #default>
+            <h2 class="fs-5 text-nowrap">
+		<placeholder :when="!$release.current" size="fill">{{ release.name }}
+		    <span class="fw-3 ms-3">({{ $filters.time( release.published_at, "date" ) }})</span>
+		</placeholder>
+	    </h2>
+	</template>
+
+	<template #title-extras v-if="$release.writable">
+            <router-link :to="'/happs/' + happ_id + '/releases/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
+		<i class="bi-pencil"></i>
+		Edit release
+            </router-link>
+
+            <a @click="modal.show()" class="btn btn-secondary ms-5 text-nowrap">
+		Unpublish
+            </a>
+	</template>
+    </page-header>
+
+    <div class="row align-items-stretch">
+	<div class="col-8">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Description
+		</div>
+		<div class="card-body">
+		    <placeholder :when="!$release.current">
+			<div>{{ release.description }}</div>
+		    </placeholder>
+		</div>
+	    </div>
+	</div>
+
+	<div class="col-4">
+	    <div class="card">
+		<div class="card-header">
+		    Details
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-12">Created</dt>
+			<dd class="col-sm-12"><placeholder :when="!$release.current">{{ $filters.time( release.published_at, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-12">Last Updated</dt>
+			<dd class="col-sm-12"><placeholder :when="!$release.current">{{ $filters.time( release.last_updated, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-12">Resource Hash</dt>
+			<dd class="col-sm-12"><placeholder :when="!$release.current"><code>{{ release.dna_hash }}</code></placeholder></dd>
+		    </dl>
+
+		    <list-group v-if="happ" :list="release.dnas" no-result-text="No DNAs" class="my-5" :loading="!$release.current">
+			<list-group-item v-for="dna in release.dnas">
+			    <h5 class="m-0">{{ dna.role_id }}</h5>
+			    <router-link :to="'/dnas/' + dna.dna + '/versions/' + dna.version">
+				<code>{{ dna.version }}</code>
+			    </router-link>
+			</list-group-item>
+		    </list-group>
+
+		    <loading :when="!$release.current">
+			<div class="mx-3 my-5">
+			    <a class="btn btn-primary w-100" @click="downloadPackageBytes()">
+				<span v-if="$packageBytes.loading"
+				      class="spinner-border spinner-border-sm me-3"></span>
+				<i v-else class="bi-download"></i>
+				Download {{ package_filename }}
+			    </a>
+
+			    <display-error class="mt-3" :error="download_error"></display-error>
+			</div>
+		    </loading>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+    <modal v-if="release && happ" title="Unpublish hApp Release" ref="modal"
+	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
+	<p>Are you sure you want to unpublish the {{ happ.title }} hApp Release <strong>{{ release.name }}</strong>?</p>
+    </modal>
+</page-view>

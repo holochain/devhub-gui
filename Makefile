@@ -1,21 +1,48 @@
 
 SHELL		= bash
-
 PROJECT_NAME	= devhub
-AGENT		= ./tests/AGENT
-DNAREPO_HASH	= ./tests/DNAREPO_HASH
-LAIR_DIR	= ./tests/lair
-HC_DIR		= ./tests/conductor-storage
-HC_CONF		= $(HC_DIR)/conductor-config.yml
-HC_ADMIN_PORT	= 35678
-DNA_DNAREPO	= dnas/dnarepo.dna
-NGINX_CONF	= /etc/nginx/sites-available/$(PROJECT_NAME)
+
+#
+# Runtime Setup
+#
+run-holochain:
+	npx holochain-backdrop --admin-port 35678 --config holochain/config.yaml -v
+reset-holochain:
+	rm -rf holochain/databases holochain/config.yaml tests/*_HASH
+reset-lair:
+	rm -rf holochain/lair tests/AGENT*
+reset-all:		reset-holochain reset-lair
+dna_packages:		dnas/dnarepo.dna dnas/happs.dna dnas/webassets.dna
+setup:			dna_packages
+	node tests/setup.js
+setup-%:		dna_packages
+	node tests/setup.js $*
+setup-demo:		setup
+	node tests/add_devhub_to_devhub.js
+	npm run webpack
+
+dnas:
+	mkdir $@
+zome_wasm:
+	mkdir $@
+dnas/%.dna:		dnas
+	$(error Download missing DNA ($*.dna) into location ./$@)
+
+copy-dnas-from-local:	dnas
+	cp ~/projects/devhub-dnas/bundled/dnarepo.dna		dnas/dnarepo.dna
+	cp ~/projects/devhub-dnas/bundled/happs.dna		dnas/happs.dna
+	cp ~/projects/devhub-dnas/bundled/web_assets.dna	dnas/webassets.dna
+copy-zomes-from-local:	zome_wasm
+	cp ~/projects/devhub-dnas/zomes/*.wasm			./zome_wasm/
+
 
 #
 # HTTP Server
 #
-$(NGINX_CONF):		tests/nginx/$(PROJECT_NAME)
-	sed -e "s|PWD|$(shell pwd)|g"					\
+run-simple-http-server:
+	cd dist; python3 -m http.server 8765;
+/etc/nginx/sites-available/$(PROJECT_NAME):	tests/nginx/$(PROJECT_NAME)
+	sed -e "s|PWD|$(shell pwd)|g" \
 	    < $< | sudo tee $@;
 	echo " ... Wrote new $@ (from $<)";
 	sudo ln -fs ../sites-available/$(PROJECT_NAME) /etc/nginx/sites-enabled/
@@ -24,51 +51,39 @@ $(NGINX_CONF):		tests/nginx/$(PROJECT_NAME)
 
 
 #
-# Lair Keystore
+# Project
 #
-lair:			$(LAIR_DIR)/socket
-$(LAIR_DIR)/socket:
-	nix-shell --run "RUST_LOG=trace lair-keystore --lair-dir $(LAIR_DIR) > lair.log 2>&1 &"
-stop-lair:
-	kill $$(cat $(LAIR_DIR)/pid) && rm -f $(LAIR_DIR)/pid $(LAIR_DIR)/socket $(LAIR_DIR)/store
-check-lair:
-	@ps -efH | grep -v grep | grep lair-keystore
-	@pgrep lair-keystore
+use-local-devhub-entities:
+	npm uninstall @holochain/devhub-entities
+	npm install ../devhub-dnas/js-devhub-entities/holochain-devhub-entities-0.4.2.tgz
+use-npm-devhub-entities:
+	npm uninstall @holochain/devhub-entities
+	npm install @holochain/devhub-entities
+use-local-hcc:
+	npm uninstall @whi/holochain-conductor-cli
+	npm install --save-dev ../node-hc-conductor-cli/whi-holochain-conductor-cli-0.1.1.tgz
+use-npm-hcc:
+	npm uninstall @whi/holochain-conductor-cli
+	npm install --save-dev @whi/holochain-conductor-cli
+bundled/DevHub.happ:	../devhub-dnas/DevHub.happ
+	cp $< $@
+bundled/DevHub.webhapp:	web_assets.zip bundled/DevHub.happ
+	hc web pack ./bundled
+	cp $@ ~/
 
 
 #
-# Holochain Conductor
+# Repository
 #
-reset-hcc:
-	rm $(HC_DIR)/databases/ -rf
-	rm $(DNAREPO_HASH)
-conductor:		$(HC_DIR)/pid
-$(HC_DIR):
-	mkdir -p $(HC_DIR)
-$(HC_CONF):		$(HC_DIR) tests/genconfig.js
-	node tests/genconfig.js $(HC_ADMIN_PORT) $(HC_CONF)
-$(HC_DIR)/pid:
-	make $(HC_CONF)
-	RUST_LOG=trace holochain --config-path $(HC_DIR)/conductor-config.yml > conductor.log 2>&1 & echo $$! | tee $(HC_DIR)/pid
-stop-conductor:
-	kill $$(cat $(HC_DIR)/pid) && rm -f $(HC_DIR)/pid && rm -rf $(HC_DIR)/databases
-check-conductor:	check-holochain
-check-holochain:
-	@ps -efH | grep -v grep | grep -E "holochain.*config.yml"
-	@pgrep holochain
-conductor.log:
-	touch $@
-
-CCLI_OPTS	= -p $(HC_ADMIN_PORT) -vvvvvv
-$(AGENT):
-	npx conductor-cli -q $(CCLI_OPTS) gen-agent > $@ || rm $@
-$(DNAREPO_HASH):	$(DNA_DNAREPO)
-	npx conductor-cli $(CCLI_OPTS) register dnas/dnarepo.dna > $@ || rm $@
-install-dnas:		$(AGENT) $(DNAREPO_HASH)
-	npx conductor-cli $(CCLI_OPTS) install -a "$$(cat $(AGENT))" devhub-app "$$(cat $(DNAREPO_HASH)):dnarepo"	|| true
-	npx conductor-cli $(CCLI_OPTS) activate devhub-app	|| true
-	npx conductor-cli $(CCLI_OPTS) attach-interface 44001
-
-$(DNA_DNAREPO):		../devhub-happ/bundled/dnas/dnas.dna
-	cp ../devhub-happ/bundled/dnas/dnas.dna $@
-	make stop-conductor reset-hcc conductor
+clean-remove-chaff:
+	@find . -name '*~' -exec rm {} \;
+clean-files:		clean-remove-chaff
+	git clean -nd
+clean-files-force:	clean-remove-chaff
+	git clean -fd
+clean-files-all:	clean-remove-chaff
+	git clean -ndx
+clean-files-all-force:	clean-remove-chaff
+	git clean -fdx
+web_assets.zip:		dist/* Makefile
+	cd dist; zip -r ../web_assets.zip ./*

@@ -1,0 +1,239 @@
+<page-view id="upload-happ-bundle-page">
+    <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="happ.title">
+	<a v-if="$happ.loaded" @click="fetchHapp()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $happ.loading }"></i>
+	</a>
+    </breadcrumbs>
+
+    <hr>
+
+    <page-header class="mb-3">
+	<template #default>
+	    <div>
+		<h1 class="fs-2">Upload hApp Bundle</h1>
+	    </div>
+	</template>
+    </page-header>
+
+    <form ref="form" :class="{ 'was-validated': validated }">
+	<div class="row">
+	    <div class="col-6">
+		<loading v-if="bundle_file" :when="bundle_unpacking">
+		    <div v-if="bundle_file" class="alert alert-primary alert-dismissible fade show" role="alert">
+			<div v-html="file_valid_feedback"></div>
+			<button type="button" class="btn-close" aria-label="Close" @click="reset_file()"></button>
+		    </div>
+		</loading>
+	    </div>
+	</div>
+
+	<div class="row">
+	    <div class="col-6">
+		<loading v-if="!bundle_file" :when="(!!latest_release && !$happ_release.current)">
+		    <div>
+			<label class="form-label fw-6">Drag and drop hApp bundle here</label>
+			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
+			    <input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving_release" required>
+			</input-feedback>
+		    </div>
+		</loading>
+	    </div>
+	</div>
+
+	<h2 class="mt-4">DNAs</h2>
+	<div v-if="Object.keys(dnas).length === 0" class="card col-6">
+	    <div class="card-body text-center">
+		Waiting for first upload...
+	    </div>
+	</div>
+	<div v-else class="row" v-for="(sources, role_id) in dnas">
+	    <div v-if="sources.upload == null"
+		 class="card col-6 mt-2">
+		<div class="card-body">
+		    <h4 class="card-title font-monospace">{{ role_id }}</h4>
+		    <p class="card-text text-truncate">
+			Waiting for upload...
+		    </p>
+		</div>
+	    </div>
+	    <div v-else-if="sources.upload.dna_version_id"
+		 class="card col-6 mt-2">
+		<div class="card-body">
+		    <div class="float-end">
+			<span class="badge rounded-pill bg-light text-dark font-monospace">
+			    {{ sources.upload.dna_version_id }}
+			</span>
+			<a v-if="sources.changed && sources.dna_version_search_results && sources.dna_version_search_results.length"
+			   @click="select_dna_version( sources.upload, {} )">
+			    <i class="bi-x-circle"></i>
+			</a>
+		    </div>
+		    <h4 class="card-title font-monospace">
+			{{ role_id }}
+			&mdash; <span class="fw-1">v{{ sources.upload.dna_version.version }}</span>
+		    </h4>
+		    <p class="card-text text-truncate">
+			{{ $filters.time( sources.upload.dna_version.published_at, "weekday+date" ) }}
+		    </p>
+
+		    <h5>Properties</h5>
+		    <div class="card">
+			<div class="card-body text-center">
+			    No Properties
+			</div>
+		    </div>
+		</div>
+	    </div>
+	    <div v-else-if="sources.dna_version_search_results && sources.dna_version_search_results.length"
+		 class="card col-6 mt-2">
+		<div class="card-body">
+		    <h4 class="card-title font-monospace">{{ role_id }}</h4>
+
+		    Search results
+		    <div class="list-group mt-2">
+			<a class="list-group-item list-group-item-action"
+			   v-for="dna_version in sources.dna_version_search_results"
+			   @click="select_dna_version( sources.upload, dna_version )">
+			    <strong>v{{ dna_version.version }}</strong>
+			    &mdash;
+			    {{ $filters.time( dna_version.published_at, "weekday+date" ) }}
+			</a>
+		    </div>
+		</div>
+	    </div>
+	    <div v-else
+		 class="card col-6 mt-2">
+		<div class="card-body">
+		    <a class="btn btn-outline-secondary btn-sm float-end"
+		       :class="{ 'disabled': missing_zome_version( sources ) || saving }"
+		       @click="create_dna_version( sources )">
+			<span v-if="sources.saving"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Quick create
+		    </a>
+		    <h4 class="card-title font-monospace">
+			{{ role_id }} &mdash; <span class="fw-1">v1</span>
+		    </h4>
+		    <p class="card-text text-truncate">
+			<code>{{ sources.upload.wasm_hash }}</code>
+		    </p>
+
+		    <h5>Zomes</h5>
+		    <div class="mt-2" v-for="(zome_sources, zome_name) in sources.zomes">
+			<div v-if="zome_sources.changed && zome_sources.upload.zome_version_id" class="card">
+			    <div class="card-body">
+				<div class="float-end">
+				    <span class="badge rounded-pill bg-light text-dark font-monospace">
+					{{ zome_sources.upload.zome_version_id }}
+				    </span>
+				    <a v-if="zome_sources.zome_version_search_results && zome_sources.zome_version_search_results.length"
+				       @click="select_zome_version( zome_sources.upload, {} )">
+					<i class="bi-x-circle"></i>
+				    </a>
+				</div>
+				<h6 class="card-title font-monospace">
+				    {{ zome_name }}
+				    &mdash; <span class="fw-1">v{{ zome_sources.upload.zome_version.version }}</span>
+				</h6>
+				<p class="card-text text-truncate">
+				    {{ $filters.time( zome_sources.upload.zome_version.published_at, "weekday+date" ) }}
+				</p>
+			    </div>
+			</div>
+			<div v-else-if="zome_sources.upload.zome_version_id" class="card">
+			    <div class="card-body">
+				<div class="float-end">
+				    <span class="badge rounded-pill bg-light text-dark font-monospace">
+					{{ zome_sources.upload.zome_version_id }}
+				    </span>
+				</div>
+				<h6 class="card-title font-monospace">
+				    {{ zome_name }}
+				    &mdash; <span class="fw-1">(unchanged)</span>
+				</h6>
+				<p v-if="zome_sources.upload.zome_version.published_at" class="card-text text-truncate">
+				    {{ $filters.time( zome_sources.upload.zome_version.published_at, "weekday+date" ) }}
+				</p>
+			    </div>
+			</div>
+			<div v-else-if="zome_sources.changed && zome_sources.zome_version_search_results && zome_sources.zome_version_search_results.length"
+			     class="card mt-2">
+			    <div class="card-body">
+				<h6 class="card-title font-monospace">{{ zome_name }}</h6>
+
+				Search results
+				<div class="list-group mt-2">
+				    <a class="list-group-item list-group-item-action"
+				       v-for="zome_version in zome_sources.zome_version_search_results"
+				       @click="select_zome_version( zome_sources.upload, zome_version )">
+					<strong>v{{ zome_version.version }}</strong>
+					&mdash; 
+					{{ $filters.time( zome_version.published_at, "weekday+date" ) }}
+				    </a>
+				</div>
+			    </div>
+			</div>
+			<div v-else class="card">
+			    <div class="card-body">
+				<a class="btn btn-outline-secondary btn-sm float-end"
+				   :class="{ 'disabled': saving }"
+				   @click="create_zome_version( zome_name, zome_sources )">
+				    <span v-if="zome_sources.saving"
+					  class="spinner-border spinner-border-sm me-3"></span>
+				    Quick create
+				</a>
+				<h6 class="card-title font-monospace">
+				    {{ zome_name }} &mdash; <span class="fw-1">v1</span>
+				</h6>
+				<p class="card-text text-truncate">
+				    WASM ({{ $filters.number( zome_sources.upload.bytes.length ) }} bytes)
+				    <code>{{ zome_sources.upload.wasm_resource_hash }}</code>
+				</p>
+			    </div>
+			</div>
+		    </div>
+		</div>
+	    </div>
+	</div>
+
+	<div v-if="bundle_file" class="row">
+	    <div class="col-6">
+		<label class="form-label fw-6">Release Name</label>
+		<input-feedback>
+		    <input type="text" v-model="input.name" class="form-control" :disabled="saving_release" required>
+		</input-feedback>
+
+		<label class="form-label fw-6">Description</label>
+		<input-feedback>
+		    <textarea v-model="input.description" class="form-control" rows="10"
+			      :disabled="saving_release" required></textarea>
+		</input-feedback>
+
+		    <!-- <dl class="row"> -->
+		    <!-- 	<dt class="col-sm-3">DNA(s) Hash</dt> -->
+		    <!-- 	<dd class="col-sm-9"><code>{{ bundle.manifest.dna_hash }}</code></dd> -->
+		    <!-- </dl> -->
+	    </div>
+	</div>
+
+	<div class="row">
+	    <div class="col-6">
+		<display-error class="mt-5" :error="error"></display-error>
+
+		<div class="row mt-5">
+		    <div class="col-6"></div>
+		    <div class="col-3">
+			<router-link to="/happs" class="btn btn-outline-primary w-100">Cancel</router-link>
+		    </div>
+		    <div class="col-3">
+			<a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
+			    <span v-if="saving_release"
+				  class="spinner-border spinner-border-sm me-3"></span>
+			    Save
+			</a>
+		    </div>
+		</div>
+	    </div>
+	</div>
+    </form>
+</page-view>

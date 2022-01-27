@@ -1,0 +1,81 @@
+<page-view id="update-dna version-page" class="d-flex flex-column">
+    <breadcrumbs v-if="version && dna" :skip-base="true" :path-mapping="breadcrumb_mapping"
+		 :sub-1="dna.name" :sub-3="'v' + version.version"></breadcrumbs>
+
+    <hr>
+
+    <display-error class="mt-5" :error="error"></display-error>
+
+    <form ref="form" :class="{ 'was-validated': validated }"
+	  class="flex-grow-1 d-flex flex-column">
+	<div class="mb-4">
+	    <h1 class="fs-2"><placeholder :when="!$dna.current" size="fill">{{ dna.name }}</placeholder></h1>
+	</div>
+
+	<page-header class="mb-2 py-3">
+	    <template #default>
+		<h2 class="fs-5 text-nowrap">
+		    <placeholder :when="!$version.current" size="fill">
+			<input-feedback class="w-auto">
+			    <input type="number" v-model.number="version.version"
+				   class="form-control d-inline-block" style="width: 6em;"
+				   @change="copy(version, input, 'version')"
+				   :disabled="$version.updating" required readonly>
+			</input-feedback>
+			<span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
+		    </placeholder>
+		</h2>
+	    </template>
+
+	    <template #title-extras>
+		<router-link :to="'/dnas/' + dna_id + '/versions/' + id" class="btn btn-outline-primary">Cancel</router-link>
+
+		<a @click="update()" class="btn btn-primary ms-5" :class="{ 'disabled': $version.updating }">
+		    <span v-if="$version.updating"
+			  class="spinner-border spinner-border-sm me-3"></span>
+		    Save changes
+		</a>
+	    </template>
+	</page-header>
+
+	<div class="flex-grow-1 row align-items-stretch">
+	    <div class="col-8">
+		<div class="card h-100">
+		    <div class="card-header">
+			Changelog
+			<a class="text-primary fw-2 ms-3 cursor-pointer"
+			   @click="toggleChangelogPreview()">{{ preview_toggle_text }}</a>
+		    </div>
+		    <div class="card-body">
+			<placeholder :when="!$version.current" size="p" class="h-100">
+			    <div v-if="show_changelog_preview" v-html="changelog_html"></div>
+			    <input-feedback v-else class="h-100">
+				<textarea v-model="version.changelog" class="form-control font-monospace h-100 border-0 shadow-none" rows="10"
+					  @change="copy(version, input, 'changelog')"
+					  @keyup="debounce( updateChangelogMarkdown, 500 )"
+					  :disabled="$version.updating"></textarea>
+			    </input-feedback>
+			</placeholder>
+		    </div>
+		</div>
+	    </div>
+
+	    <div class="col-4">
+		<div class="card">
+		    <div class="card-header">
+			Details
+		    </div>
+		    <div class="card-body">
+			<dl class="row">
+			    <dt class="col-sm-12">Created</dt>
+			    <dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
+
+			    <dt class="col-sm-12">Last Updated</dt>
+			    <dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
+			</dl>
+		    </div>
+		</div>
+	    </div>
+	</div>
+    </form>
+</page-view>

@@ -1,0 +1,41 @@
+<page-view id="create-zome-version-page">
+    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+
+    <hr>
+
+    <div class="row">
+	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
+	    <label class="form-label fw-6">Version Number</label>
+	    <input-feedback>
+		<input type="number" v-model.number="input.version" class="form-control" :disabled="saving" required>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Changelog</label>
+	    <input-feedback>
+		<textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="saving"></textarea>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Drag and drop Zome here</label>
+	    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
+		<input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving" required>
+	    </input-feedback>
+
+	    <display-error class="mt-5" :error="error"></display-error>
+
+	    <div class="row mt-5">
+		<div class="col-6"></div>
+		<div class="col-3">
+		    <router-link :to="'/zomes/' + zome_id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		</div>
+		<div class="col-3">
+		    <a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
+			<span v-if="saving"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Save
+		    </a>
+		</div>
+	    </div>
+	</form>
+    </div>
+
+</page-view>

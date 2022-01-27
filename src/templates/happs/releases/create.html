@@ -1,0 +1,93 @@
+<page-view id="create-happ-release-page">
+    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+
+    <hr>
+
+    <form ref="form" class="row" :class="{ 'was-validated': validated }">
+	<div class="col-6">
+	    <label class="form-label fw-6">Release Name</label>
+	    <input-feedback>
+		<input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Description</label>
+	    <input-feedback>
+		<textarea v-model="input.description" class="form-control" rows="10"
+			  :disabled="saving" required></textarea>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Search dnas</label>
+	    <div class="form-input-search" :class="{ 'show-results': filtered_dnas.length }">
+		<input type="text" class="form-control no-validate" placeholder="type at least 3 characters"
+		       v-model="dna_search_text" @keyup.enter="addDna( filtered_dnas[0] )">
+
+		<div class="list-group">
+		    <div class="list-group-item list-group-item-action d-flex align-items-center"
+			 v-for="dna in filtered_dnas">
+			<div class="flex-grow-1">
+			    <h5 class="my-1">{{ dna.name }}</h5>
+			    <p class="my-1">{{ dna.description }}</p>
+			</div>
+			<div>
+			    <button @click="addDna( dna )" class="btn btn-primary">
+				Add to hApp
+			    </button>
+			</div>
+		    </div>
+		</div>
+	    </div>
+
+	    <label class="form-label fw-6">Dnas</label>
+	    <list-group :list="added_dnas" no-result-text="No DNAs have been added"
+			class="mt-0">
+		<list-group-item v-for="(dna, index) in added_dnas" class="py-3"
+				 draggable="true" @dragstart="dragstartDna( $event, index )"
+				 @dragover="dragoverDna( $event )" @drop="dropDna( $event, index )">
+		    <div class="d-flex align-middle mb-1">
+			<h5 class="m-0">{{ dna.name }}</h5>
+			<span class="ms-2 flex-grow-1"> &mdash; {{ dna.description }}</span>
+			<button type="button" class="btn-close" @click="removeDna( index )"></button>
+		    </div>
+
+		    <loading :when="!dna_versions[dna.$id]">
+			<div class="ps-3 d-flex align-items-center">
+			    <strong class="mb-1 me-3 fw-4">Versions</strong>
+			    <input-feedback>
+				<div class="form-check form-check-inline"
+				     v-for="version in dna_versions[dna.$id]">
+				    <input class="form-check-input" type="radio" :name="'input.dnas[' + index + ']'"
+					   v-model="input.dnas[index].version" :value="version.$id" required :disabled="saving">
+				    <label class="form-check-label">v{{ version.version }}</label>
+				</div>
+			    </input-feedback>
+			</div>
+		    </loading>
+
+		    <input-feedback>
+			<div class="input-group">
+			      <span class="input-group-text">Nickname</span>
+			      <input type="text" v-model="input.dnas[index].role_id" class="form-control" required :disabled="saving">
+			</div>
+		    </input-feedback>
+		</list-group-item>
+	    </list-group>
+
+	    <display-error class="mt-5" :error="error"></display-error>
+
+	    <div class="row mt-5">
+		<div class="col-6"></div>
+		<div class="col-3">
+		    <router-link :to="'/happs/' + happ_id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		</div>
+		<div class="col-3">
+		    <a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
+			<span v-if="saving"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Save
+		    </a>
+		</div>
+	    </div>
+	</div>
+    </form>
+
+</page-view>

@@ -1,0 +1,47 @@
+<page-view id="update-zome-page">
+    <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.name"></breadcrumbs>
+
+    <hr>
+
+    <div class="row">
+	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
+	    <template v-if="zome">
+		<label class="form-label fw-6">Zome Name</label>
+		<input-feedback>
+		    <input type="text" @change="copy(zome, input, 'name')" v-model="zome.name"
+			   class="form-control" :disabled="$zome.updating" required>
+		</input-feedback>
+
+		<label class="form-label fw-6">Zome Description</label>
+		<input-feedback>
+		    <textarea @change="copy(zome, input, 'description')" v-model="zome.description"
+			      class="form-control" rows="3" :disabled="$zome.updating" required></textarea>
+		</input-feedback>
+
+		<display-error class="mt-5" :error="error"></display-error>
+
+		<div class="row mt-5">
+		    <div class="col-6"></div>
+		    <div class="col-3">
+			<router-link :to="'/zomes/' + id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		    </div>
+		    <div class="col-3">
+			<a @click="update()" class="btn btn-primary w-100" :class="{ 'disabled': $zome.updating }">
+			    <span v-if="$zome.updating"
+				  class="spinner-border spinner-border-sm me-3"></span>
+			    Save
+			</a>
+		    </div>
+		</div>
+	    </template>
+	    <div v-else class="card">
+		<div class="card-body text-center p-4">
+		    <div class="spinner-border mt-1" role="status">
+			<span class="visually-hidden">Loading...</span>
+		    </div>
+		</div>
+	    </div>
+	</form>
+    </div>
+
+</page-view>

@@ -1,0 +1,100 @@
+<page-view id="single-dna version-page">
+    <breadcrumbs v-if="version && dna" :skip-base="true" :path-mapping="breadcrumb_mapping"
+		 :sub-1="dna.name" :sub-3="'Version #' + version.version">
+	<a v-if="$version.loaded" @click="fetchVersion()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $version.loading }"></i>
+	</a>
+    </breadcrumbs>
+
+    <hr>
+
+    <deprecation-alert v-if="dna_deprecated && $version.current"
+		       title="The parent DNA has been deprecated"></deprecation-alert>
+
+    <div class="mb-4">
+	<h1 class="fs-2"><placeholder :when="!$version.current" size="25%">{{ dna.name }}</placeholder></h1>
+    </div>
+
+    <page-header class="mb-2 p-3">
+	<template #default>
+            <h2 class="fs-5 text-nowrap">
+		<placeholder :when="!$version.current" size="fill">{{ version.version }}
+		    <span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
+		</placeholder>
+	    </h2>
+	</template>
+
+	<template #title-extras v-if="$version.writable">
+            <router-link :to="'/dnas/' + dna_id + '/versions/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
+		<i class="bi-pencil"></i>
+		Edit version
+            </router-link>
+
+            <a @click="modal.show()" class="btn btn-secondary ms-5 text-nowrap">
+		Unpublish
+            </a>
+	</template>
+    </page-header>
+
+    <div class="row align-items-stretch">
+	<div class="col-8">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Changelog
+		</div>
+		<div class="card-body">
+		    <placeholder :when="!$version.current">
+			<div v-html="changelog_html"></div>
+		    </placeholder>
+		</div>
+	    </div>
+	</div>
+
+	<div class="col-4">
+	    <div class="card">
+		<div class="card-header">
+		    Details
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-12">Created</dt>
+			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-12">Last Updated</dt>
+			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
+
+			<dt class="col-sm-12">Resource Hash</dt>
+			<dd class="col-sm-12"><placeholder :when="!$version.current"><code>{{ version.wasm_hash }}</code></placeholder></dd>
+		    </dl>
+
+		    <list-group v-if="dna" :list="version.zomes" no-result-text="No Zomes" class="my-5" :loading="!$version.current">
+			<list-group-item v-for="zome in version.zomes">
+			    <h5 class="m-0">{{ zome.name }}</h5>
+			    <router-link :to="'/zomes/' + zome.zome + '/versions/' + zome.version">
+				<code>{{ zome.version }}</code>
+			    </router-link>
+			</list-group-item>
+		    </list-group>
+
+		    <loading :when="!$version.current">
+			<div class="mx-3 my-5">
+			    <a class="btn btn-primary w-100" @click="downloadPackageBytes()">
+				<span v-if="$packageBytes.loading"
+				      class="spinner-border spinner-border-sm me-3"></span>
+				<i v-else class="bi-download"></i>
+				Download {{ package_filename }}
+			    </a>
+
+			    <display-error class="mt-3" :error="download_error"></display-error>
+			</div>
+		    </loading>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+    <modal v-if="version && dna" title="Unpublish DNA Version" ref="modal"
+	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
+	<p>Are you sure you want to unpublish the {{ dna.name }} DNA Version <strong>{{ version.version }}</strong>?</p>
+    </modal>
+</page-view>
