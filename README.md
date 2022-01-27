@@ -12,7 +12,7 @@ A web-based UI that works with Holochain's collection of [DevHub DNAs](https://g
 This project has completed single conductor multi-agent testing.  It is now ready for
 multi-conductor multi-agent testing using real-world networking.
 
-Currently works with [Holochain `v0.0.106`](https://github.com/holochain/holochain/tree/b11908875a9f6a09e8939fbf6f45ff658e3d10a6)
+Currently works with [Holochain `v0.0.119`](https://github.com/holochain/holochain/tree/9d9a556e8236234bcca64ee33620012c8a6ab095)
 
 
 ### Testing Setup
