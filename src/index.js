@@ -2,6 +2,7 @@ const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("main");
 
 const { Client, HoloHashes,
+	AgentClient,
 	HolochainClient,
 	logging }			= require('@holochain/devhub-entities');
 const { HoloHash,
@@ -35,25 +36,49 @@ const CONDUCTOR_URI			= `${APP_HOST}:${APP_PORT}`;
 if ( isNaN( APP_PORT ) )
     throw new Error(`Invalid 'APP_PORT' (${PORT_VALUE}); run 'localStorage.setItem( "APP_PORT", "<port number>" );`);
 
-if ( typeof AGENT_HASH !== "string" )
-    throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
-
-log.warn("Using Agent hash: %s", AGENT_HASH );
-const AGENT_PUBKEY			= new AgentPubKey( AGENT_HASH );
-
 const DNAREPO_HASH			= new DnaHash( process.env.DNAREPO_HASH );
 const HAPPS_HASH			= new DnaHash( process.env.HAPPS_HASH );
 const WEBASSETS_HASH			= new DnaHash( process.env.WEBASSETS_HASH );
 
-log.normal("DNA Hashes");
-const dnas				= {
-    "dnarepo":		DNAREPO_HASH,
-    "happs":		HAPPS_HASH,
-    "webassets":	WEBASSETS_HASH,
-};
-log.level.normal && Object.entries( dnas ).forEach( ([nick, hash]) => {
-    log.normal("  %s : %s", nick.padStart( 10 ), String( hash ) );
-});
+async function resolve_client () {
+    let agent_client;
+    try {
+	const resp			= await fetch("./.launcher-env.json");
+	const launcher_config		= await resp.json();
+
+	agent_client			= await AgentClient.createFromAppInfo(
+	    launcher_config.INSTALLED_APP_ID,
+	    launcher_config.APP_INTERFACE_PORT
+	);
+    } catch (err) {
+	log.warn("Using hard-coded configuration because launcher config produced error: %s", err.toString() );
+    }
+
+    if ( !agent_client ) {
+	if ( typeof AGENT_HASH !== "string" )
+	    throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
+
+	log.warn("Using Agent hash: %s", AGENT_HASH );
+	const AGENT_PUBKEY		= new AgentPubKey( AGENT_HASH );
+
+	agent_client			=  new AgentClient( AGENT_PUBKEY, {
+	    "dnarepo":         DNAREPO_HASH,
+	    "happs":           HAPPS_HASH,
+	    "webassets":       WEBASSETS_HASH,
+	}, CONDUCTOR_URI );
+    }
+
+    log.normal("App schema");
+    log.level.normal && Object.entries( agent_client._app_schema._dnas ).forEach( ([nick, schema]) => {
+	log.normal("  %s : %s", nick.padStart( 10 ), String( schema._hash ), schema );
+
+	log.level.info && Object.entries( schema._zomes ).forEach( ([name, zome_api]) => {
+	    log.info("  %s : %s", name.padStart( 10 ), zome_api._name, zome_api );
+	});
+    });
+
+    return agent_client;
+}
 
 
 window.PersistentStorage		= {
@@ -67,9 +92,11 @@ window.PersistentStorage		= {
 
 
 (async function(global) {
-    log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(AGENT_PUBKEY), CONDUCTOR_URI, WEBPACK_MODE );
-    const client			= new Client( AGENT_PUBKEY, dnas, CONDUCTOR_URI, {
-	"simulate_latency": (WEBPACK_MODE === "development"),
+    const agent_client			= await resolve_client();
+    log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(agent_client._agent), agent_client._conn._uri, WEBPACK_MODE );
+
+    const client			= new Client( agent_client, {
+	// "simulate_latency": (WEBPACK_MODE === "development"),
     });
 
     const store				= await store_init( client, Vue );
@@ -98,12 +125,13 @@ window.PersistentStorage		= {
 	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"DNA Version Info" ],
 	[ "/dnas/:dna/versions/:id/update",	dna_version_controllers.update,		"Edit Version" ],
 
-	[ "/happs",				happ_controllers.list,			"Happs" ],
-	[ "/happs/new",				happ_controllers.create,		"Add Happ" ],
-	[ "/happs/:id",				happ_controllers.single,		"Happ Info" ],
-	[ "/happs/:id/update",			happ_controllers.update,		"Edit Happ" ],
-	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add Happ Release" ],
-	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"Happ Release Info" ],
+	[ "/happs",				happ_controllers.list,			"hApps" ],
+	[ "/happs/new",				happ_controllers.create,		"Add hApp" ],
+	[ "/happs/:id",				happ_controllers.single,		"hApp Info" ],
+	[ "/happs/:id/update",			happ_controllers.update,		"Edit hApp" ],
+	[ "/happs/:id/upload",			happ_controllers.upload,		"Upload Bundle" ],
+	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add hApp Release" ],
+	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"hApp Release Info" ],
 	[ "/happs/:happ/releases/:id/update",	happ_release_controllers.update,	"Edit Release" ],
     ];
 
@@ -262,8 +290,9 @@ window.PersistentStorage		= {
 	},
     });
 
-    app.config.globalProperties.breadcrumb_mapping	= breadcrumb_mapping;
+    app.config.globalProperties.$client			= client;
     app.config.globalProperties.$filters		= filters;
+    app.config.globalProperties.breadcrumb_mapping	= breadcrumb_mapping;
     app.config.errorHandler		= function (err, vm, info) {
 	log.error("Vue App Error (%s):", info, err, vm );
     };

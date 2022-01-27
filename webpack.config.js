@@ -8,7 +8,8 @@ const Copy			= require('copy-webpack-plugin');
 const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH",	"utf8").trim();
 const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH",		"utf8").trim();
 const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH",	"utf8").trim();
-const WEBPACK_MODE		= "production"; // production | development
+const WEBPACK_MODE		= "production";
+// const WEBPACK_MODE		= "development";
 const DEVMODE			= WEBPACK_MODE === "development";
 
 module.exports = {

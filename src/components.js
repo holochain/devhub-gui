@@ -109,6 +109,10 @@ const InputFeedback = {
 	    "type": Number,
 	    "default": 0,
 	},
+	"hideValid": {
+	    "type": Boolean,
+	    "default": false,
+	},
     },
     data () {
 	return {
@@ -142,7 +146,8 @@ const InputFeedback = {
 	    let previous_value		= this.input.value;
 	    let toid;
 	    this.input.addEventListener("keyup", async (event) => {
-		if ( previous_value.trim() === this.input.value.trim() )
+		console.log("'keyup' event for input: '%s' => '%s'", previous_value, this.input.value, this.input );
+		if ( previous_value === this.input.value )
 		    return; // no change
 
 		previous_value		= this.input.value;
@@ -167,10 +172,13 @@ const InputFeedback = {
     },
     "methods": {
 	async runValidator ( event ) {
-	    if ( this.input.value === "" ) {
-		this.showFeedback	= true;
-		return this.updateInvalidMessage("");
-	    }
+	    // I don't know why this was put in, but it seems to be a mistake.  Why wouldn't we let
+	    // the validator determine if an empty value is invalid?
+	    //
+	    // if ( this.input.value === "" ) {
+	    // 	this.showFeedback	= true;
+	    // 	return this.updateInvalidMessage("");
+	    // }
 
 	    const valid		= await this.validator( this.input.value, this.input, this );
 
@@ -193,9 +201,22 @@ const InputFeedback = {
 	},
     },
     "computed": {
+	show_validation_feedback () {
+	    if ( !this.input )
+		return false;
+
+	    this.invalidMessage; // cause reactivity for this property
+
+	    if ( this.input.checkValidity() ) {
+		return this.blurred && !this.hideValid;
+	    }
+	    else {
+		return this.blurred && this.showFeedback;
+	    }
+	},
     },
     "template": `
-<div ref="container" :class="{ 'was-validated': blurred && showFeedback }" class="d-inline-block w-100">
+<div ref="container" :class="{ 'was-validated': show_validation_feedback }" class="d-inline-block w-100">
     <slot></slot>
     <div v-if="validMessage" class="valid-feedback text-start" v-html="validMessage"></div>
     <div v-if="input" class="invalid-feedback text-start" v-html="invalidMessage"></div>
@@ -489,9 +510,8 @@ const Placeholder = {
 	},
     },
     "template": `
-<span class="ph-glow" :class="classes" :style="styles">
-    <slot v-if="!when"></slot>
-</span>`,
+<slot v-if="!when"></slot>
+<span v-else class="ph-glow" :class="classes" :style="styles"></span>`,
 };
 
 const Loading = {

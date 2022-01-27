@@ -148,4 +148,16 @@ module.exports = {
 	}
 	return true;
     },
+
+    toHex ( uint8_array ) {
+	return [].map.call( uint8_array, n => n.toString(16).padStart(2,"0") ).join("");
+    },
+
+    delay ( ms = 0 ) {
+	return new Promise( f => setTimeout(f,ms) );
+    },
+
+    snip ( str, length = 4 ) {
+	return str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
+    }
 };
