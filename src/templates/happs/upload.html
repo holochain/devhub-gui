@@ -29,11 +29,11 @@
 
 	<div class="row">
 	    <div class="col-6">
-		<loading v-if="!bundle_file" :when="(latest_release && !$happ_release.current)">
+		<loading v-if="!bundle_file" :when="(!!latest_release && !$happ_release.current)">
 		    <div>
 			<label class="form-label fw-6">Drag and drop hApp bundle here</label>
 			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-			    <input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving" required>
+			    <input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving_release" required>
 			</input-feedback>
 		    </div>
 		</loading>
@@ -105,7 +105,7 @@
 		 class="card col-6 mt-2">
 		<div class="card-body">
 		    <a class="btn btn-outline-secondary btn-sm float-end"
-		       :class="{ 'disabled': missing_zome_version( sources ) }"
+		       :class="{ 'disabled': missing_zome_version( sources ) || saving }"
 		       @click="create_dna_version( sources )">
 			<span v-if="sources.saving"
 			      class="spinner-border spinner-border-sm me-3"></span>
@@ -176,6 +176,7 @@
 			<div v-else class="card">
 			    <div class="card-body">
 				<a class="btn btn-outline-secondary btn-sm float-end"
+				   :class="{ 'disabled': saving }"
 				   @click="create_zome_version( zome_name, zome_sources )">
 				    <span v-if="zome_sources.saving"
 					  class="spinner-border spinner-border-sm me-3"></span>
@@ -199,13 +200,13 @@
 	    <div class="col-6">
 		<label class="form-label fw-6">Release Name</label>
 		<input-feedback>
-		    <input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
+		    <input type="text" v-model="input.name" class="form-control" :disabled="saving_release" required>
 		</input-feedback>
 
 		<label class="form-label fw-6">Description</label>
 		<input-feedback>
 		    <textarea v-model="input.description" class="form-control" rows="10"
-			      :disabled="saving" required></textarea>
+			      :disabled="saving_release" required></textarea>
 		</input-feedback>
 
 		    <!-- <dl class="row"> -->
@@ -226,7 +227,7 @@
 		    </div>
 		    <div class="col-3">
 			<a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
-			    <span v-if="saving"
+			    <span v-if="saving_release"
 				  class="spinner-border spinner-border-sm me-3"></span>
 			    Save
 			</a>

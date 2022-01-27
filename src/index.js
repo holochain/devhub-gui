@@ -41,11 +41,12 @@ const HAPPS_HASH			= new DnaHash( process.env.HAPPS_HASH );
 const WEBASSETS_HASH			= new DnaHash( process.env.WEBASSETS_HASH );
 
 async function resolve_client () {
+    let agent_client;
     try {
 	const resp			= await fetch("./.launcher-env.json");
 	const launcher_config		= await resp.json();
 
-	return await AgentClient.createFromAppInfo(
+	agent_client			= await AgentClient.createFromAppInfo(
 	    launcher_config.INSTALLED_APP_ID,
 	    launcher_config.APP_INTERFACE_PORT
 	);
@@ -53,24 +54,31 @@ async function resolve_client () {
 	log.warn("Using hard-coded configuration because launcher config produced error: %s", err.toString() );
     }
 
-    if ( typeof AGENT_HASH !== "string" )
-	throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
+    if ( !agent_client ) {
+	if ( typeof AGENT_HASH !== "string" )
+	    throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
 
-    log.warn("Using Agent hash: %s", AGENT_HASH );
-    const AGENT_PUBKEY			= new AgentPubKey( AGENT_HASH );
+	log.warn("Using Agent hash: %s", AGENT_HASH );
+	const AGENT_PUBKEY		= new AgentPubKey( AGENT_HASH );
 
-    return new AgentClient( AGENT_PUBKEY, dnas, CONDUCTOR_URI );
+	agent_client			=  new AgentClient( AGENT_PUBKEY, {
+	    "dnarepo":         DNAREPO_HASH,
+	    "happs":           HAPPS_HASH,
+	    "webassets":       WEBASSETS_HASH,
+	}, CONDUCTOR_URI );
+    }
+
+    log.normal("App schema");
+    log.level.normal && Object.entries( agent_client._app_schema._dnas ).forEach( ([nick, schema]) => {
+	log.normal("  %s : %s", nick.padStart( 10 ), String( schema._hash ), schema );
+
+	log.level.info && Object.entries( schema._zomes ).forEach( ([name, zome_api]) => {
+	    log.info("  %s : %s", name.padStart( 10 ), zome_api._name, zome_api );
+	});
+    });
+
+    return agent_client;
 }
-
-log.normal("DNA Hashes");
-const dnas				= {
-    "dnarepo":		DNAREPO_HASH,
-    "happs":		HAPPS_HASH,
-    "webassets":	WEBASSETS_HASH,
-};
-log.level.normal && Object.entries( dnas ).forEach( ([nick, hash]) => {
-    log.normal("  %s : %s", nick.padStart( 10 ), String( hash ) );
-});
 
 
 window.PersistentStorage		= {

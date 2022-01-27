@@ -32,7 +32,7 @@ module.exports = async function ( client ) {
 			"description": null,
 			"manifest": {
 			    "manifest_version": "1",
-			    "slots": null,
+			    "roles": null,
 			},
 			"dnas": [],
 		    },
@@ -104,14 +104,14 @@ module.exports = async function ( client ) {
 
 		    this.saving		= true;
 		    try {
-			this.input.manifest.slots		= [];
+			this.input.manifest.roles		= [];
 			this.input.dnas.forEach( (dna, i) => {
 			    const dna_version			= this.all_dna_versions[dna.version];
 
 			    console.log( dna_version );
 			    this.input.dnas[i].dna		= dna_version.for_dna;
 			    this.input.dnas[i].wasm_hash	= dna_version.wasm_hash;
-			    this.input.manifest.slots.push({
+			    this.input.manifest.roles.push({
 				"id":		dna.role_id,
 				"dna": {
 				    "path":	`./${dna.name}.dna`,

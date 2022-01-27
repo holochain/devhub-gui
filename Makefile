@@ -59,10 +59,17 @@ use-local-devhub-entities:
 use-npm-devhub-entities:
 	npm uninstall @holochain/devhub-entities
 	npm install @holochain/devhub-entities
+use-local-hcc:
+	npm uninstall @whi/holochain-conductor-cli
+	npm install --save-dev ../node-hc-conductor-cli/whi-holochain-conductor-cli-0.1.1.tgz
+use-npm-hcc:
+	npm uninstall @whi/holochain-conductor-cli
+	npm install --save-dev @whi/holochain-conductor-cli
 bundled/DevHub.happ:	../devhub-dnas/DevHub.happ
 	cp $< $@
 bundled/DevHub.webhapp:	web_assets.zip bundled/DevHub.happ
 	hc web pack ./bundled
+	cp $@ ~/
 
 
 #

@@ -949,7 +949,7 @@ module.exports = async function ( client, Vue ) {
 	    },
 
 	    async createHappRelease ({ commit }, [ happ_id, input ] ) {
-		log.normal("Creating Happ Release: #%s", input.release );
+		log.normal("Creating Happ Release: #%s", input.name );
 
 		input.for_happ		= happ_id;
 

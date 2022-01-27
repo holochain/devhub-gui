@@ -306,6 +306,7 @@ module.exports = async function ( client ) {
 		    "zomes": {},
 		    "validated": false,
 		    "saving": false,
+		    "saving_release": false,
 		};
 	    },
 	    "computed": {
@@ -372,10 +373,6 @@ module.exports = async function ( client ) {
 		if ( sha256 === undefined )
 		    sha256			= (await import("./lazyload_sha256.js")).default;
 		gzip				= (await import("./lazyload_gzip.js")).default;
-
-		console.log( sha256 );
-		console.log( msgpack );
-		console.log( gzip );
 	    },
 	    "methods": {
 		async refresh () {
@@ -385,12 +382,18 @@ module.exports = async function ( client ) {
 		    if ( this.releases.length === 0 )
 			await this.fetchHappReleases();
 
-		    if ( !this.latest_release )
+		    if ( !this.latest_release ) {
+			log.warn("There are no releases for this hApp: %s", String(this.id) );
 			return;
+		    }
 
+		    log.normal("Prepping last release (%s) for comparison", String(this.latest_release.$id) );
+		    // Since there are release(s) for this hApp, we need to fetch the latest one to
+		    // compare the differences when a bundle is uploaded.
 		    await this.$store.dispatch("fetchHappRelease", this.latest_release.$id );
 		    log.info("Latest hApp release:", this.happ_release );
 
+		    // We will use the last release name as the default value for the next release.
 		    this.input.name		= this.happ_release.name;
 
 		    await Promise.all( this.happ_release.dnas.map(async dna => {
@@ -424,13 +427,14 @@ module.exports = async function ( client ) {
 			});
 		    }) );
 
-		    for ( let slot of this.happ_release.manifest.slots ) {
+		    const roles			= this.happ_release.manifest.roles;
+		    for ( let role of roles ) {
 			// We should be able to assume the ID exists from the previous loop
-			this.dnas[ slot.id ].last.uid		= slot.dna.uid;
-			this.dnas[ slot.id ].last.properties	= slot.dna.properties;
+			this.dnas[ role.id ].last.uid		= role.dna.uid;
+			this.dnas[ role.id ].last.properties	= role.dna.properties;
 		    }
 
-		    console.log( this.dnas );
+		    log.debug("DNAs from current release:", this.dnas );
 
 		    // On page init
 		    //
@@ -451,6 +455,7 @@ module.exports = async function ( client ) {
 		    //
 		},
 		async fetchHapp () {
+		    log.normal("Fetching hApp: %s", String(this.id) );
 		    try {
 			await this.$store.dispatch("fetchHapp", this.id );
 		    } catch (err) {
@@ -460,6 +465,7 @@ module.exports = async function ( client ) {
 		    }
 		},
 		async fetchHappReleases () {
+		    log.normal("Fetching hApp relesaes for hApp: %s", String(this.id) );
 		    try {
 			await this.$store.dispatch("fetchReleasesForHapp", this.id );
 			log.debug("Releases for this hApp:", this.releases );
@@ -472,6 +478,8 @@ module.exports = async function ( client ) {
 		    this.bundle			= null;
 		    this.bundle_file		= null;
 		    this.release_exists		= null;
+		    this.dnas			= {};
+		    this.intpu.dnas		= {};
 
 		    for ( let sources of Object.values(this.dnas) ) {
 			sources.upload		= null;
@@ -537,19 +545,25 @@ module.exports = async function ( client ) {
 		    if ( !this.input.name )
 			this.input.name		= "v0.1.0";
 
+		    log.normal("Dissecting uploaded bundle (%s)", bundle.manifest.name );
 		    this.input.manifest		= bundle.manifest;
 
-		    for ( let slot of bundle.manifest.slots ) {
-			if ( this.dnas[ slot.id ] === undefined ) {
-			    this.dnas[ slot.id ]	= {
+		    if ( bundle.manifest.slots ) {
+			bundle.manifest.roles	= bundle.manifest.slots;
+			delete bundle.manifest.slots;
+		    }
+
+		    for ( let role of bundle.manifest.roles ) {
+			if ( this.dnas[ role.id ] === undefined ) {
+			    this.dnas[ role.id ]	= {
 				"last": null,
 				"upload": null,
 				"zomes": {},
 			    };
 			}
 
-			const dna_sources	= this.dnas[ slot.id ];
-			const dna_bundle	= unpack_bundle( bundle.resources[ slot.dna.bundled ] );
+			const dna_sources	= this.dnas[ role.id ];
+			const dna_bundle	= unpack_bundle( bundle.resources[ role.dna.bundled ] );
 			const wasm_hashes	= [];
 			const zomes		= {};
 
@@ -568,17 +582,19 @@ module.exports = async function ( client ) {
 				    "upload": null,
 				};
 			    }
-			    const zome_sources	= dna_sources.zomes[ zome.name ];
+			    const zome_sources		= dna_sources.zomes[ zome.name ];
 
-			    console.log("Check if zome changed: %s", digest_hex, zome_sources.last );
-			    if ( zome_sources.last
-				 && zome_sources.last.wasm_resource_hash === digest_hex ) {
+			    const same_hash		= zome_sources.last && zome_sources.last.wasm_resource_hash === digest_hex;
+			    log.info("Zome [%s]: same hash (%s): %s === %s", () => [
+				zome.name, same_hash, this.snip(digest_hex),
+				zome_sources.last && this.snip(zome_sources.last.wasm_resource_hash) ]);
+			    if ( same_hash ) {
 				zome_sources.changed	= false;
 				zome_sources.upload	= {
 				    "bytes": wasm_bytes,
 				};
 				Object.assign( zome_sources.upload, zome_sources.last );
-				console.log("Used previous zome info:", zome_sources.upload );
+				log.trace("Using previous zome info:", zome_sources.upload );
 			    }
 			    else {
 				zome_sources.changed	= true;
@@ -623,7 +639,7 @@ module.exports = async function ( client ) {
 
 			dna_hashes.push( digest );
 
-			console.log( dna_bundle.manifest );
+			log.debug("DNA bundle manifest (after):", dna_bundle.manifest );
 		    }
 
 		    const dna_hash		= sha256.create();
@@ -673,7 +689,8 @@ module.exports = async function ( client ) {
 				);
 				zome.exists		= zome_versions.length > 0;
 				zome.zome_version_search_results	= zome_versions;
-				console.log("After searching for zome version matches:", zome );
+
+				log.info("After searching for zome version matches:", zome );
 
 				if ( zome.exists === false ) {
 				    log.debug("Searching for zome context by name:", name );
@@ -694,8 +711,8 @@ module.exports = async function ( client ) {
 
 		    bundle.manifest.dna_hash	= digest_hex;
 
-		    console.log( bundle.manifest );
-		    console.log( this.dnas );
+		    log.debug("hApp bundle manifest:", bundle.manifest );
+		    log.trace("DNA input:", this.dnas );
 
 		    this.bundle			= bundle;
 		    this.bundle_unpacking	= false;
@@ -720,6 +737,7 @@ module.exports = async function ( client ) {
 		},
 
 		async create_zome_version ( name, zome_info ) {
+		    this.saving			= true;
 		    zome_info.saving		= true;
 		    await this.delay();
 
@@ -739,7 +757,7 @@ module.exports = async function ( client ) {
 
 		    let next_version_number;
 		    if ( zome_info.last ) {
-			console.log("Calculate next version number", zome_info );
+			log.trace("Zome [%s] calculate next version number from zome info:", zome_info.name, zome_info );
 			const last_version	= await this.$store.dispatch("fetchZomeVersion", zome_info.last.zome_version_id );
 			next_version_number	= last_version.version + 1;
 		    }
@@ -762,14 +780,16 @@ module.exports = async function ( client ) {
 
 		    zome_info.exists		= true;
 		    zome_info.saving		= false;
+		    this.saving			= false;
 		},
 
 		async create_dna_version ( dna_info ) {
+		    this.saving			= true;
 		    dna_info.saving		= true;
 		    const name			= dna_info.upload.bundle.manifest.name;
 		    const upload		= dna_info.upload;
 
-		    console.log( name, upload, dna_info );
+		    log.normal("Creating DNA version: %s", name, upload, dna_info );
 
 		    if ( !upload.dna_id ) {
 			log.debug("Create DNA context:", name );
@@ -802,7 +822,7 @@ module.exports = async function ( client ) {
 			}),
 		    };
 
-		    console.log( input );
+		    log.trace("Create input for 'create_dna_version':", input );
 		    const version		= await this.$client.call(
 			"dnarepo", "dna_library", "create_dna_version", input
 		    );
@@ -812,15 +832,17 @@ module.exports = async function ( client ) {
 
 		    dna_info.exists		= true;
 		    dna_info.saving		= false;
+		    this.saving			= false;
 		},
 
 		async create () {
-		    this.validated	= true;
+		    this.validated		= true;
 
 		    if ( this.form.checkValidity() === false )
 			return;
 
-		    this.saving		= true;
+		    this.saving_release		= true;
+		    this.saving			= true;
 		    try {
 			Object.entries(this.dnas).map(async ([hash, dna_sources]) => {
 			    const dna		= dna_sources.upload;
@@ -832,16 +854,17 @@ module.exports = async function ( client ) {
 			    });
 			});
 
-			console.log("Input for create happ", this.id, this.input );
-			const release	= await this.$store.dispatch("createHappRelease", [ this.id, this.input ] );
+			log.trace("Input for 'create_happ':", this.id, this.input );
+			const release		= await this.$store.dispatch("createHappRelease", [ this.id, this.input ] );
 
 			this.$store.dispatch("fetchReleasesForHapp", this.id );
 			this.$router.push( `/happs/${this.id}/releases/${release.$id}` );
 		    } catch ( err ) {
 			log.error("Failed to create hApp Release:", err, err.data );
-			this.error	= err;
+			this.error		= err;
 		    } finally {
-			this.saving	= false;
+			this.saving		= false;
+			this.saving_release	= false;
 		    }
 		},
 	    },

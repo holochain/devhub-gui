@@ -156,4 +156,8 @@ module.exports = {
     delay ( ms = 0 ) {
 	return new Promise( f => setTimeout(f,ms) );
     },
+
+    snip ( str, length = 4 ) {
+	return str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
+    }
 };
