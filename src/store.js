@@ -379,6 +379,24 @@ module.exports = async function ( client, Vue ) {
 		return happs;
 	    },
 
+	    async fetchAllHapps ({ commit }) {
+		const path		= dataTypePath.happs( "all" );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting all happs");
+		let happs		= await client.call(
+		    "happs", "happ_library", "get_all_happs"
+		);
+
+		log.info("Found %s hApps in Collection for %s", happs.length, String( happs.$base ) );
+
+		commit("cacheCollection", [ path, happs ] );
+		commit("recordLoaded", path );
+
+		return happs;
+	    },
+
 
 	    //
 	    // Zome
@@ -482,6 +500,24 @@ module.exports = async function ( client, Vue ) {
 		    commit("metadata", [ path, { "deprecating": false }] );
 		}
 
+	    },
+
+	    async fetchAllZomes ({ commit }) {
+		const path		= dataTypePath.zomes( "all" );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting all zomes");
+		let zomes		= await client.call(
+		    "dnarepo", "dna_library", "get_all_zomes"
+		);
+
+		log.info("Found %s zomes in Collection for %s", zomes.length, String( zomes.$base ) );
+
+		commit("cacheCollection", [ path, zomes ] );
+		commit("recordLoaded", path );
+
+		return zomes;
 	    },
 
 
@@ -688,6 +724,24 @@ module.exports = async function ( client, Vue ) {
 		    commit("metadata", [ path, { "deprecating": false }] );
 		}
 
+	    },
+
+	    async fetchAllDnas ({ commit }) {
+		const path		= dataTypePath.dnas( "all" );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting all dnas");
+		let dnas		= await client.call(
+		    "dnarepo", "dna_library", "get_all_dnas"
+		);
+
+		log.info("Found %s dnas in Collection for %s", dnas.length, String( dnas.$base ) );
+
+		commit("cacheCollection", [ path, dnas ] );
+		commit("recordLoaded", path );
+
+		return dnas;
 	    },
 
 

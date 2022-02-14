@@ -29,7 +29,8 @@
 		</div>
 		<div class="col-6">
 		    <input-feedback :validator="isAgentPubKey">
-			<search v-model="agent_search" @change="updateAgent( agent_search )" placeholder="Paste Agent PubKey..."></search>
+			<search v-model="agent_input" @change="updateAgent( agent_input )"
+				placeholder="Paste Agent PubKey..."></search>
 		    </input-feedback>
 		</div>
 	    </div>

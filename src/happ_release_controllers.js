@@ -108,7 +108,6 @@ module.exports = async function ( client ) {
 			this.input.dnas.forEach( (dna, i) => {
 			    const dna_version			= this.all_dna_versions[dna.version];
 
-			    console.log( dna_version );
 			    this.input.dnas[i].dna		= dna_version.for_dna;
 			    this.input.dnas[i].wasm_hash	= dna_version.wasm_hash;
 			    this.input.manifest.roles.push({
