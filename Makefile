@@ -55,7 +55,7 @@ run-simple-http-server:
 #
 use-local-devhub-entities:
 	npm uninstall @holochain/devhub-entities
-	npm install ../devhub-dnas/js-devhub-entities/holochain-devhub-entities-0.4.2.tgz
+	npm install ../devhub-dnas/js-devhub-entities/holochain-devhub-entities-0.5.0.tgz
 use-npm-devhub-entities:
 	npm uninstall @holochain/devhub-entities
 	npm install @holochain/devhub-entities

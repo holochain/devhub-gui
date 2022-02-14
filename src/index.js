@@ -82,11 +82,20 @@ async function resolve_client () {
 
 
 window.PersistentStorage		= {
-    setItem ( key, value ) {
-	return window.localStorage.setItem( key, JSON.stringify(value) );
+    setItem ( key, input ) {
+	const value			= JSON.stringify( input );
+	log.trace("Setting locally stored item '%s':", key, value );
+	return window.localStorage.setItem( key, value );
     },
     getItem ( key ) {
-	return JSON.parse( window.localStorage.getItem( key ) );
+	const value			= window.localStorage.getItem( key );
+	log.trace("Getting locally stored item '%s':", key, value );
+	try {
+	    return JSON.parse( value );
+	} catch (err) {
+	    window.localStorage.removeItem( key );
+	    return null;
+	}
     },
 };
 
@@ -108,14 +117,16 @@ window.PersistentStorage		= {
     const happ_release_controllers	= await happ_releases_init( client );
 
     const route_components		= [
-	[ "/",					zome_controllers.list,			"Dashboard" ],
-	[ "/zomes",				zome_controllers.list,			"Zomes" ],
-	[ "/zomes/new",				zome_controllers.create,		"Add Zome" ],
-	[ "/zomes/:id",				zome_controllers.single,		"Zome Info" ],
-	[ "/zomes/:id/update",			zome_controllers.update,		"Edit Zome" ],
-	[ "/zomes/:zome/versions/new",		zome_version_controllers.create,	"Add Zome Version" ],
-	[ "/zomes/:zome/versions/:id",		zome_version_controllers.single,	"Zome Version Info" ],
-	[ "/zomes/:zome/versions/:id/update",	zome_version_controllers.update,	"Edit Version" ],
+	[ "/",					happ_controllers.list,			"Dashboard" ],
+
+	[ "/happs",				happ_controllers.list,			"All hApps" ],
+	[ "/happs/new",				happ_controllers.create,		"Add hApp" ],
+	[ "/happs/:id",				happ_controllers.single,		"hApp Info" ],
+	[ "/happs/:id/update",			happ_controllers.update,		"Edit hApp" ],
+	[ "/happs/:id/upload",			happ_controllers.upload,		"Upload Bundle" ],
+	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add hApp Release" ],
+	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"hApp Release Info" ],
+	[ "/happs/:happ/releases/:id/update",	happ_release_controllers.update,	"Edit Release" ],
 
 	[ "/dnas",				dna_controllers.list,			"DNAs" ],
 	[ "/dnas/new",				dna_controllers.create,			"Add DNA" ],
@@ -125,14 +136,13 @@ window.PersistentStorage		= {
 	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"DNA Version Info" ],
 	[ "/dnas/:dna/versions/:id/update",	dna_version_controllers.update,		"Edit Version" ],
 
-	[ "/happs",				happ_controllers.list,			"hApps" ],
-	[ "/happs/new",				happ_controllers.create,		"Add hApp" ],
-	[ "/happs/:id",				happ_controllers.single,		"hApp Info" ],
-	[ "/happs/:id/update",			happ_controllers.update,		"Edit hApp" ],
-	[ "/happs/:id/upload",			happ_controllers.upload,		"Upload Bundle" ],
-	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add hApp Release" ],
-	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"hApp Release Info" ],
-	[ "/happs/:happ/releases/:id/update",	happ_release_controllers.update,	"Edit Release" ],
+	[ "/zomes",				zome_controllers.list,			"Zomes" ],
+	[ "/zomes/new",				zome_controllers.create,		"Add Zome" ],
+	[ "/zomes/:id",				zome_controllers.single,		"Zome Info" ],
+	[ "/zomes/:id/update",			zome_controllers.update,		"Edit Zome" ],
+	[ "/zomes/:zome/versions/new",		zome_version_controllers.create,	"Add Zome Version" ],
+	[ "/zomes/:zome/versions/:id",		zome_version_controllers.single,	"Zome Version Info" ],
+	[ "/zomes/:zome/versions/:id/update",	zome_version_controllers.update,	"Edit Version" ],
     ];
 
     const breadcrumb_mapping		= {};

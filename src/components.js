@@ -146,7 +146,7 @@ const InputFeedback = {
 	    let previous_value		= this.input.value;
 	    let toid;
 	    this.input.addEventListener("keyup", async (event) => {
-		console.log("'keyup' event for input: '%s' => '%s'", previous_value, this.input.value, this.input );
+		log.debug("'keyup' event for input: '%s' => '%s'", previous_value, this.input.value, this.input );
 		if ( previous_value === this.input.value )
 		    return; // no change
 

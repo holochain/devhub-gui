@@ -25,10 +25,18 @@ module.exports = async function ( client ) {
 	return {
 	    "template": (await import("./templates/happs/list.html")).default,
 	    "data": function() {
-		const agent_hash	= PersistentStorage.getItem("LIST_FILTER");
+		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
+		let agent_input		= input_cache;
+
+		if ( this.$route.query.agent ) {
+		    log.warn("Overriding stored filter (%s) with filter from URL search:", input_cache, this.$route.query.agent );
+		    agent_input		= this.$route.query.agent;
+		}
+
 		return {
-		    "agent_search": agent_hash || null,
-		    "agent_filter": agent_hash ? new AgentPubKey( agent_hash ) : null,
+		    "agent_input_cache": input_cache,
+		    "agent_input": this.$route.query.agent || input_cache || "",
+		    "agent_hash": null,
 		    "order_by": "published_at",
 		};
 	    },
@@ -37,40 +45,60 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		title () {
-		    return this.agent === "me" ? "My hApps" : "hApps found";
+		    return (
+			this.agent_input.length
+			    ? ( this.agent_input === "me" ? "My" : "Agent" )
+			    : "All"
+		    )  + " hApps";
 		},
 		agent () {
-		    return this.agent_filter || "me";
+		    return this.agent_input.length ? this.agent_input : "me";
 		},
 		happs () {
-		    const happs		= this.$store.getters.happs( this.agent ).collection;
-		    return this.sort_by_object_key( happs, this.order_by );
+		    return this.agent_input.length
+			? this.$store.getters.happs( this.agent ).collection
+			: this.$store.getters.happs( "all" ).collection;
 		},
 		$happs () {
-		    return this.$store.getters.happs( this.agent ).metadata;
+		    return this.agent_input.length
+			? this.$store.getters.happs( this.agent ).metadata
+			: this.$store.getters.happs( "all" ).metadata;
 		},
 	    },
 	    "methods": {
-		refresh () {
-		    if ( this.happs.length === 0 )
-			this.fetchHapps();
+		async refresh () {
+		    if ( this.happs.length === 0 ) {
+			await this.fetchHapps();
+		    }
 		},
-		updateAgent ( input ) {
+		async updateAgent ( input ) {
 		    if ( input === "" )
-			this.agent_filter = null;
+			this.agent_input	= "";
 		    else if ( this.isAgentPubKey( input ) )
-			this.agent_filter	= new AgentPubKey( input );
+			this.agent_hash		= new AgentPubKey( input );
 		    else
 			return;
 
-		    PersistentStorage.setItem("LIST_FILTER", this.agent_filter );
+		    PersistentStorage.setItem("LIST_FILTER", this.agent_input );
 
-		    if ( !this.happs.length )
-			this.fetchHapps();
+		    await this.fetchHapps();
 		},
 		async fetchHapps () {
+		    if ( this.agent_input.length )
+			await this.fetchAgentHapps();
+		    else
+			await this.fetchAllHapps();
+		},
+		async fetchAgentHapps () {
 		    try {
 			await this.$store.dispatch("fetchHapps", { "agent": this.agent });
+		    } catch (err) {
+			log.error("Failed to get happs: %s", err.message, err );
+		    }
+		},
+		async fetchAllHapps () {
+		    try {
+			await this.$store.dispatch("fetchAllHapps");
 		    } catch (err) {
 			log.error("Failed to get happs: %s", err.message, err );
 		    }
@@ -835,6 +863,20 @@ module.exports = async function ( client ) {
 		    this.saving			= false;
 		},
 
+		missingDnas () {
+		    console.log( this.dnas );
+
+		    for ( let [hash, dna_sources] of Object.entries(this.dnas) ) {
+			if ( !dna_sources.upload )
+			    return true;
+
+			if ( !dna_sources.upload.dna_version_id )
+			    return true;
+		    }
+
+		    return false;
+		},
+
 		async create () {
 		    this.validated		= true;
 
@@ -862,6 +904,7 @@ module.exports = async function ( client ) {
 		    } catch ( err ) {
 			log.error("Failed to create hApp Release:", err, err.data );
 			this.error		= err;
+			this.input.dnas		= [];
 		    } finally {
 			this.saving		= false;
 			this.saving_release	= false;

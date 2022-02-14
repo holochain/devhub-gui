@@ -226,7 +226,7 @@
 			<router-link to="/happs" class="btn btn-outline-primary w-100">Cancel</router-link>
 		    </div>
 		    <div class="col-3">
-			<a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
+			<a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving || missingDnas() }">
 			    <span v-if="saving_release"
 				  class="spinner-border spinner-border-sm me-3"></span>
 			    Save

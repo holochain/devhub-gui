@@ -11,10 +11,18 @@ module.exports = async function ( client ) {
 	return {
 	    "template": (await import("./templates/zomes/list.html")).default,
 	    "data": function() {
-		const agent_hash	= PersistentStorage.getItem("LIST_FILTER");
+		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
+		let agent_input		= input_cache;
+
+		if ( this.$route.query.agent ) {
+		    log.warn("Overriding stored filter (%s) with filter from URL search:", input_cache, this.$route.query.agent );
+		    agent_input		= this.$route.query.agent;
+		}
+
 		return {
-		    "agent_search": agent_hash || null,
-		    "agent_filter": agent_hash ? new AgentPubKey( agent_hash ) : null,
+		    "agent_input_cache": input_cache,
+		    "agent_input": this.$route.query.agent || input_cache || "",
+		    "agent_hash": null,
 		    "order_by": "published_at",
 		};
 	    },
@@ -23,25 +31,32 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		title () {
-		    return this.agent === "me" ? "My Zomes" : "Zomes found";
+		    return (
+			this.agent_input.length
+			    ? ( this.agent_input === "me" ? "My" : "Agent" )
+			    : "All"
+		    )  + " Zomes";
 		},
 		agent () {
-		    return this.agent_filter || "me";
+		    return this.agent_input.length ? this.agent_input : "me";
 		},
 		zomes () {
-		    const zomes		= this.$store.getters.zomes( this.agent ).collection;
-		    return this.sort_by_object_key( zomes, this.order_by );
+		    return this.agent_input.length
+			? this.$store.getters.zomes( this.agent ).collection
+			: this.$store.getters.zomes( "all" ).collection;
 		},
 		$zomes () {
-		    return this.$store.getters.zomes( this.agent ).metadata;
+		    return this.agent_input.length
+			? this.$store.getters.zomes( this.agent ).metadata
+			: this.$store.getters.zomes( "all" ).metadata;
 		},
 	    },
 	    "methods": {
-		refresh () {
+		async refresh () {
 		    if ( this.zomes.length === 0 )
-			this.fetchZomes();
+			await this.fetchZomes();
 		},
-		updateAgent ( input ) {
+		async updateAgent ( input ) {
 		    if ( input === "" )
 			this.agent_filter = null;
 		    else if ( this.isAgentPubKey( input ) )
@@ -51,12 +66,24 @@ module.exports = async function ( client ) {
 
 		    PersistentStorage.setItem("LIST_FILTER", this.agent_filter );
 
-		    if ( !this.zomes.length )
-			this.fetchZomes();
+		    await this.fetchZomes();
 		},
 		async fetchZomes () {
+		    if ( this.agent_input.length )
+			await this.fetchAgentZomes();
+		    else
+			await this.fetchAllZomes();
+		},
+		async fetchAgentZomes () {
 		    try {
 			await this.$store.dispatch("fetchZomes", { "agent": this.agent });
+		    } catch (err) {
+			log.error("Failed to get zomes: %s", err.message, err );
+		    }
+		},
+		async fetchAllZomes () {
+		    try {
+			await this.$store.dispatch("fetchAllZomes");
 		    } catch (err) {
 			log.error("Failed to get zomes: %s", err.message, err );
 		    }
@@ -95,7 +122,7 @@ module.exports = async function ( client ) {
 		    try {
 			const zome	= await this.$store.dispatch("createZome", this.input );
 
-			this.$store.dispatch("fetchZomes", { "agent": "me" });
+			this.$store.dispatch("fetchAllZomes");
 			this.$router.push( "/zomes/" + zome.$id );
 		    } catch ( err ) {
 			log.error("Failed to create Zome:", err );

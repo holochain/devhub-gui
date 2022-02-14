@@ -39,19 +39,28 @@
 				<img src="/holochain-home.png">
 			    </a>
 			</li>
-			<li class="list-group-item list-group-item-action">
+			<li class="list-group-item">
 			    <router-link to="/happs" class="nav-link">
 				hApps
 			    </router-link>
+			    <router-link to="/happs?agent=me" class="nav-link">
+				&mdash; My hApps
+			    </router-link>
 			</li>
-			<li class="list-group-item list-group-item-action">
+			<li class="list-group-item">
 			    <router-link to="/dnas" class="nav-link">
 				DNAs
 			    </router-link>
+			    <router-link to="/dnas?agent=me" class="nav-link">
+				&mdash; My DNAs
+			    </router-link>
 			</li>
-			<li class="list-group-item list-group-item-action">
+			<li class="list-group-item">
 			    <router-link to="/zomes" class="nav-link">
 				Zomes
+			    </router-link>
+			    <router-link to="/zomes?agent=me" class="nav-link">
+				&mdash; My Zomes
 			    </router-link>
 			</li>
 		    </ul>
@@ -92,7 +101,7 @@
 		    <div v-else v-html="status_view_html"></div>
 		</page-view>
 		<main v-else class="h-100 d-flex flex-column">
-		    <router-view :key="$route.path"></router-view>
+		    <router-view :key="$route.fullPath"></router-view>
 		</main>
 	    </div>
 	</div>
