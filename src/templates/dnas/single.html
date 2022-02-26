@@ -61,13 +61,23 @@
 		</div>
 		<div class="card-body">
 		    <dl class="row">
-			<dt class="col-sm-12"><placeholder :when="!$dna.current">{{ dna.developer.pubkey }}</placeholder></dt>
+			<dt class="col-sm-12">
+			    Agent ID
+			</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$dna.current">
+				<holohash :hash="dna.developer.pubkey"></holohash>
+			    </placeholder>
+			</dd>
+			<dt class="col-sm-12">
+			    External Links
+			</dt>
 			<dd class="col-sm-12">
 			    <placeholder :when="!$dna.current">
 				<span v-if="dna.developer.website">
 				    <a href="#" target="_blank">website</a>
 				</span>
-				<span v-else>No website</span>
+				<span v-else>None</span>
 			    </placeholder>
 			</dd>
 		    </dl>

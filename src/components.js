@@ -1,6 +1,12 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("components");
 
+const { HoloHashes }			= require('@holochain/devhub-entities');
+const { EntryHash,
+	HeaderHash,
+	AgentPubKey,
+	DnaHash }			= HoloHashes;
+
 
 const DeprecationAlert = {
     "props": {
@@ -530,6 +536,141 @@ const Loading = {
 <slot v-else></slot>`,
 };
 
+const HoloHash = {
+    "props": {
+	"hash": {
+	    "required": true,
+	    validator (value) {
+		if ( value instanceof HoloHashes.HoloHash )
+		    return true;
+
+		try {
+		    new HoloHashes.HoloHash(value);
+		    return true;
+		} catch (err) {
+		    return false;
+		}
+	    }
+	},
+	"chars": {
+	    "type": Number,
+	    "default": 5,
+	},
+    },
+    data () {
+	return {
+	    "holohash": new HoloHashes.HoloHash( this.hash ),
+	    "hash_str": String( this.hash ),
+	    "full_hash": false,
+	};
+    },
+    "computed": {
+	hash_repr () {
+	    return this.snip( this.hash_str, 5 );
+	},
+    },
+    "methods": {
+	appearance_cls () {
+	    return {
+		"bg-primary":	this.holohash instanceof AgentPubKey,
+		"bg-light":	this.holohash instanceof EntryHash,
+		"text-dark":	this.holohash instanceof EntryHash,
+		"bg-secondary":	this.holohash instanceof HeaderHash,
+		"bg-danger":	this.holohash instanceof DnaHash,
+	    };
+	},
+	toggleFullHash () {
+	    this.full_hash	= !this.full_hash;
+	},
+    },
+    "template": `
+<span class="badge font-monospace" :class="appearance_cls()" :title="hash_str" @dblclick="toggleFullHash()">{{ full_hash ? hash_str : hash_repr }}</span>
+`,
+};
+
+const ZomeCard = {
+    "props": {
+	"entity": {
+	    "type": Object,
+	    "required": true,
+	},
+    },
+    data () {
+	return {
+	    "unique_id": "collapse_" + String( Math.random() ).slice(2),
+	};
+    },
+    "template": `
+<div class="card entity-card border-warning mb-3">
+    <div class="entity-card-header text-warning">Zome</div>
+    <div class="card-body">
+        <div class="float-end">
+            <holohash :hash="entity.$id"></holohash>
+        </div>
+        <h5 class="card-title">{{ entity.name }} <small class="fw-1" :title="entity.published_at">({{ $filters.time( entity.published_at ) }})</small></h5>
+        <div class="float-end">
+            <a data-bs-toggle="collapse" :href="'#' + unique_id">expand</a>
+        </div>
+        <p class="card-text mb-0">{{ entity.description || "No description" }}</p>
+        <div class="collapse" :id="unique_id">
+            <dl class="row mt-3 mb-0">
+                <template v-if="entity.developer">
+                    <dt class="col-sm-4 text-end">Created by</dt>
+                    <dd class="col-sm-8"><holohash :hash="entity.developer.pubkey"></holohash></dd>
+                </template>
+
+                <dt class="col-sm-4 text-end">Last updated</dt>
+                <dd class="col-sm-8">{{ $filters.time( entity.last_updated ) }}</dd>
+            </dl>
+        </div>
+    </div>
+</div>`,
+};
+
+const ZomeVersionCard = {
+    "props": {
+	"entity": {
+	    "type": Object,
+	    "required": true,
+	},
+	"name": {
+	    "type": String,
+	    "required": true,
+	},
+    },
+    data () {
+	return {
+	    "unique_id": "collapse_" + String( Math.random() ).slice(2),
+	};
+    },
+    "template": `
+<div class="card entity-card border-warning mb-3">
+    <div class="entity-card-header text-warning">Zome</div>
+    <div class="card-body">
+        <div class="float-end">
+            <holohash :hash="entity.$id"></holohash>
+        </div>
+        <h5 class="card-title">{{ name }} <small class="fw-1" :title="entity.published_at">({{ $filters.time( entity.published_at ) }})</small></h5>
+        <div class="float-end">
+            <a data-bs-toggle="collapse" :href="'#' + unique_id">expand</a>
+        </div>
+        <p class="card-text mb-0"><strong>v{{ entity.version }}</strong> &mdash; HDK v{{ entity.hdk_version }}</p>
+        <div class="collapse" :id="unique_id">
+            <dl class="row mt-3 mb-0">
+                <dt class="col-sm-4 text-end">Last updated</dt>
+                <dd class="col-sm-8">{{ $filters.time( entity.last_updated ) }}</dd>
+
+                <dt class="col-sm-4 text-end">Resource Address</dt>
+                <dd class="col-sm-8"><holohash :hash="entity.mere_memory_addr"></holohash></dd>
+
+                <dt class="col-sm-4 text-end">Resource Hash</dt>
+                <dd class="col-sm-8"><code>{{ entity.mere_memory_hash }}</dd>
+            </dl>
+        </div>
+    </div>
+</div>`,
+};
+
 
 module.exports = {
     "deprecation-alert":	DeprecationAlert,
@@ -544,4 +685,7 @@ module.exports = {
     "search":			Search,
     "placeholder":		Placeholder,
     "loading":			Loading,
+    "holohash":			HoloHash,
+    "zome-card":		ZomeCard,
+    "zome-version-card":	ZomeVersionCard,
 };

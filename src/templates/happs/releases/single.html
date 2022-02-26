@@ -63,6 +63,9 @@
 			<dt class="col-sm-12">Last Updated</dt>
 			<dd class="col-sm-12"><placeholder :when="!$release.current">{{ $filters.time( release.last_updated, "weekday+date" ) }}</placeholder></dd>
 
+			<dt class="col-sm-12">HDK Version</dt>
+			<dd class="col-sm-12"><placeholder :when="!$release.current">{{ release.hdk_version }}</placeholder></dd>
+
 			<dt class="col-sm-12">Resource Hash</dt>
 			<dd class="col-sm-12"><placeholder :when="!$release.current"><code>{{ release.dna_hash }}</code></placeholder></dd>
 		    </dl>

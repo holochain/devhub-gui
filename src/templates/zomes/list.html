@@ -47,7 +47,7 @@
 		    <p>{{ zome.description }}</p>
 		</div>
 		<div class="col-4">
-		    <span class="badge badge-md bg-secondary">Created on {{ $filters.time( zome.published_at ) }}</span>
+		    <span class="badge badge-md bg-secondary">Created {{ $filters.time( zome.published_at ) }}</span>
 		</div>
 		<div class="col-auto">
 		    <router-link :to="'/zomes/' + zome.$id" class="btn btn-light">

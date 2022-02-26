@@ -158,10 +158,16 @@ a.text-primary:hover {
 
 
 
+.badge {
+  padding: .5em .65em .25em !important;
+}
 .badge-md {
-  padding: .5em 1.2em;
+  padding: .5em 1.2em !important;
   font-size: 1rem;
   font-weight: 400;
+}
+.bg-primary {
+  background-color: #4820E3 !important;
 }
 
 
@@ -344,6 +350,15 @@ a.text-primary:hover {
 .card-body {
   font-size: .9rem;
   font-weight: 200;
+}
+.entity-card-header {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  background-color: white;
+  padding: 0 7px;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 

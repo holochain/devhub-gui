@@ -40,6 +40,28 @@
 	    </div>
 	</div>
 
+	<div class="row">
+	    <div class="col-3">
+		<label class="form-label fw-6">HDK Version</label>
+		<input-feedback>
+		    <div class="input-group mb-3">
+			<span class="input-group-text" id="basic-addon1">v</span>
+			<input v-model="input.hdk_version" class="form-control" :disabled="saving" required>
+		    </div>
+		</input-feedback>
+	    </div>
+	    <div v-if="$previous_hdk_versions.loaded" class="col-3">
+		<loading :when="!$previous_hdk_versions.current">
+		    <label class="form-label">Versions on DevHub</label>
+		    <select class="form-select" :disabled="saving || previous_hdk_versions.length === 0"
+			    @change="selectHDKVersion( $event.target.value )">
+			<option selected>Choose an HDK version</option>
+			<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
+		    </select>
+		</loading>
+	    </div>
+	</div>
+
 	<h2 class="mt-4">DNAs</h2>
 	<div v-if="Object.keys(dnas).length === 0" class="card col-6">
 	    <div class="card-body text-center">
@@ -94,7 +116,7 @@
 			<a class="list-group-item list-group-item-action"
 			   v-for="dna_version in sources.dna_version_search_results"
 			   @click="select_dna_version( sources.upload, dna_version )">
-			    <strong>v{{ dna_version.version }}</strong>
+			    <strong>v{{ dna_version.version }}</strong> <i>(HDK v{{ dna_version.hdk_version }})</i>
 			    &mdash;
 			    {{ $filters.time( dna_version.published_at, "weekday+date" ) }}
 			</a>
@@ -105,7 +127,7 @@
 		 class="card col-6 mt-2">
 		<div class="card-body">
 		    <a class="btn btn-outline-secondary btn-sm float-end"
-		       :class="{ 'disabled': missing_zome_version( sources ) || saving }"
+		       :class="{ 'disabled': missing_zome_version( sources ) || saving || !input.hdk_version }"
 		       @click="create_dna_version( sources )">
 			<span v-if="sources.saving"
 			      class="spinner-border spinner-border-sm me-3"></span>
@@ -166,7 +188,7 @@
 				    <a class="list-group-item list-group-item-action"
 				       v-for="zome_version in zome_sources.zome_version_search_results"
 				       @click="select_zome_version( zome_sources.upload, zome_version )">
-					<strong>v{{ zome_version.version }}</strong>
+					<strong>v{{ zome_version.version }}</strong> <i>(HDK v{{ zome_version.hdk_version }})</i>
 					&mdash; 
 					{{ $filters.time( zome_version.published_at, "weekday+date" ) }}
 				    </a>
@@ -176,7 +198,7 @@
 			<div v-else class="card">
 			    <div class="card-body">
 				<a class="btn btn-outline-secondary btn-sm float-end"
-				   :class="{ 'disabled': saving }"
+				   :class="{ 'disabled': saving || !input.hdk_version }"
 				   @click="create_zome_version( zome_name, zome_sources )">
 				    <span v-if="zome_sources.saving"
 					  class="spinner-border spinner-border-sm me-3"></span>

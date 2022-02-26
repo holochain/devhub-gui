@@ -44,7 +44,37 @@ module.exports = {
 	    format			= `${date(d)}`;
 	    break;
 	default:
-	    format			= `${day(d)}, ${date(d)} @ ${time(d)}`; // "dddd, MMMM D (YYYY) @ HH:mm:ss";
+	    const delta_seconds		= Math.floor( (new Date() - d) / 1000 );
+
+	    let delta, term;
+
+	    // seconds since
+	    if ( delta_seconds < 60 ) {
+		delta			= delta_seconds;
+		term			= "second";
+	    }
+	    // minutes since
+	    else if ( delta_seconds < 3600 ) {
+		delta			= Math.floor( delta_seconds / 60 );
+		term			= "minute";
+	    }
+	    // hours since
+	    else if ( delta_seconds < 86400 ) {
+		delta			= Math.floor( delta_seconds / 3600 );
+		term			= "hour";
+	    }
+	    // days since
+	    else if ( delta_seconds < 2592000 ) {
+		delta			= Math.floor( delta_seconds / 86400 );
+		term			= "day";
+	    }
+	    // months since
+	    else if ( delta_seconds < 31536000 ) {
+		delta			= Math.floor( delta_seconds / 2592000 )
+		term			= "month";
+	    }
+
+	    format			= delta + " " + (delta > 1 ? `${term}s` : term) + " ago";
 	    break;
 	}
 

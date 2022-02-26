@@ -61,13 +61,23 @@
 		</div>
 		<div class="card-body">
 		    <dl class="row">
-			<dt class="col-sm-12"><placeholder :when="!$zome.current">{{ zome.developer.pubkey }}</placeholder></dt>
+			<dt class="col-sm-12">
+			    Agent ID
+			</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$zome.current">
+				<holohash :hash="zome.developer.pubkey"></holohash>
+			    </placeholder>
+			</dd>
+			<dt class="col-sm-12">
+			    External Links
+			</dt>
 			<dd class="col-sm-12">
 			    <placeholder :when="!$zome.current">
 				<span v-if="zome.developer.website">
 				    <a href="#" target="_blank">website</a>
 				</span>
-				<span v-else>No website</span>
+				<span v-else>None</span>
 			    </placeholder>
 			</dd>
 		    </dl>
