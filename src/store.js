@@ -35,6 +35,8 @@ const dataTypePath			= {
     zomeVersionWasm:	( addr )	=> store_path( "zome", "version", addr, "wasm_bytes" ),
     dnaVersionPackage:	( addr )	=> store_path( "dna",  "version", addr, "package_bytes" ),
     happReleasePackage:	( addr )	=> store_path( "happ", "release", addr, "package_bytes" ),
+
+    hdkVersions:	()		=> store_path( "misc", "hdk_versions" ),
 };
 
 
@@ -209,6 +211,17 @@ module.exports = async function ( client, Vue ) {
 	    happ_release_package: ( state, getters ) => ( addr ) =>  {
 		const path		= dataTypePath.happReleasePackage( addr );
 		return {
+		    "metadata":		getters.metadata( path ),
+		};
+	    },
+
+	    //
+	    // Miscellaneous
+	    //
+	    hdk_versions: ( state, getters ) => {
+		const path		= dataTypePath.hdkVersions();
+		return {
+		    "collection":	getters.collection( path ),
 		    "metadata":		getters.metadata( path ),
 		};
 	    },
@@ -635,7 +648,7 @@ module.exports = async function ( client, Vue ) {
 		    "dnarepo", "dna_library", "get_dna", { id }
 		);
 
-		log.info("Received dna: %s", dna.name, dna );
+		log.info("Received DNA: %s", dna.name, dna );
 
 		let agent_info		= await dispatch("getAgent");
 		commit("metadata", [ path, {
@@ -652,7 +665,7 @@ module.exports = async function ( client, Vue ) {
 
 		commit("signalLoading", path );
 
-		log.debug("Getting versions for dna %s", String(dna_id) );
+		log.debug("Getting versions for DNA %s", String(dna_id) );
 		let versions		= await client.call(
 		    "dnarepo", "dna_library", "get_dna_versions", { "for_dna": dna_id }
 		);
@@ -758,7 +771,7 @@ module.exports = async function ( client, Vue ) {
 		    "dnarepo", "dna_library", "get_dna_version", { id }
 		);
 
-		log.info("Received dna version: %s", version.version, version );
+		log.info("Received DNA version: %s", version.version, version );
 
 		let agent_info		= await dispatch("getAgent");
 		commit("metadata", [ path, {
@@ -861,7 +874,7 @@ module.exports = async function ( client, Vue ) {
 		    "happs", "happ_library", "get_happ", { id }
 		);
 
-		log.info("Received happ: %s", happ.title, happ );
+		log.info("Received hApp: %s", happ.title, happ );
 
 		let agent_info		= await dispatch("getAgent");
 		commit("metadata", [ path, {
@@ -966,7 +979,7 @@ module.exports = async function ( client, Vue ) {
 		    "happs", "happ_library", "get_happ_release", { id }
 		);
 
-		log.info("Received happ release: %s", release.name, release );
+		log.info("Received hApp release: %s", release.name, release );
 
 		let agent_info		= await dispatch("getAgent");
 		commit("metadata", [ path, {
@@ -1058,6 +1071,30 @@ module.exports = async function ( client, Vue ) {
 		    commit("expireEntity", path );
 		} finally {
 		    commit("metadata", [ path, { "unpublishing": false }] );
+		}
+	    },
+
+
+	    //
+	    // Miscellaneous
+	    //
+	    async fetchHDKVersions ({ commit, dispatch }) {
+		const path		= dataTypePath.hdkVersions();
+
+		commit("signalLoading", path );
+
+		log.debug("Getting previous HDK versions");
+		try {
+		    let hdkvs		= await client.call(
+			"dnarepo", "dna_library", "get_hdk_versions"
+		    );
+
+		    log.info("Found %s HDK versions (base %s)", hdkvs.length, String( hdkvs.$base ) );
+		    commit("cacheCollection", [ path, hdkvs ] );
+
+		    return hdkvs;
+		} finally {
+		    commit("recordLoaded", path );
 		}
 	    },
 	},

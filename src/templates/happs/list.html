@@ -47,7 +47,7 @@
 		    <p>{{ happ.description }}</p>
 		</div>
 		<div class="col-4">
-		    <span class="badge badge-md bg-secondary">Created on {{ $filters.time( happ.published_at ) }}</span>
+		    <span class="badge badge-md bg-secondary">Created {{ $filters.time( happ.published_at ) }}</span>
 		</div>
 		<div class="col-auto">
 		    <router-link :to="'/happs/' + happ.$id" class="btn btn-light">

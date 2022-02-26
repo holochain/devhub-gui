@@ -34,14 +34,16 @@ module.exports = async function ( client ) {
 			    "manifest_version": "1",
 			    "roles": null,
 			},
+			"hdk_version": null,
 			"dnas": [],
 		    },
 		    "added_dnas": [],
 		    "dna_versions": {},
 		    "all_dna_versions": {},
-		    "dna_search_text": null,
+		    "dna_search_text": "",
 		    "validated": false,
 		    "saving": false,
+		    "show_search_list": false,
 		};
 	    },
 	    "computed": {
@@ -54,11 +56,13 @@ module.exports = async function ( client ) {
 		form () {
 		    return this.$refs["form"];
 		},
+		previous_hdk_versions () {
+		    return this.$store.getters.hdk_versions.collection;
+		},
+		$previous_hdk_versions () {
+		    return this.$store.getters.hdk_versions.metadata;
+		},
 		filtered_dnas () {
-		    if ( !this.dna_search_text || this.dna_search_text.length < 3 ) {
-			return [];
-		    }
-
 		    return this.dnas.filter( dna => {
 			return dna.name.toLowerCase()
 			    .includes( this.dna_search_text.toLowerCase() )
@@ -71,6 +75,8 @@ module.exports = async function ( client ) {
 
 		if ( this.dnas.length === 0 )
 		    this.fetchDnas();
+
+		this.fetchHDKVersions();
 	    },
 	    "methods": {
 		async fetchDnas () {
@@ -167,6 +173,17 @@ module.exports = async function ( client ) {
 		    array_move( this.added_dnas, from_index, to_index );
 		    array_move( this.input.dnas, from_index, to_index );
 		},
+		async fetchHDKVersions () {
+		    await this.$store.dispatch("fetchHDKVersions");
+		},
+		selectHDKVersion ( hdk_version ) {
+		    this.input.hdk_version		= hdk_version;
+		},
+		hideResults () {
+		    setTimeout( () => {
+			this.show_search_list		= false;
+		    }, 100 );
+		}
 	    },
 	};
     };
@@ -305,6 +322,10 @@ module.exports = async function ( client ) {
 		async fetchRelease () {
 		    try {
 			let release	= await this.$store.dispatch("fetchHappRelease", this.id );
+
+			release.dnas.forEach( (dna_ref) => {
+			    // fetch DNA version
+			});
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 

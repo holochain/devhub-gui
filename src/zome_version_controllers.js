@@ -21,6 +21,7 @@ module.exports = async function ( client ) {
 			"version": null,
 			"changelog": null,
 			"zome_bytes": null,
+			"hdk_version": null,
 		    },
 		    "zome_file": null,
 		    "validated": false,
@@ -39,9 +40,17 @@ module.exports = async function ( client ) {
 
 		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
 		},
+		previous_hdk_versions () {
+		    return this.$store.getters.hdk_versions.collection;
+		},
+		$previous_hdk_versions () {
+		    return this.$store.getters.hdk_versions.metadata;
+		},
 	    },
 	    async created () {
 		this.zome_id		= this.getPathId("zome");
+
+		this.fetchHDKVersions();
 	    },
 	    "methods": {
 		async file_selected ( event ) {
@@ -76,6 +85,12 @@ module.exports = async function ( client ) {
 			this.saving	= false;
 		    }
 		},
+		async fetchHDKVersions () {
+		    await this.$store.dispatch("fetchHDKVersions");
+		},
+		selectHDKVersion ( hdk_version ) {
+		    this.input.hdk_version	= hdk_version;
+		}
 	    },
 	};
     };

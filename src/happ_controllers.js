@@ -11,10 +11,6 @@ function unpack_bundle ( zipped_bytes ) {
     let msgpack_bytes			= gzip.unzip( zipped_bytes );
     let bundle				= msgpack.decode( msgpack_bytes );
 
-    // for ( let path in bundle.resources ) {
-    // 	bundle.resources[path]		= Buffer.from( bundle.resources[path] );
-    // }
-
     return bundle;
 }
 
@@ -318,6 +314,7 @@ module.exports = async function ( client ) {
 			"name": "",
 			"description": "",
 			"manifest": null,
+			"hdk_version": null,
 			"dnas": [
 			    // dnas[].role_id	String
 			    // dnas[].dna	EntryHash
@@ -384,6 +381,12 @@ module.exports = async function ( client ) {
 			return acc;
 		    }, null );
 		},
+		previous_hdk_versions () {
+		    return this.$store.getters.hdk_versions.collection;
+		},
+		$previous_hdk_versions () {
+		    return this.$store.getters.hdk_versions.metadata;
+		},
 		file_valid_feedback () {
 		    const file		= this.bundle_file;
 
@@ -409,6 +412,8 @@ module.exports = async function ( client ) {
 
 		    if ( this.releases.length === 0 )
 			await this.fetchHappReleases();
+
+		    this.fetchHDKVersions();
 
 		    if ( !this.latest_release ) {
 			log.warn("There are no releases for this hApp: %s", String(this.id) );
@@ -502,12 +507,18 @@ module.exports = async function ( client ) {
 			log.error("Failed to get releases for happ (%s): %s", String(this.id), err.message, err );
 		    }
 		},
+		async fetchHDKVersions () {
+		    await this.$store.dispatch("fetchHDKVersions");
+		},
+		selectHDKVersion ( hdk_version ) {
+		    this.input.hdk_version		= hdk_version;
+		},
 		reset_file () {
 		    this.bundle			= null;
 		    this.bundle_file		= null;
 		    this.release_exists		= null;
 		    this.dnas			= {};
-		    this.intpu.dnas		= {};
+		    this.input.dnas		= {};
 
 		    for ( let sources of Object.values(this.dnas) ) {
 			sources.upload		= null;
@@ -687,6 +698,7 @@ module.exports = async function ( client ) {
 					"keyword": dna_sources.upload.wasm_hash,
 				    }
 				);
+				console.log("DNA versions with WASM hash (%s):", dna_sources.upload.wasm_hash, dna_versions );
 				dna_sources.exists			= dna_versions.length > 0;
 				dna_sources.dna_version_search_results	= dna_versions;
 			    } catch (err) {
@@ -715,6 +727,7 @@ module.exports = async function ( client ) {
 					"keyword": zome.upload.wasm_resource_hash,
 				    }
 				);
+				console.log("Zome versions with WASM resource hash (%s):", zome.upload.wasm_resource_hash, zome_versions );
 				zome.exists		= zome_versions.length > 0;
 				zome.zome_version_search_results	= zome_versions;
 
@@ -799,6 +812,7 @@ module.exports = async function ( client ) {
 			    "for_zome": upload.zome_id,
 			    "version": next_version_number,
 			    "zome_bytes": upload.bytes,
+			    "hdk_version": this.input.hdk_version,
 			}
 		    );
 		    upload.zome_version_id	= version.$id;
@@ -839,6 +853,7 @@ module.exports = async function ( client ) {
 		    const input			= {
 			"for_dna": upload.dna_id,
 			"version": next_dna_version_number,
+			"hdk_version": this.input.hdk_version,
 			"zomes": zome_list.map( ([zome_name, zome_sources]) => {
 			    return {
 				"name":			zome_name,
@@ -864,8 +879,6 @@ module.exports = async function ( client ) {
 		},
 
 		missingDnas () {
-		    console.log( this.dnas );
-
 		    for ( let [hash, dna_sources] of Object.entries(this.dnas) ) {
 			if ( !dna_sources.upload )
 			    return true;

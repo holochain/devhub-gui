@@ -72,9 +72,19 @@
 		</div>
 		<div class="card-body">
 		    <dl class="row">
-			<dt class="col-sm-12"><placeholder :when="!$happ.current">{{ happ.designer }}</placeholder></dt>
+			<dt class="col-sm-12">
+			    Agent ID
+			</dt>
 			<dd class="col-sm-12">
-			    <span>No website</span>
+			    <placeholder :when="!$happ.current">
+				<holohash :hash="happ.designer"></holohash>
+			    </placeholder>
+			</dd>
+			<dt class="col-sm-12">
+			    External Links
+			</dt>
+			<dd class="col-sm-12">
+			    None
 			</dd>
 		    </dl>
 		</div>

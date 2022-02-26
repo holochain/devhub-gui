@@ -30,31 +30,35 @@ module.exports = async function ( client ) {
 		    "input": {
 			"version": null,
 			"changelog": null,
+			"hdk_version": null,
 			"zomes": [],
 		    },
 		    "added_zomes": [],
 		    "zome_versions": {},
 		    "all_zome_versions": {},
-		    "zome_search_text": null,
+		    "zome_search_text": "",
 		    "validated": false,
 		    "saving": false,
+		    "show_search_list": false,
 		};
 	    },
 	    "computed": {
 		zomes () {
-		    return this.$store.getters.zomes().collection;
+		    return this.$store.getters.zomes( "all" ).collection;
 		},
 		$zomes () {
-		    return this.$store.getters.zomes().metadata;
+		    return this.$store.getters.zomes( "all" ).metadata;
 		},
 		form () {
 		    return this.$refs["form"];
 		},
+		previous_hdk_versions () {
+		    return this.$store.getters.hdk_versions.collection;
+		},
+		$previous_hdk_versions () {
+		    return this.$store.getters.hdk_versions.metadata;
+		},
 		filtered_zomes () {
-		    if ( !this.zome_search_text || this.zome_search_text.length < 3 ) {
-			return [];
-		    }
-
 		    return this.zomes.filter( zome => {
 			return zome.name.toLowerCase()
 			    .includes( this.zome_search_text.toLowerCase() )
@@ -67,11 +71,13 @@ module.exports = async function ( client ) {
 
 		if ( this.zomes.length === 0 )
 		    this.fetchZomes();
+
+		this.fetchHDKVersions();
 	    },
 	    "methods": {
 		async fetchZomes () {
 		    try {
-			await this.$store.dispatch("fetchZomes", { "agent": "me" });
+			await this.$store.dispatch("fetchAllZomes");
 
 			this.zomes.forEach( zome => {
 			    this.zome_versions[zome.$id] = null;
@@ -124,14 +130,17 @@ module.exports = async function ( client ) {
 		    this.input.zomes.splice( i, 1 );
 		},
 		addZome ( zome ) {
+		    log.normal("Adding zome:", zome );
 		    if ( zome === undefined )
 			return;
 
+		    log.info("Reset search");
 		    this.zome_search_text = "";
 
 		    if ( this.added_zomes.find( z => z.$id === zome.$id ) )
 			return;
 
+		    log.info("Fetch Zome versions for:", zome.$id );
 		    this.fetchZomeVersions ( zome.$id );
 		    this.added_zomes.push( zome );
 		    this.input.zomes.push({
@@ -156,6 +165,17 @@ module.exports = async function ( client ) {
 		    array_move( this.added_zomes, from_index, to_index );
 		    array_move( this.input.zomes, from_index, to_index );
 		},
+		async fetchHDKVersions () {
+		    await this.$store.dispatch("fetchHDKVersions");
+		},
+		selectHDKVersion ( hdk_version ) {
+		    this.input.hdk_version		= hdk_version;
+		},
+		hideResults () {
+		    setTimeout( () => {
+			this.show_search_list		= false;
+		    }, 100 );
+		}
 	    },
 	};
     };
