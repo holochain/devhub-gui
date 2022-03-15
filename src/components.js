@@ -1,11 +1,11 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("components");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
 const { EntryHash,
 	HeaderHash,
+	DnaHash,
 	AgentPubKey,
-	DnaHash }			= HoloHashes;
+	...HoloHashTypes }		= require('@whi/holo-hash');
 
 
 const DeprecationAlert = {
@@ -541,11 +541,11 @@ const HoloHash = {
 	"hash": {
 	    "required": true,
 	    validator (value) {
-		if ( value instanceof HoloHashes.HoloHash )
+		if ( value instanceof HoloHashTypes.HoloHash )
 		    return true;
 
 		try {
-		    new HoloHashes.HoloHash(value);
+		    new HoloHashTypes.HoloHash(value);
 		    return true;
 		} catch (err) {
 		    return false;
@@ -559,7 +559,7 @@ const HoloHash = {
     },
     data () {
 	return {
-	    "holohash": new HoloHashes.HoloHash( this.hash ),
+	    "holohash": new HoloHashTypes.HoloHash( this.hash ),
 	    "hash_str": String( this.hash ),
 	    "full_hash": false,
 	};

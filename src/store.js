@@ -1,9 +1,9 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("store");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
 const { HoloHash,
-	AgentPubKey }			= HoloHashes;
+	AgentPubKey,
+	...HoloHashTypes }		= require('@whi/holo-hash');
 
 const DEFAULT_METADATA_STATES		= {
     "loaded": false,
@@ -37,6 +37,7 @@ const dataTypePath			= {
     happReleasePackage:	( addr )	=> store_path( "happ", "release", addr, "package_bytes" ),
 
     hdkVersions:	()		=> store_path( "misc", "hdk_versions" ),
+    webAsset:		( id )		=> store_path( "web_assets", id ),
 };
 
 
@@ -402,6 +403,7 @@ module.exports = async function ( client, Vue ) {
 		    "happs", "happ_library", "get_all_happs"
 		);
 
+		console.log( happs );
 		log.info("Found %s hApps in Collection for %s", happs.length, String( happs.$base ) );
 
 		commit("cacheCollection", [ path, happs ] );
@@ -1001,10 +1003,32 @@ module.exports = async function ( client, Vue ) {
 		    let bytes		= await client.call(
 			"happs", "happ_library", "get_release_package", {
 			    id,
-			    "dnarepo_dna_hash": client._client._app_schema._dnas["dnarepo"]._hash,
-			}, {
-			    "timeout": 30_000,
-			}
+			    "dnarepo_dna_hash": client._app_schema._dnas["dnarepo"]._hash,
+			}, 30_000
+		    );
+
+		    log.info("Received hApp package:", bytes );
+
+		    return new Uint8Array( bytes );
+		} finally {
+		    commit("recordLoaded", path );
+		}
+	    },
+
+	    async fetchWebhappReleasePackage ({ commit }, { name, id } ) {
+		const path		= dataTypePath.happReleasePackage( id + "-webhapp" );
+
+		commit("signalLoading", path );
+
+		log.debug("Getting hApp package %s", String(id) );
+		try {
+		    let bytes		= await client.call(
+			"happs", "happ_library", "get_webhapp_package", {
+			    name,
+			    id,
+			    "dnarepo_dna_hash": client._app_schema._dnas["dnarepo"]._hash,
+			    "webassets_dna_hash": client._app_schema._dnas["webassets"]._hash,
+			}, 30_000
 		    );
 
 		    log.info("Received hApp package:", bytes );
@@ -1097,6 +1121,21 @@ module.exports = async function ( client, Vue ) {
 		    commit("recordLoaded", path );
 		}
 	    },
+
+	    async createWebAsset ({ commit }, bytes ) {
+		log.normal("Creating Web Asset: %s bytes", bytes.length );
+
+		let file		= await client.call("webassets", "web_assets", "create_file", {
+		    "file_bytes": bytes,
+		});
+
+		const path		= dataTypePath.webAsset( file.$id );
+		commit("cacheEntity", [ path, file ] );
+		commit("metadata", [ path, { "writable": true }] );
+
+		return file;
+	    },
+
 	},
     });
 };

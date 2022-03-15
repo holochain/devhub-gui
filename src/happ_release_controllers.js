@@ -1,7 +1,6 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happ releases");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
 const showdown				= require('showdown');
 const md_converter			= new showdown.Converter({
     "headerLevelStart": 3,
@@ -28,8 +27,9 @@ module.exports = async function ( client ) {
 		    "happ_id": null,
 		    "error": null,
 		    "input": {
-			"name": null,
-			"description": null,
+			// "name": null,
+			// "description": null,
+			"gui": null,
 			"manifest": {
 			    "manifest_version": "1",
 			    "roles": null,
@@ -44,9 +44,17 @@ module.exports = async function ( client ) {
 		    "validated": false,
 		    "saving": false,
 		    "show_search_list": false,
+		    "gui_file": null,
+		    "gui_bytes": null,
 		};
 	    },
 	    "computed": {
+		happ () {
+		    return this.$store.getters.happ( this.happ_id ).entity;
+		},
+		$happ () {
+		    return this.$store.getters.happ( this.happ_id ).metadata;
+		},
 		dnas () {
 		    return this.$store.getters.dnas().collection;
 		},
@@ -69,9 +77,20 @@ module.exports = async function ( client ) {
 			    && !this.added_dnas.find( z => z.$id === dna.$id );
 		    });
 		},
+		file_valid_feedback () {
+		    const file		= this.gui_file;
+
+		    if ( !file )
+			return "";
+
+		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
+		},
 	    },
 	    async created () {
 		this.happ_id		= this.getPathId("happ");
+
+		if ( !this.release )
+		    await this.fetchHapp();
 
 		if ( this.dnas.length === 0 )
 		    this.fetchDnas();
@@ -79,6 +98,15 @@ module.exports = async function ( client ) {
 		this.fetchHDKVersions();
 	    },
 	    "methods": {
+		async fetchHapp () {
+		    try {
+			await this.$store.dispatch("fetchHapp", this.happ_id );
+		    } catch (err) {
+			this.catchStatusCodes([ 404, 500 ], err );
+
+			log.error("Failed to get happ (%s): %s", String(this.id), err.message, err );
+		    }
+		},
 		async fetchDnas () {
 		    try {
 			await this.$store.dispatch("fetchDnas", { "agent": "me" });
@@ -110,6 +138,17 @@ module.exports = async function ( client ) {
 
 		    this.saving		= true;
 		    try {
+			if ( this.gui_bytes ) {
+			    const web_asset		= await this.$store.dispatch("createWebAsset", this.gui_bytes );
+
+			    this.input.gui		= {
+				"asset_group_id": web_asset.$id,
+				"uses_web_sdk": false,
+			    };
+			}
+
+			this.input.manifest.name		= this.happ.title;
+			this.input.manifest.description		= this.happ.description;
 			this.input.manifest.roles		= [];
 			this.input.dnas.forEach( (dna, i) => {
 			    const dna_version			= this.all_dna_versions[dna.version];
@@ -121,6 +160,10 @@ module.exports = async function ( client ) {
 				"dna": {
 				    "path":	`./${dna.name}.dna`,
 				    "clone_limit": 0,
+				},
+				"provisioning": {
+				    "strategy": "create",
+				    "deferred": false,
 				},
 			    });
 			});
@@ -183,7 +226,20 @@ module.exports = async function ( client ) {
 		    setTimeout( () => {
 			this.show_search_list		= false;
 		    }, 100 );
-		}
+		},
+		async file_selected ( event ) {
+		    const files			= event.target.files;
+		    const file			= files[0];
+
+		    if ( file === undefined ) {
+			this.gui_bytes		= null;
+			this.gui_file		= null;
+			return;
+		    }
+
+		    this.gui_file		= file;
+		    this.gui_bytes		= await this.load_file( file );
+		},
 	    },
 	};
     };
@@ -276,6 +332,7 @@ module.exports = async function ( client ) {
 		    "happ_id": null,
 		    "changelog_html": null,
 		    "download_error": null,
+		    "download_webhapp_error": null,
 		};
 	    },
 	    async created () {
@@ -300,6 +357,9 @@ module.exports = async function ( client ) {
 		$packageBytes () {
 		    return this.$store.getters.happ_release_package( this.release ? this.release.$id : null ).metadata;
 		},
+		$webhappPackageBytes () {
+		    return this.$store.getters.happ_release_package( this.release ? this.release.$id + "-webhapp" : null ).metadata;
+		},
 		modal () {
 		    return this.$refs["modal"].modal;
 		},
@@ -309,6 +369,13 @@ module.exports = async function ( client ) {
 
 		    const filename	= this.happ.title.replace(/[/\\?%*:|"<>]/g, '_');
 		    return `${filename}_${this.release.name}.happ`;
+		},
+		package_webhapp_filename () {
+		    if ( !this.happ )
+			return "hApp Package";
+
+		    const filename	= this.happ.title.replace(/[/\\?%*:|"<>]/g, '_');
+		    return `${filename}_${this.release.name}.webhapp`;
 		},
 		happ_deprecated () {
 		    return !!( this.happ && this.happ.deprecation );
@@ -339,7 +406,20 @@ module.exports = async function ( client ) {
 			this.download( this.package_filename, package_bytes );
 		    } catch (err) {
 			this.download_error	= err;
-			log.error("Failed to get package bytes for happ release(%s): %s", String(this.id), err.message, err );
+			log.error("Failed to get package bytes for happ release(%s):", String(this.id), err );
+		    }
+		},
+		async downloadWebhappPackageBytes () {
+		    try {
+			const package_bytes	= await this.$store.dispatch("fetchWebhappReleasePackage", {
+			    "name": this.happ.title,
+			    "id": this.release.$id,
+			});
+
+			this.download( this.package_webhapp_filename, package_bytes );
+		    } catch (err) {
+			this.download_webhapp_error	= err;
+			log.error("Failed to get webhapp package bytes for happ release(%s):", String(this.id), err );
 		    }
 		},
 		async unpublish () {

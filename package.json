@@ -19,8 +19,9 @@
   "homepage": "https://github.com/holochain/devhub-gui#readme",
   "dependencies": {
     "@babel/runtime": "^7.15.3",
-    "@holochain/devhub-entities": "^0.6.0",
     "@msgpack/msgpack": "^2.7.1",
+    "@whi/crux-payload-parser": "^0.1.0",
+    "@whi/holochain-client": "^0.24.2",
     "@whi/weblogger": "^0.1.4",
     "gzip-js": "^0.3.2",
     "js-sha256": "^0.9.0",

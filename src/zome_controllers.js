@@ -1,8 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zomes");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
-const { AgentPubKey }			= HoloHashes;
+const { AgentPubKey,
+	...HoloHashTypes }		= require('@whi/holo-hash');
 
 
 module.exports = async function ( client ) {

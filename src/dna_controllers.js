@@ -1,8 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dnas");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
-const { AgentPubKey }			= HoloHashes;
+const { AgentPubKey,
+	...HoloHashTypes }		= require('@whi/holo-hash');
 
 
 module.exports = async function ( client ) {

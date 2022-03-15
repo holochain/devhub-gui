@@ -96,6 +96,11 @@
 		</list-group-item>
 	    </list-group>
 
+	    <label class="form-label fw-6">Drag and drop zipped GUI</label>
+	    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
+		<input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving">
+	    </input-feedback>
+
 	    <display-error class="mt-5" :error="error"></display-error>
 
 	    <div class="row mt-5">
