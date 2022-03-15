@@ -1,7 +1,6 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dna versions");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
 const showdown				= require('showdown');
 const md_converter			= new showdown.Converter({
     "headerLevelStart": 3,

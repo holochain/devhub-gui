@@ -1,9 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("common");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
-const { HoloHash,
-	AgentPubKey }			= HoloHashes;
+const { AgentPubKey,
+	...HoloHashTypes }		= require('@whi/holo-hash');
 
 
 const _debounce_timers			= {};

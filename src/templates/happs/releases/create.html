@@ -40,7 +40,7 @@
 
 	    <label class="form-label fw-6">Search DNAs</label>
 	    <div class="form-input-search" :class="{ 'show-results': filtered_dnas.length }">
-		<input type="text" class="form-control no-validate" placeholder="start typing a Zome name"
+		<input type="text" class="form-control no-validate" placeholder="start typing a DNA name"
 		       v-model="dna_search_text" @keyup.enter="addDna( filtered_dnas[0] )"
 		       @focus="show_search_list = true" @blur="hideResults()">
 
@@ -95,6 +95,11 @@
 		    </input-feedback>
 		</list-group-item>
 	    </list-group>
+
+	    <label class="form-label fw-6">Drag and drop zipped GUI</label>
+	    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
+		<input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving">
+	    </input-feedback>
 
 	    <display-error class="mt-5" :error="error"></display-error>
 

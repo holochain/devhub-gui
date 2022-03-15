@@ -17,7 +17,7 @@ module.exports = {
     mode: WEBPACK_MODE,
     entry: [ "./src/index.js" ],
     resolve: {
-	mainFields: ["main"],
+	mainFields: ["browser", "main"],
     },
     output: {
 	publicPath: "/",

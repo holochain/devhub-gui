@@ -1,9 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happs");
 
-const { HoloHashes }			= require('@holochain/devhub-entities');
 const { AgentPubKey,
-	EntryHash }			= HoloHashes;
+	...HoloHashTypes }		= require('@whi/holo-hash');
 const msgpack				= require('@msgpack/msgpack');
 let sha256, gzip;
 
@@ -604,7 +603,6 @@ module.exports = async function ( client ) {
 			const dna_sources	= this.dnas[ role.id ];
 			const dna_bundle	= unpack_bundle( bundle.resources[ role.dna.bundled ] );
 			const wasm_hashes	= [];
-			const zomes		= {};
 
 			for ( let zome of dna_bundle.manifest.zomes ) {
 			    const wasm_bytes	= dna_bundle.resources[ zome.bundled ];
