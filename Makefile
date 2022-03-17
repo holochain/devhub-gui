@@ -29,11 +29,11 @@ dnas/%.dna:		dnas
 	$(error Download missing DNA ($*.dna) into location ./$@)
 
 copy-dnas-from-local:	dnas
-	cp ~/projects/devhub-dnas/bundled/dnarepo.dna		dnas/dnarepo.dna
-	cp ~/projects/devhub-dnas/bundled/happs.dna		dnas/happs.dna
-	cp ~/projects/devhub-dnas/bundled/web_assets.dna	dnas/webassets.dna
+	cp ../devhub-dnas/bundled/dnarepo.dna		dnas/dnarepo.dna
+	cp ../devhub-dnas/bundled/happs.dna		dnas/happs.dna
+	cp ../devhub-dnas/bundled/web_assets.dna	dnas/webassets.dna
 copy-zomes-from-local:	zome_wasm
-	cp ~/projects/devhub-dnas/zomes/*.wasm			./zome_wasm/
+	cp ../devhub-dnas/zomes/*.wasm			./zome_wasm/
 
 
 #
@@ -76,6 +76,15 @@ bundled/DevHub.happ:	../devhub-dnas/DevHub.happ
 bundled/DevHub.webhapp:	web_assets.zip bundled/DevHub.happ
 	hc web pack ./bundled
 	cp $@ ~/
+package-lock.json:	package.json
+	npm install
+	touch $@
+node_modules:		package-lock.json
+	npm install
+	touch $@
+dist:			dist/webpacked.app.js
+dist/webpacked.app.js:	node_modules
+	npm run build
 
 
 #
@@ -91,5 +100,5 @@ clean-files-all:	clean-remove-chaff
 	git clean -ndx
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
-web_assets.zip:		dist/* Makefile
+web_assets.zip:		dist Makefile
 	cd dist; zip -r ../web_assets.zip ./*
