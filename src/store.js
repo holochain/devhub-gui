@@ -553,7 +553,7 @@ module.exports = async function ( client, Vue ) {
 
 		let agent_info		= await dispatch("getAgent");
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( version.for_zome.developer, agent_info.pubkey.initial ),
+		    "writable": hashesAreEqual( version.for_zome.developer.pubkey, agent_info.pubkey.initial ),
 		}] );
 		commit("cacheEntity", [ path, version ] );
 		commit("recordLoaded", path );
@@ -777,7 +777,7 @@ module.exports = async function ( client, Vue ) {
 
 		let agent_info		= await dispatch("getAgent");
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( version.for_dna.developer, agent_info.pubkey.initial ),
+		    "writable": hashesAreEqual( version.for_dna.developer.pubkey, agent_info.pubkey.initial ),
 		}] );
 		commit("cacheEntity", [ path, version ] );
 		commit("recordLoaded", path );

@@ -112,9 +112,11 @@ module.exports = async function ( client ) {
 			"title": null,
 			"subtitle": null,
 			"description": null,
+			"tags": new Set(),
 		    },
 		    "validated": false,
 		    "saving": false,
+		    "tag_search_text": "",
 		};
 	    },
 	    "computed": {
@@ -123,15 +125,27 @@ module.exports = async function ( client ) {
 		},
 	    },
 	    "methods": {
+		addTag ( tag ) {
+		    log.info("Adding tag:", tag );
+		    this.input.tags.add( tag );
+		    this.tag_search_text		= "";
+		},
+		removeTag ( tag ) {
+		    log.info("Removing tag:", tag );
+		    this.input.tags.delete( tag );
+		},
 		async create () {
 		    this.validated	= true;
 
 		    if ( this.form.checkValidity() === false )
 			return;
 
+		    const input				= Object.assign({}, this.input );
+		    input.tags				= [ ...input.tags ];
+
 		    this.saving		= true;
 		    try {
-			const happ	= await this.$store.dispatch("createHapp", this.input );
+			const happ	= await this.$store.dispatch("createHapp", input );
 
 			this.$store.dispatch("fetchHapps", { "agent": "me" });
 			this.$router.push( "/happs/" + happ.$id );
@@ -155,6 +169,7 @@ module.exports = async function ( client ) {
 		    "error": null,
 		    "input": {},
 		    "validated": false,
+		    "tag_search_text": "",
 		};
 	    },
 	    "computed": {
@@ -167,6 +182,9 @@ module.exports = async function ( client ) {
 		form () {
 		    return this.$refs["form"];
 		},
+		tags () {
+		    return this.input.tags || this.happ.tags;
+		},
 	    },
 	    async created () {
 		this.id			= this.getPathId("id");
@@ -175,6 +193,21 @@ module.exports = async function ( client ) {
 		    this.fetchHapp();
 	    },
 	    "methods": {
+		addTag ( tag ) {
+		    if ( !this.input.tags )
+			this.input.tags			= new Set(this.happ.tags);
+
+		    log.info("Adding tag:", tag );
+		    this.input.tags.add( tag );
+		    this.tag_search_text		= "";
+		},
+		removeTag ( tag ) {
+		    if ( !this.input.tags )
+			this.input.tags			= new Set(this.happ.tags);
+
+		    log.info("Removing tag:", tag );
+		    this.input.tags.delete( tag );
+		},
 		async fetchHapp () {
 		    try {
 			await this.$store.dispatch("fetchHapp", this.id );
@@ -190,8 +223,11 @@ module.exports = async function ( client ) {
 		    if ( this.form.checkValidity() === false )
 			return;
 
+		    const input				= Object.assign({}, this.input );
+		    input.tags				= [ ...input.tags ];
+
 		    try {
-			await this.$store.dispatch("updateHapp", [ this.id, this.input ] );
+			await this.$store.dispatch("updateHapp", [ this.id, input ] );
 
 			this.$router.push( "/happs/" + this.id );
 		    } catch ( err ) {
@@ -721,7 +757,7 @@ module.exports = async function ( client ) {
 				log.debug("Searching for zome version with hash:", zome.upload.wasm_resource_hash );
 				const zome_versions	= await this.$client.call(
 				    "dnarepo", "dna_library", "get_zome_versions_by_filter", {
-					"filter": "wasm_hash",
+					"filter": "uniqueness_hash",
 					"keyword": zome.upload.wasm_resource_hash,
 				    }
 				);

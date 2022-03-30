@@ -131,6 +131,7 @@ module.exports = async function ( client ) {
 		    }
 		},
 		async create () {
+		    log.info("Form was submitted");
 		    this.validated	= true;
 
 		    if ( this.form.checkValidity() === false )
@@ -138,24 +139,28 @@ module.exports = async function ( client ) {
 
 		    this.saving		= true;
 		    try {
-			if ( this.gui_bytes ) {
-			    const web_asset		= await this.$store.dispatch("createWebAsset", this.gui_bytes );
+			const input				= Object.assign({}, this.input );
 
-			    this.input.gui		= {
+			if ( this.gui_bytes ) {
+			    const web_asset			= await this.$store.dispatch("createWebAsset", this.gui_bytes );
+
+			    input.gui		= {
 				"asset_group_id": web_asset.$id,
 				"uses_web_sdk": false,
 			    };
 			}
 
-			this.input.manifest.name		= this.happ.title;
-			this.input.manifest.description		= this.happ.description;
-			this.input.manifest.roles		= [];
-			this.input.dnas.forEach( (dna, i) => {
+			input.manifest				= Object.assign({}, input.manifest );
+			input.manifest.name			= this.happ.title;
+			input.manifest.description		= this.happ.description;
+			input.manifest.roles			= [];
+			input.dnas.forEach( (dna, i) => {
 			    const dna_version			= this.all_dna_versions[dna.version];
 
-			    this.input.dnas[i].dna		= dna_version.for_dna;
-			    this.input.dnas[i].wasm_hash	= dna_version.wasm_hash;
-			    this.input.manifest.roles.push({
+			    input.dnas[i]			= Object.assign({}, input.dnas[i] );
+			    input.dnas[i].dna			= dna_version.for_dna;
+			    input.dnas[i].wasm_hash		= dna_version.wasm_hash;
+			    input.manifest.roles.push({
 				"id":		dna.role_id,
 				"dna": {
 				    "path":	`./${dna.name}.dna`,
@@ -168,7 +173,7 @@ module.exports = async function ( client ) {
 			    });
 			});
 
-			const release	= await this.$store.dispatch("createHappRelease", [ this.happ_id, this.input ] );
+			const release	= await this.$store.dispatch("createHappRelease", [ this.happ_id, input ] );
 
 			this.$store.dispatch("fetchReleasesForHapp", this.happ_id );
 			this.$router.push( `/happs/${this.happ_id}/releases/${release.$id}` );
@@ -184,6 +189,7 @@ module.exports = async function ( client ) {
 		    this.input.dnas.splice( i, 1 );
 		},
 		addDna ( dna ) {
+		    log.debug("Adding DNA:", dna );
 		    if ( dna === undefined )
 			return;
 

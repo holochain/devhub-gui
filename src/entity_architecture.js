@@ -46,14 +46,7 @@ module.exports = {
 	"*": function ( content ) {
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
-	    return content;
-	},
-	"info": function ( content ) {
 	    content.developer.pubkey	= new AgentPubKey( content.developer.pubkey );
-	    return content;
-	},
-	"summary": function ( content ) {
-	    content.developer		= new AgentPubKey( content.developer );
 	    return content;
 	},
     },
@@ -91,14 +84,7 @@ module.exports = {
 	"*": function ( content ) {
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
-	    return content;
-	},
-	"info": function ( content ) {
 	    content.developer.pubkey	= new AgentPubKey( content.developer.pubkey );
-	    return content;
-	},
-	"summary": function ( content ) {
-	    content.developer		= new AgentPubKey( content.developer );
 	    return content;
 	},
     },

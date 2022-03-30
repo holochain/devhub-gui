@@ -71,11 +71,8 @@
 		    </dl>
 
 		    <list-group v-if="dna" :list="Object.values(version.zomes)" no-result-text="No Zomes" class="my-5" :loading="!$version.current">
-			<router-link v-for="(zome_version, name) in version.zomes"
-				     class="text-decoration-none"
-				     :to="'/zomes/' + zome_version.for_zome + '/versions/' + zome_version.$id">
-			    <zome-version-card :name="name" :entity="zome_version"></zome-version-card>
-			</router-link>
+			<zome-version-card v-for="(zome_version, name) in version.zomes" class="my-2"
+					   :entity="zome_version"></zome-version-card>
 		    </list-group>
 
 		    <loading :when="!$version.current">

@@ -1,4 +1,19 @@
 
+/*
+
+#8cfff1 - Agent ID
+#cbeef9 - Zome theme Agent ID
+#f9beff - DNA theme Agent ID
+#elcef9 - hApp theme Agent ID
+
+#00a1df - Zome theme
+#c000ff - DNA theme
+#6e00e0 - hApp theme
+
+#d600ff - Some button outline
+
+*/
+
 body {
   margin: 0;
   font-family: 'Mulish', sans-serif;
@@ -64,17 +79,26 @@ a.text-primary:hover {
   cursor: pointer;
 }
 
-
 .btn {
+  padding-top: .2rem;
+  padding-bottom: .2rem;
+}
+.btn-sm {
+  padding-top: .2rem;
+  padding-bottom: .1rem;
+}
+:not(.btn-group) > .btn {
   font-weight: 400;
-  padding: .2rem 1.7rem;
+  padding-left: 1.7rem;
+  padding-right: 1.7rem;
   border-radius: 5px;
   border-width: 2px;
 }
-
-.btn i {
+:not(.btn-group) > .btn i {
   top: 1px;
   position: relative;
+}
+:not(.btn-group) > .btn i {
   margin-right: 9px;
 }
 
@@ -109,10 +133,11 @@ a.text-primary:hover {
   border-color: #4820E3;
 }
 .btn-primary:hover,
+.bg-primary.bg-btn:hover,
 .btn-primary:focus {
   color: #fff;
-  background-color: #3316a5;
-  border-color: #3316a5;
+  background-color: #3316a5 !important;
+  border-color: #3316a5 !important;
 }
 
 
@@ -121,22 +146,53 @@ a.text-primary:hover {
   background-color: #5C5F6B;
   border-color: #5C5F6B;
 }
-.btn-secondary:hover {
+.btn-secondary:hover,
+.bg-secondary.bg-btn:hover {
   color: #fff;
-  background-color: #444;
-  border-color: #444;
+  background-color: #444 !important;
+  border-color: #444 !important;
+}
+.bg-secondary.bg-btn.active,
+.bg-secondary.bg-btn:active {
+  color: #fff;
+  background-color: #565e64 !important;
+  border-color: #51585e !important;
 }
 
+.bg-success.bg-btn:hover {
+  color: #fff;
+  background-color: #157347 !important;
+  border-color: #146c43 !important;
+}
+
+.bg-danger.bg-btn:hover {
+  color: #fff;
+  background-color: #bb2d3b !important;
+  border-color: #b02a37 !important;
+}
+
+.bg-warning.bg-btn:hover {
+  color: #000;
+  background-color: #ffca2c !important;
+  border-color: #ffc720 !important;
+}
+
+.bg-info.bg-btn:hover {
+  color: #000;
+  background-color: #31d2f2 !important;
+  border-color: #25cff2 !important;
+}
 
 .btn-light {
   color: #000;
-  background-color: #F1F1F1;
-  border-color: #F1F1F1;
+  background-color: #F1F1F1 !important;
+  border-color: #F1F1F1 !important;
 }
-.btn-light:hover {
+.btn-light:hover,
+.bg-light.bg-btn:hover {
   color: #000;
-  background-color: #e0e0e0;
-  border-color: #e0e0e0;
+  background-color: #e0e0e0 !important;
+  border-color: #e0e0e0 !important;
 }
 
 
@@ -169,7 +225,43 @@ a.text-primary:hover {
 .bg-primary {
   background-color: #4820E3 !important;
 }
+.badge-group {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+.badge-group > .badge {
+  position: relative;
+  flex: 1 1 auto;
+}
+.badge-group > .badge:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.badge-group > .badge:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.bg-btn {
+  cursor: pointer;
+}
 
+/*
+
+#cbeef9 - Zome theme Agent ID
+#f9beff - DNA theme Agent ID
+#e1cef9 - hApp theme Agent ID
+
+*/
+.zome-card .agent-badge {
+  background-color: #cbeef9 !important;
+}
+.dna-card .agent-badge {
+  background-color: #f9beff !important;
+}
+.happ-card .agent-badge {
+  background-color: #e1cef9 !important;
+}
 
 
 .align-items-center label {
@@ -351,14 +443,66 @@ a.text-primary:hover {
   font-size: .9rem;
   font-weight: 200;
 }
+.entity-card .card-body {
+  font-weight: 500;
+  padding: 12px 15px 5px;
+}
+.card.entity-card {
+  border-radius: 5px;
+  border-width: 2px;
+  margin: 0;
+}
 .entity-card-header {
   position: absolute;
-  top: -9px;
-  left: 10px;
+  top: -10px;
+  left: 20px;
   background-color: white;
   padding: 0 7px;
+  font-size: .8em;
   font-weight: 600;
   text-transform: uppercase;
+}
+.entity-card p,
+.entity-card dl {
+  margin-bottom: .5rem;
+}
+.entity-card dl {
+  font-size: .8em;
+}
+.entity-card dl .badge {
+  font-size: .65rem;
+}
+
+/*
+
+#00a1df - Zome theme
+#c000ff - DNA theme
+#6e00e0 - hApp theme
+
+*/
+
+.zome-card {
+  border-color: #00a1df;
+}
+.zome-card i,
+.zome-card .entity-card-header {
+  color: #00a1df;
+}
+
+.dna-card {
+  border-color: #c000ff;
+}
+.dna-card i,
+.dna-card .entity-card-header {
+  color: #c000ff;
+}
+
+.happ-card {
+  border-color: #6e00e0;
+}
+.happ-card i,
+.happ-card .entity-card-header {
+  color: #6e00e0;
 }
 
 
@@ -436,4 +580,9 @@ dl dt {
   to {
     transform: rotate( 359deg );
   }
+}
+
+
+.flip-x {
+  transform: scaleX(-1);
 }
