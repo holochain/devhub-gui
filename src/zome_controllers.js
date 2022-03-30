@@ -101,9 +101,11 @@ module.exports = async function ( client ) {
 		    "input": {
 			"name": null,
 			"description": null,
+			"tags": new Set(),
 		    },
 		    "validated": false,
 		    "saving": false,
+		    "tag_search_text": "",
 		};
 	    },
 	    "computed": {
@@ -112,15 +114,27 @@ module.exports = async function ( client ) {
 		},
 	    },
 	    "methods": {
+		addTag ( tag ) {
+		    log.info("Adding tag:", tag );
+		    this.input.tags.add( tag );
+		    this.tag_search_text		= "";
+		},
+		removeTag ( tag ) {
+		    log.info("Removing tag:", tag );
+		    this.input.tags.delete( tag );
+		},
 		async create () {
 		    this.validated	= true;
 
 		    if ( this.form.checkValidity() === false )
 			return;
 
+		    const input				= Object.assign({}, this.input );
+		    input.tags				= [ ...input.tags ];
+
 		    this.saving		= true;
 		    try {
-			const zome	= await this.$store.dispatch("createZome", this.input );
+			const zome	= await this.$store.dispatch("createZome", input );
 
 			this.$store.dispatch("fetchAllZomes");
 			this.$router.push( "/zomes/" + zome.$id );
@@ -144,6 +158,7 @@ module.exports = async function ( client ) {
 		    "error": null,
 		    "input": {},
 		    "validated": false,
+		    "tag_search_text": "",
 		};
 	    },
 	    "computed": {
@@ -155,6 +170,9 @@ module.exports = async function ( client ) {
 		},
 		form () {
 		    return this.$refs["form"];
+		},
+		tags () {
+		    return this.input.tags || this.zome.tags;
 		},
 	    },
 	    async created () {
@@ -173,14 +191,32 @@ module.exports = async function ( client ) {
 			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
 		    }
 		},
+		addTag ( tag ) {
+		    if ( !this.input.tags )
+			this.input.tags			= new Set(this.zome.tags);
+
+		    log.info("Adding tag:", tag );
+		    this.input.tags.add( tag );
+		    this.tag_search_text		= "";
+		},
+		removeTag ( tag ) {
+		    if ( !this.input.tags )
+			this.input.tags			= new Set(this.zome.tags);
+
+		    log.info("Removing tag:", tag );
+		    this.input.tags.delete( tag );
+		},
 		async update () {
 		    this.validated	= true;
 
 		    if ( this.form.checkValidity() === false )
 			return;
 
+		    const input				= Object.assign({}, this.input );
+		    input.tags				= [ ...input.tags ];
+
 		    try {
-			await this.$store.dispatch("updateZome", [ this.id, this.input ] );
+			await this.$store.dispatch("updateZome", [ this.id, input ] );
 
 			this.$router.push( "/zomes/" + this.id );
 		    } catch ( err ) {

@@ -18,6 +18,23 @@
 			      class="form-control" rows="3" :disabled="$zome.updating" required></textarea>
 		</input-feedback>
 
+		<div>
+		    <label class="form-label fw-6">Tags</label>
+		    <div class="form-input-search">
+			<input type="text" class="form-control no-validate" placeholder="search and add tags"
+			       v-model="tag_search_text" @keyup.keydown.enter.prevent="addTag( tag_search_text )">
+		    </div>
+
+		    <div class="p-3">
+			<div v-for="tag in tags" class="badge-group ms-2">
+			    <span class="badge bg-secondary">{{ tag }}</span>
+			    <span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
+				<i class="bi-x-lg"></i>
+			    </span>
+			</div>
+		    </div>
+		</div>
+
 		<display-error class="mt-5" :error="error"></display-error>
 
 		<div class="row mt-5">

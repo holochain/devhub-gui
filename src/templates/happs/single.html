@@ -52,6 +52,16 @@
 		</div>
 		<div class="card-body">
 		    <dl class="row">
+			<dt class="col-sm-4">Tags</dt>
+			<dd class="col-sm-8">
+			    <loading :when="!$happ.current">
+				<template v-if="happ.tags && happ.tags.length">
+				    <span v-for="tag in happ.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
+				</template>
+				<span v-else>No tags</span>
+			    </loading>
+			</dd>
+
 			<dt class="col-sm-4">Created</dt>
 			<dd class="col-sm-8"><placeholder :when="!$happ.current">{{ $filters.time( happ.published_at, "weekday+date" ) }}</placeholder></dd>
 
