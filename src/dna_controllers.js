@@ -23,6 +23,7 @@ module.exports = async function ( client ) {
 		    "agent_input": this.$route.query.agent || input_cache || "",
 		    "agent_hash": null,
 		    "order_by": "published_at",
+		    "list_filter": "",
 		};
 	    },
 	    async created () {
@@ -40,9 +41,29 @@ module.exports = async function ( client ) {
 		    return this.agent_input.length ? this.agent_input : "me";
 		},
 		dnas () {
-		    return this.agent_input.length
-			? this.$store.getters.dnas( this.agent ).collection
-			: this.$store.getters.dnas( "all" ).collection;
+		    return (
+			this.agent_input.length
+			    ? this.$store.getters.dnas( this.agent ).collection
+			    : this.$store.getters.dnas( "all" ).collection
+		    ).filter( entity => {
+			const filter	= this.list_filter.trim();
+
+			if ( filter === "" )
+			    return true;
+
+			let words	= filter.split(/\s+/);
+
+			for ( let word of words ) {
+			    if ( this.compareText( word, entity.name )
+				 || this.compareText( word, entity.description ) )
+				return 1;
+
+			    if ( entity.tags && entity.tags.some( tag => this.compareText( word, tag ) ) )
+				return 1;
+			}
+
+			return 0;
+		    });
 		},
 		$dnas () {
 		    return this.agent_input.length
