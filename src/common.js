@@ -158,5 +158,20 @@ module.exports = {
 
     snip ( str, length = 4 ) {
 	return str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
-    }
+    },
+
+    compareText ( text1, text2, case_sensitive = false ) {
+	// 0 = no match
+	// 1 = partial match
+	// 2 = full match
+	if ( case_sensitive === false ) {
+	    text1			= text1.toLowerCase();
+	    text2			= text2.toLowerCase();
+	}
+
+	if ( text1 === text2 )
+	    return 2;
+
+	return text2.includes( text1 ) ? 1 : 0;
+    },
 };

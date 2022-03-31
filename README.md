@@ -56,7 +56,7 @@ uhCAkQ1xBkDZwHKD05MKrLaIJQDvJG_RwlDbKNfMbEoqwDvrqs5Wx
 
 Build GUI assets
 ```bash
-[nix-shell:devhub-gui]$ npm run build
+[nix-shell:devhub-gui]$ make dist
 ```
 
 Run any simple HTTP server from the `dist` directory.

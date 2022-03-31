@@ -556,12 +556,16 @@ const HoloHash = {
 	    "type": Number,
 	    "default": 5,
 	},
+	"expanded": {
+	    "type": Boolean,
+	    "default": false,
+	},
     },
     data () {
 	return {
 	    "holohash": new HoloHashTypes.HoloHash( this.hash ),
 	    "hash_str": String( this.hash ),
-	    "full_hash": false,
+	    "full_hash": this.expanded,
 	};
     },
     "computed": {
@@ -598,31 +602,51 @@ const ZomeCard = {
     data () {
 	return {
 	    "unique_id": "collapse_" + String( Math.random() ).slice(2),
+	    "expanded": false,
 	};
     },
+    "methods": {
+	toggle_expansion () {
+	    this.expanded	= !this.expanded;
+	},
+    },
     "template": `
-<div class="card entity-card border-warning mb-3">
-    <div class="entity-card-header text-warning">Zome</div>
+<div class="card entity-card zome-card">
+    <div class="entity-card-header">Zome</div>
     <div class="card-body">
-        <div class="float-end">
-            <holohash :hash="entity.$id"></holohash>
-        </div>
-        <h5 class="card-title">{{ entity.name }} <small class="fw-1" :title="entity.published_at">({{ $filters.time( entity.published_at ) }})</small></h5>
-        <div class="float-end">
-            <a data-bs-toggle="collapse" :href="'#' + unique_id">expand</a>
-        </div>
-        <p class="card-text mb-0">{{ entity.description || "No description" }}</p>
-        <div class="collapse" :id="unique_id">
-            <dl class="row mt-3 mb-0">
-                <template v-if="entity.developer">
-                    <dt class="col-sm-4 text-end">Created by</dt>
-                    <dd class="col-sm-8"><holohash :hash="entity.developer.pubkey"></holohash></dd>
-                </template>
-
-                <dt class="col-sm-4 text-end">Last updated</dt>
-                <dd class="col-sm-8">{{ $filters.time( entity.last_updated ) }}</dd>
-            </dl>
-        </div>
+	<div class="row">
+	    <div class="col-auto">
+		<h5 class="card-title font-monospace">dna_library</h5>
+	    </div>
+	    <div class="col text-end">
+                <router-link class="text-decoration-none"
+                            :to="'/zomes/' + entity.$id">
+                    <holohash :hash="entity.$id" class="float-end ms-3" style="margin-top: 1px;"></holohash>
+                </router-link>
+		<span v-for="tag in entity.tags" class="badge bg-light text-secondary">{{ tag }}</span>
+	    </div>
+	</div>
+        <p class="card-text text-truncate mb-1">{{ entity.description || "No description" }}</p>
+	<dl class="row mb-0">
+	    <dt class="col-3">Author ID</dt>
+	    <dd class="col-9 mb-1">
+		<holohash class="agent-badge" :hash="entity.developer.pubkey"></holohash>
+	    </dd>
+            <template class="collapse" :id="unique_id">
+                <dt class="col-3">Created</dt>
+                <dd class="col-9 mb-1">3 hours ago &mdash; <span class="fw-2">Monday, Mar 28, 2022 @ 10:19</span></dd>
+                <dt class="col-3">Last Updated</dt>
+                <dd class="col-9 mb-1">3 hours ago &mdash; <span class="fw-2">Monday, Mar 28, 2022 @ 10:19</span></dd>
+            </template>
+	</dl>
+	<div class="position-absolute bottom-0 end-0">
+            <a v-show="!expanded" @click="toggle_expansion()" data-bs-toggle="collapse" :href="'#' + unique_id">
+                <i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
+            </a>
+            <a v-show="expanded" @click="toggle_expansion()" data-bs-toggle="collapse" :href="'#' + unique_id">
+                <i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
+            </a>
+	</div>
     </div>
 </div>`,
 };
@@ -641,32 +665,70 @@ const ZomeVersionCard = {
     data () {
 	return {
 	    "unique_id": "collapse_" + String( Math.random() ).slice(2),
+	    "expanded": false,
 	};
     },
+    "methods": {
+	toggle_expansion () {
+	    this.expanded	= !this.expanded;
+	},
+	parent_info () {
+	    return !(this.entity.for_zome instanceof EntryHash);
+	},
+	parent_id () {
+	    return this.parent_info()
+		? this.entity.for_zome.$id
+		: this.entity.for_zome;
+	},
+	parent_name () {
+	    return this.name || (
+		this.parent_info()
+		    ? this.entity.for_zome.name
+		    : false
+	    );
+	},
+    },
     "template": `
-<div class="card entity-card border-warning mb-3">
-    <div class="entity-card-header text-warning">Zome</div>
+<div class="card entity-card zome-card">
+    <div class="entity-card-header">Zome Version</div>
     <div class="card-body">
-        <div class="float-end">
-            <holohash :hash="entity.$id"></holohash>
-        </div>
-        <h5 class="card-title">{{ name }} <small class="fw-1" :title="entity.published_at">({{ $filters.time( entity.published_at ) }})</small></h5>
-        <div class="float-end">
-            <a data-bs-toggle="collapse" :href="'#' + unique_id">expand</a>
-        </div>
-        <p class="card-text mb-0"><strong>v{{ entity.version }}</strong> &mdash; HDK v{{ entity.hdk_version }}</p>
-        <div class="collapse" :id="unique_id">
-            <dl class="row mt-3 mb-0">
-                <dt class="col-sm-4 text-end">Last updated</dt>
-                <dd class="col-sm-8">{{ $filters.time( entity.last_updated ) }}</dd>
-
-                <dt class="col-sm-4 text-end">Resource Address</dt>
-                <dd class="col-sm-8"><holohash :hash="entity.mere_memory_addr"></holohash></dd>
-
-                <dt class="col-sm-4 text-end">Resource Hash</dt>
-                <dd class="col-sm-8"><code>{{ entity.mere_memory_hash }}</dd>
-            </dl>
-        </div>
+	<div class="row">
+	    <div class="col-auto">
+		<h5 class="card-title font-monospace"><span v-if="parent_name()">{{ parent_name() }} &mdash;</span> v{{ entity.version }}</h5>
+	    </div>
+	    <div class="col text-end">
+                <router-link class="text-decoration-none"
+                            :to="'/zomes/' + parent_id() + '/versions/' + entity.$id">
+                    <holohash :hash="entity.$id" class="float-end ms-3" style="margin-top: 1px;"></holohash>
+                </router-link>
+		<span v-if="parent_info()" v-for="tag in entity.for_zome.tags" class="badge bg-light text-secondary">{{ tag }}</span>
+	    </div>
+	</div>
+        <p class="card-text text-truncate mb-1">{{ entity.description || "No description" }}</p>
+	<dl class="row mb-0">
+            <dt class="col-3">HDK Version</dt>
+            <dd class="col-9 mb-1">{{ entity.hdk_version }}</dd>
+	</dl>
+	<dl class="row my-0 collapse" :id="unique_id">
+            <dt class="col-3">ID</dt>
+            <dd class="col-9 mb-1"><holohash :hash="entity.$id" :expanded="true"></holohash></dd>
+            <dt class="col-3">Resource Hash</dt>
+            <dd class="col-9 mb-1 text-truncate">
+                <code>{{ entity.mere_memory_hash }}</code>
+            </dd>
+            <dt class="col-3">Created</dt>
+            <dd class="col-9 mb-1">{{ $filters.time( entity.published_at ) }} &mdash; <span class="fw-2">{{ $filters.time( entity.published_at, 'weekday+date+time' ) }}</span></dd>
+            <dt class="col-3">Last Updated</dt>
+            <dd class="col-9 mb-1">{{ $filters.time( entity.last_updated ) }} &mdash; <span class="fw-2">{{ $filters.time( entity.last_updated, 'weekday+date+time' ) }}</span></dd>
+	</dl>
+	<div class="position-absolute bottom-0 end-0">
+            <a v-show="!expanded" @click="toggle_expansion()" data-bs-toggle="collapse" :href="'#' + unique_id">
+                <i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
+            </a>
+            <a v-show="expanded" @click="toggle_expansion()" data-bs-toggle="collapse" :href="'#' + unique_id">
+                <i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
+            </a>
+	</div>
     </div>
 </div>`,
 };
