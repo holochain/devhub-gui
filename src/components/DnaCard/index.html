@@ -1,0 +1,77 @@
+<div class="card entity-card dna-card">
+    <template v-if="dna">
+	<div class="entity-card-header">DNA: <strong>{{ dna.name }}</strong></div>
+	<div class="card-body">
+	    <loading :when="loading">
+		<div class="row mb-2">
+		    <div class="col-auto">
+			<p class="card-text text-truncate mb-1">{{ dna.description || "No description" }}</p>
+		    </div>
+		    <div class="col text-end">
+			<router-link v-if="link" class="text-decoration-none"
+				     :to="'/dnas/' + dna.$id">
+			    <holo-hash :hash="dna.$id" class="float-end ms-3"></holo-hash>
+			</router-link>
+			<holo-hash v-else :hash="dna.$id" class="float-end ms-3"></holo-hash>
+		    </div>
+		</div>
+
+		<dl v-if="extras" class="row mb-0">
+		    <dt class="col-3">Author ID</dt>
+		    <dd class="col-9 mb-1" style="margin-left: -0.5em;">
+			<holo-hash :hash="dna.developer.pubkey" class="agent-badge"></holo-hash>
+		    </dd>
+		    <dt class="col-3">Tags</dt>
+		    <dd v-if="dna.tags && dna.tags.length" class="col-9 mb-1 lh-lg" style="margin-left: -0.5em;">
+			<span v-for="tag in dna.tags" class="badge bg-light text-secondary">{{ tag }}</span>
+		    </dd>
+		    <dd v-else class="col-9 mb-1 lh-lg">No tags</dd>
+		</dl>
+		<dl class="row mb-0">
+		    <dt class="col-3">Created</dt>
+		    <dd class="col-9 mb-1">
+			{{ $filters.time( dna.published_at ) }}
+			&mdash; <span class="fw-2">{{ $filters.time( dna.published_at, "weekday+date+time" ) }}</span>
+		    </dd>
+		</dl>
+		<dl v-if="extras" class="row mb-0">
+		    <dt class="col-3">Last Updated</dt>
+		    <dd class="col-9 mb-1">
+			{{ $filters.time( dna.last_updated ) }}
+			&mdash; <span class="fw-2">{{ $filters.time( dna.last_updated, "weekday+date+time" ) }}</span>
+		    </dd>
+		</dl>
+
+		<div v-if="extras" style="margin: 1rem 0 2.5rem 0;">
+		    <template v-if="versions.length">
+			<div v-if="more_version_count"
+			     class="card entity-card entity-card-layered dna-card">
+			    <div class="entity-card-header">... {{ more_version_count }} more version{{ more_version_count > 1 ? 's' : '' }}</div>
+			</div>
+			<div v-for="dna_version in recent_versions">
+			    class="card entity-card entity-card-layered dna-card">
+			    <div class="entity-card-header">Version: <strong>{{ dna_version.version }}</strong></div>
+			</div>
+			<dna-version-card :entity="latest_version"
+					  :link="link"
+					  :parent-ref="false"></dna-version-card>
+		    </template>
+		    <div v-else class="card my-4">
+			<div class="card-body text-center p-4">
+			    No versions have been published
+			</div>
+		    </div>
+		</div>
+
+		<div class="position-absolute bottom-0 end-0">
+		    <a v-show="!extras" @click="toggle_expansion()">
+			<i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
+		    </a>
+		    <a v-show="extras" @click="toggle_expansion()">
+			<i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
+		    </a>
+		</div>
+	    </loading>
+	</div>
+    </template>
+</div>

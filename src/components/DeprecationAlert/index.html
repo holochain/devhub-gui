@@ -1,0 +1,9 @@
+<div class="alert alert-danger d-flex align-items-center" role="alert">
+    <i class="bi-exclamation-triangle-fill me-3"></i>
+    <div>
+        <strong>{{ title }}</strong>
+        <template v-if="message">
+            <br><p class="m-0"><em>Author message: "{{ message }}"</em></p>
+        </template>
+    </div>
+</div>

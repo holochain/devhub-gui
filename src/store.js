@@ -403,7 +403,6 @@ module.exports = async function ( client, Vue ) {
 		    "happs", "happ_library", "get_all_happs"
 		);
 
-		console.log( happs );
 		log.info("Found %s hApps in Collection for %s", happs.length, String( happs.$base ) );
 
 		commit("cacheCollection", [ path, happs ] );

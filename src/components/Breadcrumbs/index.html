@@ -1,0 +1,19 @@
+<div class="d-flex align-items-center">
+    <router-link v-if="backLink" :to="backLink" class="text-primary fw-bolder">
+        <i class="bi-arrow-left fs-4 me-3"></i>
+    </router-link>
+    <a v-else href="#" @click="$router.back()" class="text-primary fw-bolder">
+        <i class="bi-arrow-left fs-4 me-3"></i>
+    </a>
+    <nav style="--bs-breadcrumb-divider: '>';">
+        <ol class="breadcrumb m-0">
+            <li v-for="(crumb, index) in crumbs" class="breadcrumb-item">
+                <router-link v-if="crumb.link" :to="crumb.link">
+                    {{ crumb.text }}
+                </router-link>
+                <span v-else>{{ crumb.text }}</span>
+            </li>
+        </ol>
+    </nav>
+    <slot></slot>
+</div>

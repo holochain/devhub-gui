@@ -254,13 +254,19 @@ a.text-primary:hover {
 
 */
 .zome-card .agent-badge {
+  color: initial !important;
   background-color: #cbeef9 !important;
+  font-weight: 200;
 }
 .dna-card .agent-badge {
+  color: initial !important;
   background-color: #f9beff !important;
+  font-weight: 200;
 }
 .happ-card .agent-badge {
+  color: initial !important;
   background-color: #e1cef9 !important;
+  font-weight: 200;
 }
 
 
@@ -448,6 +454,7 @@ a.text-primary:hover {
   padding: 12px 15px 5px;
 }
 .card.entity-card {
+  min-height: 4rem;
   border-radius: 5px;
   border-width: 2px;
   margin: 0;
@@ -460,7 +467,7 @@ a.text-primary:hover {
   padding: 0 7px;
   font-size: .8em;
   font-weight: 600;
-  text-transform: uppercase;
+  /* text-transform: uppercase; */
 }
 .entity-card p,
 .entity-card dl {
@@ -471,6 +478,9 @@ a.text-primary:hover {
 }
 .entity-card dl .badge {
   font-size: .65rem;
+}
+.card.entity-card-layered {
+  margin-bottom: -3rem;
 }
 
 /*
@@ -484,24 +494,24 @@ a.text-primary:hover {
 .zome-card {
   border-color: #00a1df;
 }
-.zome-card i,
-.zome-card .entity-card-header {
+.zome-card > div > div > i,
+.zome-card > .entity-card-header {
   color: #00a1df;
 }
 
 .dna-card {
   border-color: #c000ff;
 }
-.dna-card i,
-.dna-card .entity-card-header {
+.dna-card > div > div > i,
+.dna-card > .entity-card-header {
   color: #c000ff;
 }
 
 .happ-card {
   border-color: #6e00e0;
 }
-.happ-card i,
-.happ-card .entity-card-header {
+.happ-card > div > div > i,
+.happ-card > .entity-card-header {
   color: #6e00e0;
 }
 
@@ -563,6 +573,53 @@ dl dt {
 }
 
 
+.flip-x {
+  transform: scaleX(-1);
+}
+
+
+/* Step Progress Bar */
+
+.step-progress-bar {
+  display: flex;
+}
+.step-progress-bar li {
+  display: flex;
+  flex-grow: 1;
+  justify-content: center;
+  position: relative;
+}
+.step-progress-bar li div {
+  position: relative;
+  z-index: 10;
+  background-color: #fff;
+  border-radius: 50%;
+  border: 1px solid #4820E3;
+}
+.step-progress-bar li label {
+  width: 100%;
+  position: absolute;
+  top: 1.5em;
+  left: calc(50% - 0.5em);
+}
+.step-progress-bar li:not(:first-child)::before {
+  position: absolute;
+  content: "";
+  border-bottom: 1px solid #4820E3;
+  width: 100%;
+  top: 50%;
+  left: -50%;
+  z-index: 2;
+}
+.step-progress-bar li.spb-step-active::before {
+  border-width: 3px !important;
+  top: calc(50% - 1px);
+}
+.step-progress-bar li.spb-step-active div {
+  background-color: #4820E3;
+}
+
+
 /* Animations */
 
 .animate-spin {
@@ -580,9 +637,4 @@ dl dt {
   to {
     transform: rotate( 359deg );
   }
-}
-
-
-.flip-x {
-  transform: scaleX(-1);
 }

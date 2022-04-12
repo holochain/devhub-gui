@@ -157,7 +157,10 @@ module.exports = {
     },
 
     snip ( str, length = 4 ) {
-	return str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
+	const snipped			= str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
+
+	log.trace("Snipping string:", str, length, snipped );
+	return snipped;
     },
 
     compareText ( text1, text2, case_sensitive = false ) {

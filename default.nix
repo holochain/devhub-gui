@@ -1,42 +1,44 @@
 let
-  holonixPath = builtins.fetchTarball { # Oct 6, 2021
-    url = "https://github.com/holochain/holonix/archive/de9d6d1e820f4e3beeb20c24005c17f565a24453.tar.gz";
-    sha256 = "1z7w0hbncm375ns04021ka6li9qpchx0qn13v5xycd8p3sq0x14n";
+  holonixPath = builtins.fetchTarball { # main as of Mar 15, 2022
+    url = "https://github.com/holochain/holonix/archive/391557dc5b3065b0d357ea9f9a2bc77e7347be8e.tar.gz";
+    sha256 = "10dnbd3s8gm4bl7my7c168vyvi3358s1lb5yjnw3fwnp9z62vy09";
   };
   holonix = import (holonixPath) {
     include = {
       holochainBinaries = true;
       node = false;
+      scaffolding = false;
       happs = false;
     };
 
     holochainVersionId = "custom";
-    holochainVersion = { # v0.0.124
+    holochainVersion = {
       url = "https://github.com/holochain/holochain";
-
-      rev = "4a449ee985053f5b8ee0f0688b949bd26bfcb3fc"; # Jan 26, 2022
-      sha256 = "0mbamx8njs0gs28s5rbfni3p4jdf6jrhaqj1b2aqbzl7ah2nb02c";
+      rev = "holochain-0.0.132"; # Mar 30, 2022 - b2eb2342d2feb68872e19636e83d199d38b01f66
+      sha256 = "12zgx1icnq4jgra9q6bwqjhlzmm38s5kz6vidkylal11ynnd57ww";
       cargoLock = {
         outputHashes = {
-          "cargo-test-macro-0.1.0" = "1yy1y1d523xdzwg1gc77pigbcwsbawmy4b7vw8v21m7q957sk0c4";
         };
       };
 
       binsFilter = [
         "holochain"
         "hc"
-        # "kitsune-p2p-proxy"
+        "kitsune-p2p-tx2-proxy"
       ];
 
-      lair = { # v0.1.0
-        url = "https://github.com/holochain/lair";
+      rustVersion = "1.58.1";
 
-        rev = "0343621e0bfa2a941ecf53363003d1f28b7ef0e6";
+      lair = {
+        url = "https://github.com/holochain/lair";
+        rev = "v0.1.0";
         sha256 = "0jvk4dd42axwp5pawxayg2jnjx05ic0f6k8f793z8dwwwbvmqsqi";
 
         binsFilter = [
           "lair-keystore"
         ];
+
+        rustVersion = "1.58.1";
 
         cargoLock = {
           outputHashes = {

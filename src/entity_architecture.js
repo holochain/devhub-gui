@@ -9,7 +9,6 @@ module.exports = {
     // hApps
     "happ": {
 	"*": function ( content ) {
-	    console.log( content );
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
 	    content.designer		= new AgentPubKey( content.designer );

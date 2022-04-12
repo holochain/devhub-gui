@@ -10,3 +10,4 @@ tests/demo_bundles
 web_assets.zip
 bundled/DevHub.happ
 bundled/*.webhapp
+src/components/*.js

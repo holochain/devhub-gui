@@ -233,7 +233,9 @@ module.exports = async function ( client ) {
 			return;
 
 		    const input				= Object.assign({}, this.input );
-		    input.tags				= [ ...input.tags ];
+
+		    if ( input.tags )
+			input.tags			= [ ...input.tags ];
 
 		    try {
 			await this.$store.dispatch("updateDna", [ this.id, input ] );

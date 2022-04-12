@@ -1,0 +1,12 @@
+<div class="page-header row align-items-center">
+    <div class="d-flex align-items-center" :class="header_col_classes">
+        <slot name="default"></slot>
+
+        <div class="my-auto ms-5">
+            <slot name="title-extras"></slot>
+        </div>
+    </div>
+    <div v-if="$slots['controls']" :class="controls_col_classes">
+        <slot name="controls"></slot>
+    </div>
+</div>

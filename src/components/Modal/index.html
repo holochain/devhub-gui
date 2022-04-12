@@ -1,0 +1,25 @@
+<div class="modal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">{{ title }}</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <slot name="default"></slot>
+            </div>
+            <div class="modal-footer modal-2-button">
+                <slot name="controls">
+                    <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal"
+                            @click="cancel()">Cancel</button>
+                    <button type="button" class="btn btn-primary" :class="{ 'disabled': running_action }"
+                            @click="runAction()">
+                        <span v-if="running_action"
+                              class="spinner-border spinner-border-sm me-3"></span>
+                        {{ actionText }}
+                    </button>
+                </slot>
+            </div>
+        </div>
+    </div>
+</div>

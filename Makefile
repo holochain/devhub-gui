@@ -85,6 +85,7 @@ node_modules:		package-lock.json
 dist:			dist/webpacked.app.js
 dist/webpacked.app.js:	node_modules
 	npm run build
+	touch $@
 
 
 #
@@ -100,5 +101,5 @@ clean-files-all:	clean-remove-chaff
 	git clean -ndx
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
-web_assets.zip:		dist Makefile
+web_assets.zip:		dist dist/webpacked.app.js Makefile
 	cd dist; zip -r ../web_assets.zip ./*

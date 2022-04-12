@@ -1,7 +1,9 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("main");
 
+const json				= require('@whi/json');
 const { CruxConfig,
+	EntityArchitect,
 	...crux }			= require('@whi/crux-payload-parser');
 const { AgentClient,
 	TimeoutError }			= require('@whi/holochain-client');
@@ -15,7 +17,7 @@ log.level.trace && crux.log.setLevel("trace");
 const store_init			= require('./store.js');
 const common				= require('./common.js');
 const filters				= require('./filters.js');
-const components			= require('./components.js');
+const components			= require('./components/index.js');
 const entity_types			= require('./entity_architecture.js');
 
 const zomes_init			= require('./zome_controllers.js');
@@ -249,7 +251,7 @@ window.PersistentStorage		= {
 			],
 		    });
 		else
-		    console.log( err );
+		    console.error( err );
 	    }
 
 	},
@@ -266,6 +268,19 @@ window.PersistentStorage		= {
     });
 
     app.mixin({
+	data () {
+	    return {
+		"json":			json,
+		"Entity":		EntityArchitect.Entity,
+		"Collection":		EntityArchitect.Collection,
+
+		debug ( value ) {
+		    log.trace("JSON debug for value:", value );
+		    return json.debug( value );
+		},
+		console,
+	    };
+	},
 	"methods": {
 	    async catchStatusCodes ( status_codes, err ) {
 		if ( !Array.isArray(status_codes) )
