@@ -17,16 +17,20 @@ module.exports = {
 	"id": {
 	    "type": EntryHash,
 	},
-	"expanded": {
+	"title": {
+	    "type": String,
+	},
+	"expand": {
 	    "type": Boolean,
 	    "default": false,
+	},
+	"expandDepth": {
+	    "type": Number,
+	    "default": 0,
 	},
 	"link": {
 	    "type": Boolean,
 	    "default": true,
-	},
-	"title": {
-	    "type": String,
 	},
 	"parenRef": {
 	    "type": Boolean,
@@ -43,20 +47,23 @@ module.exports = {
 	return {
 	    "error": null,
 	    "loading": false,
-	    "extras": this.expanded,
+	    "expanded": this.expand || this.expandDepth > 0,
 	    "show_parent_ref": this.parentRef,
 
 	    "version": this.entity,
 	};
     },
     "computed": {
-	name () {
-	    return this.title || this.version.version;
+	header_prefix () {
+	    return this.title || "Version";
 	},
 	parent_id () {
 	    return this.version.for_dna instanceof EntryHash
 		? this.version.for_dna
 		: this.version.for_dna.$id;
+	},
+	child_expand_depth () {
+	    return this.expandDepth - 1;
 	},
 	zomes () {
 	    let zomes			= this.version.zomes;
@@ -73,7 +80,6 @@ module.exports = {
 		: {};
 	},
 	zome_ids () {
-	    console.log("Zomes for", this.version, this.zomes );
 	    return Object.keys( this.zomes );
 	},
     },
@@ -90,7 +96,7 @@ module.exports = {
 	    }
 	},
 	toggle_expansion () {
-	    this.extras			= !this.extras;
+	    this.expanded		= !this.expanded;
 	},
     },
     "template": __template,

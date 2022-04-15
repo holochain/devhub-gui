@@ -1,22 +1,22 @@
 <div class="card entity-card zome-card">
     <template v-if="version">
-	<div class="entity-card-header">Version: <strong>{{ name }}</strong></div>
+	<div class="entity-card-header">{{ header_prefix }}: <strong>{{ version.version }}</strong></div>
 	<div class="card-body">
 	    <loading :when="loading">
 		<div class="row mb-2">
 		    <div class="col-auto">
-			<p class="card-text text-truncate mb-1">HDK v{{ version.hdk_version }}</p>
+			<p class="card-text text-truncate mb-1">HDK {{ version.hdk_version }}</p>
 		    </div>
 		    <div class="col text-end">
 			<router-link v-if="link" class="text-decoration-none"
-				     :to="'/dnas/' + parent_id() + '/versions/' + version.$id">
+				     :to="'/dnas/' + parent_id + '/versions/' + version.$id">
 			    <holo-hash :hash="version.$id" class="float-end ms-3"></holo-hash>
 			</router-link>
 			<holo-hash v-else :hash="version.$id" class="float-end ms-3"></holo-hash>
 		    </div>
 		</div>
 
-		<template v-if="extras">
+		<template v-if="expanded">
 		    <h4 class="fs-6 mt-2">Changelog</h4>
 		    <div class="bg-light rounded-3 p-4 pb-3 mb-3">
 			{{ version.changelog || "No changelog" }}
@@ -26,10 +26,10 @@
 		<dl v-if="show_parent_ref" class="row mb-0">
 		    <dt class="col-3">Zome</dt>
 		    <dd class="col-9 mb-1" style="margin-left: -0.5em;">
-			<holo-hash :hash="parent_id()"></holo-hash>
+			<holo-hash :hash="parent_id"></holo-hash>
 		    </dd>
 		</dl>
-		<dl v-if="extras" class="row mb-0">
+		<dl v-if="expanded" class="row mb-0">
 		    <dt class="col-3">Resource Hash</dt>
 		    <dd class="col-9 mb-1 text-truncate">
 			<code>{{ version.mere_memory_hash }}</code>
@@ -42,7 +42,7 @@
 			&mdash; <span class="fw-2">{{ $filters.time( version.published_at, "weekday+date+time" ) }}</span>
 		    </dd>
 		</dl>
-		<dl v-if="extras" class="row mb-0">
+		<dl v-if="expanded" class="row mb-0">
 		    <dt class="col-3">Last Updated</dt>
 		    <dd class="col-9 mb-1">
 			{{ $filters.time( version.last_updated ) }}
@@ -51,10 +51,10 @@
 		</dl>
 
 		<div class="position-absolute bottom-0 end-0">
-		    <a v-show="!extras" @click="toggle_expansion()">
+		    <a v-show="!expanded" @click="toggle_expansion()">
 			<i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
 		    </a>
-		    <a v-show="extras" @click="toggle_expansion()">
+		    <a v-show="expanded" @click="toggle_expansion()">
 			<i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
 		    </a>
 		</div>

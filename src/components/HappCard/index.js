@@ -1,19 +1,19 @@
 const { Logger }			= require('@whi/weblogger');
-const log				= new Logger("comp/dna-card");
+const log				= new Logger("comp/happ-card");
 
 const { EntryHash,
 	...HoloHashTypes }		= require('@whi/holo-hash');
 const { Collection }			= require('@whi/entity-architect');
 
 
-const element_local_name		= "dna-card";
+const element_local_name		= "happ-card";
 
 module.exports = {
     "props": {
 	"entity": {
 	    "type": Object,
 	},
-	"versions": {
+	"releases": {
 	    "type": Array,
 	    "default": new Collection(),
 	},
@@ -34,7 +34,7 @@ module.exports = {
 	    "type": Boolean,
 	    "default": true,
 	},
-	"fetchVersions": {
+	"fetchReleases": {
 	    "type": Boolean,
 	    "default": false,
 	},
@@ -44,41 +44,41 @@ module.exports = {
 	    throw new Error(`Must provide an ID or the entity for <${element_local_name}>`);
 
 	if ( !this.entity )
-	    this.fetchDna( this.id );
+	    this.fetchHapp( this.id );
 
-	if ( this.fetchVersions )
-	    this.fetchVersionsForDna( this.id );
+	if ( this.fetchReleases )
+	    this.fetchReleasesForHapp( this.id );
 
 	return {
 	    "error": null,
 	    "loading": false,
 	    "expanded": this.expand || this.expandDepth > 0,
 
-	    "dna": this.entity,
+	    "happ": this.entity,
 	};
     },
     "computed": {
-	more_version_count () {
-	    return Math.max( 0, this.versions.length - 5 );
+	more_release_count () {
+	    return Math.max( 0, this.releases.length - 5 );
 	},
-	more_version_text () {
-	    return "more version" + ( this.more_version_count > 1 ? "s" : "" );
+	more_release_text () {
+	    return "more release" + ( this.more_release_count > 1 ? "s" : "" );
 	},
-	recent_versions () {
-	    return this.versions.items( -5, -1 );
+	recent_releases () {
+	    return this.releases.items( -5, -1 );
 	},
-	latest_version () {
-	    return this.versions.items( -1 )[0];
+	latest_release () {
+	    return this.releases.items( -1 )[0];
 	},
 	child_expand_depth () {
 	    return this.expandDepth - 1;
 	},
     },
     "methods": {
-	async fetchDna ( id ) {
+	async fetchHapp ( id ) {
 	    try {
 		this.loading		= true;
-		this.dna		= await this.$store.dispatch("fetchDna", id );
+		this.happ		= await this.$store.dispatch("fetchHapp", id );
 	    } catch (err) {
 		console.error( err );
 		this.error		= err;
@@ -86,10 +86,10 @@ module.exports = {
 		this.loading		= false;
 	    }
 	},
-	async fetchVersionsForDna ( id ) {
+	async fetchReleasesForHapp ( id ) {
 	    try {
 		this.loading		= true;
-		await this.$store.dispatch("fetchVersionsForDna", id );
+		await this.$store.dispatch("fetchReleasesForHapp", id );
 	    } catch (err) {
 		console.error( err );
 		this.error		= err;

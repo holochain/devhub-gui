@@ -1,12 +1,12 @@
 const { Logger }			= require('@whi/weblogger');
-const log				= new Logger("comp/dna-card");
+const log				= new Logger("comp/zome-card");
 
 const { EntryHash,
 	...HoloHashTypes }		= require('@whi/holo-hash');
 const { Collection }			= require('@whi/entity-architect');
 
 
-const element_local_name		= "dna-card";
+const element_local_name		= "zome-card";
 
 module.exports = {
     "props": {
@@ -14,7 +14,7 @@ module.exports = {
 	    "type": Object,
 	},
 	"versions": {
-	    "type": Array,
+	    "type": Collection,
 	    "default": new Collection(),
 	},
 
@@ -44,17 +44,17 @@ module.exports = {
 	    throw new Error(`Must provide an ID or the entity for <${element_local_name}>`);
 
 	if ( !this.entity )
-	    this.fetchDna( this.id );
+	    this.fetchZome( this.id );
 
 	if ( this.fetchVersions )
-	    this.fetchVersionsForDna( this.id );
+	    this.fetchVersionsForZome( this.id );
 
 	return {
 	    "error": null,
 	    "loading": false,
 	    "expanded": this.expand || this.expandDepth > 0,
 
-	    "dna": this.entity,
+	    "zome": this.entity,
 	};
     },
     "computed": {
@@ -75,10 +75,10 @@ module.exports = {
 	},
     },
     "methods": {
-	async fetchDna ( id ) {
+	async fetchZome ( id ) {
 	    try {
 		this.loading		= true;
-		this.dna		= await this.$store.dispatch("fetchDna", id );
+		this.zome		= await this.$store.dispatch("fetchZome", id );
 	    } catch (err) {
 		console.error( err );
 		this.error		= err;
@@ -86,10 +86,10 @@ module.exports = {
 		this.loading		= false;
 	    }
 	},
-	async fetchVersionsForDna ( id ) {
+	async fetchVersionsForZome ( id ) {
 	    try {
 		this.loading		= true;
-		await this.$store.dispatch("fetchVersionsForDna", id );
+		await this.$store.dispatch("fetchVersionsForZome", id );
 	    } catch (err) {
 		console.error( err );
 		this.error		= err;
