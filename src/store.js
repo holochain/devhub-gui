@@ -2,8 +2,9 @@ const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("store");
 
 const { HoloHash,
-	AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+	AgentPubKey }			= holohash;
+
+
 
 const DEFAULT_METADATA_STATES		= {
     "loaded": false,

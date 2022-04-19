@@ -1,7 +1,7 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dna versions");
 
-const showdown				= require('showdown');
+const { load_html }			= require('./common.js');
 const md_converter			= new showdown.Converter({
     "headerLevelStart": 3,
 });
@@ -21,7 +21,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/dnas/versions/create.html")).default,
+	    "template": await load_html("/templates/dnas/versions/create.html"),
 	    "data": function() {
 		return {
 		    "dna_id": null,
@@ -181,7 +181,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/dnas/versions/update.html")).default,
+	    "template": await load_html("/templates/dnas/versions/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -262,7 +262,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/dnas/versions/single.html")).default,
+	    "template": await load_html("/templates/dnas/versions/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,

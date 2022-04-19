@@ -1,7 +1,7 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happ releases");
 
-const showdown				= require('showdown');
+const { load_html }			= require('./common.js');
 const md_converter			= new showdown.Converter({
     "headerLevelStart": 3,
 });
@@ -21,7 +21,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/happs/releases/create.html")).default,
+	    "template": await load_html("/templates/happs/releases/create.html"),
 	    "data": function() {
 		return {
 		    "happ_id": null,
@@ -252,7 +252,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/happs/releases/update.html")).default,
+	    "template": await load_html("/templates/happs/releases/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -331,7 +331,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/happs/releases/single.html")).default,
+	    "template": await load_html("/templates/happs/releases/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,

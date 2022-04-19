@@ -4,12 +4,11 @@ const log				= new Logger("main");
 const json				= require('@whi/json');
 const { CruxConfig,
 	EntityArchitect,
-	...crux }			= require('@whi/crux-payload-parser');
+	...crux }			= CruxPayloadParser;
 const { AgentClient,
-	TimeoutError }			= require('@whi/holochain-client');
+	TimeoutError }			= HolochainClient;
 const { DnaHash,
-	AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+	AgentPubKey }			= holohash;
 
 
 log.level.trace && crux.log.setLevel("trace");
@@ -274,7 +273,7 @@ window.PersistentStorage		= {
 		"Entity":		EntityArchitect.Entity,
 		"Collection":		EntityArchitect.Collection,
 
-		debug ( value ) {
+		$debug ( value ) {
 		    log.trace("JSON debug for value:", value );
 		    return json.debug( value );
 		},
@@ -315,10 +314,10 @@ window.PersistentStorage		= {
 		}
 
 		try {
-		    this.$root.status_view_html = (await import(`./templates/${status}.html`)).default;
+		    this.$root.status_view_html = await common.load_html(`/templates/${status}.html`);
 		} catch (err) {
 		    log.error("%s", err.message, err );
-		    this.$root.status_view_html = (await import(`./templates/500.html`)).default;
+		    this.$root.status_view_html = await common.load_html(`/templates/500.html`);
 		}
 	    },
 
@@ -326,9 +325,9 @@ window.PersistentStorage		= {
 		const path_id		= this.$route.params[key];
 
 		try {
-		    return new HoloHashTypes.EntryHash( path_id );
+		    return new holohash.EntryHash( path_id );
 		} catch (err) {
-		    if ( err instanceof HoloHashTypes.HoloHashError ) {
+		    if ( err instanceof holohash.HoloHashError ) {
 			this.showStatusView( 400, {
 			    "title": "Invalid Identifier",
 			    "message": `Invalid Holo Hash in URL path`,
@@ -347,9 +346,12 @@ window.PersistentStorage		= {
 	},
     });
 
-    app.config.globalProperties.$client			= client;
-    app.config.globalProperties.$filters		= filters;
-    app.config.globalProperties.breadcrumb_mapping	= breadcrumb_mapping;
+    Object.assign( app.config.globalProperties, {
+	"$client":		client,
+	"$filters":		filters,
+	breadcrumb_mapping,
+    });
+
     app.config.errorHandler		= function (err, vm, info) {
 	log.error("Vue App Error (%s):", info, err, vm );
     };

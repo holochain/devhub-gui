@@ -1,10 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/zome-version-card");
 
-const { EntryHash,
-	...HoloHashTypes }		= require('@whi/holo-hash');
-const { Entity,
-	...EntityArchitect }		= require('@whi/entity-architect');
+const { EntryHash }			= holohash;
+const { Entity }			= CruxPayloadParser.EntityArchitect;
 
 
 const element_local_name		= "zome-version-card";

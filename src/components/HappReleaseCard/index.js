@@ -1,8 +1,7 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/happ-release-card");
 
-const { EntryHash,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+const { EntryHash }			= holohash;
 
 
 const element_local_name		= "happ-release-card";

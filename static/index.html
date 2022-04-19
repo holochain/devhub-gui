@@ -11,10 +11,17 @@
 	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 
 	<!-- Application -->
-	<script src="/vue.js"></script>
-	<script src="/vuex.js"></script>
-	<script src="/vue-router.js"></script>
-	<script src="/webpacked.app.js" async></script>
+	<script src="/dependencies/vue.js"></script>
+	<script src="/dependencies/vuex.js"></script>
+	<script src="/dependencies/vue-router.js"></script>
+
+	<script src="/dependencies/crux-payload-parser.js"></script>
+	<script src="/dependencies/holochain-client.js"></script>
+	<script src="/dependencies/holo-hash.js"></script>
+	<script src="/dependencies/showdown.js"></script>
+	<script src="/dependencies/msgpack.js"></script>
+	<script src="/dependencies/sha256.js"></script>
+	<script src="/dependencies/gzip.js"></script>
 
 	<!-- Responsive mobile-first framework -->
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
@@ -105,6 +112,8 @@
 		</main>
 	    </div>
 	</div>
+
+	<script src="/dist/webpacked.app.js" async></script>
 
 	<!-- Bootstrap Components -->
 	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"

@@ -1,15 +1,15 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zomes");
 
-const { AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+const { AgentPubKey }			= holohash;
+const { load_html }			= require('./common.js');
 
 
 module.exports = async function ( client ) {
 
     async function list () {
 	return {
-	    "template": (await import("./templates/zomes/list.html")).default,
+	    "template": await load_html("/templates/zomes/list.html"),
 	    "data": function() {
 		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
 		let agent_input		= input_cache;
@@ -115,7 +115,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/zomes/create.html")).default,
+	    "template": await load_html("/templates/zomes/create.html"),
 	    "data": function() {
 		return {
 		    "error": null,
@@ -172,7 +172,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/zomes/update.html")).default,
+	    "template": await load_html("/templates/zomes/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -251,7 +251,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/zomes/single.html")).default,
+	    "template": await load_html("/templates/zomes/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,

@@ -4,8 +4,7 @@ const log				= new Logger("comp/holo-hash");
 const { EntryHash,
 	HeaderHash,
 	DnaHash,
-	AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+	AgentPubKey }			= holohash;
 
 
 module.exports = {
@@ -13,11 +12,11 @@ module.exports = {
 	"hash": {
 	    "required": true,
 	    validator (value) {
-		if ( value instanceof HoloHashTypes.HoloHash )
+		if ( value instanceof holohash.HoloHash )
 		    return true;
 
 		try {
-		    new HoloHashTypes.HoloHash(value);
+		    new holohash.HoloHash(value);
 		    return true;
 		} catch (err) {
 		    return false;
@@ -35,7 +34,7 @@ module.exports = {
     },
     data () {
 	return {
-	    "holohash": new HoloHashTypes.HoloHash( this.hash ),
+	    "holohash": new holohash.HoloHash( this.hash ),
 	    "hash_str": String( this.hash ),
 	    "full_hash": this.expanded,
 	};

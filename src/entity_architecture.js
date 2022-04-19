@@ -1,6 +1,6 @@
 const { EntryHash,
-	AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+	AgentPubKey }			= holohash;
+
 
 module.exports = {
     "profile": {

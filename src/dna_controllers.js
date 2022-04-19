@@ -1,14 +1,14 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dnas");
 
-const { AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+const { AgentPubKey }			= holohash;
+const { load_html }			= require('./common.js');
 
 
 module.exports = async function ( client ) {
     async function list () {
 	return {
-	    "template": (await import("./templates/dnas/list.html")).default,
+	    "template": await load_html("/templates/dnas/list.html"),
 	    "data": function() {
 		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
 		let agent_input		= input_cache;
@@ -114,7 +114,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/dnas/create.html")).default,
+	    "template": await load_html("/templates/dnas/create.html"),
 	    "data": function() {
 		return {
 		    "error": null,
@@ -171,7 +171,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/dnas/update.html")).default,
+	    "template": await load_html("/templates/dnas/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -252,7 +252,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/dnas/single.html")).default,
+	    "template": await load_html("/templates/dnas/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,

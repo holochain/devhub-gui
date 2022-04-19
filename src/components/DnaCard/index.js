@@ -1,9 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/dna-card");
 
-const { EntryHash,
-	...HoloHashTypes }		= require('@whi/holo-hash');
-const { Collection }			= require('@whi/entity-architect');
+const { EntryHash }			= holohash;
+const { Collection }			= CruxPayloadParser.EntityArchitect;
 
 
 const element_local_name		= "dna-card";

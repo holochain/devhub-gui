@@ -1,8 +1,7 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("common");
 
-const { AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+const { AgentPubKey }			= holohash;
 
 
 const _debounce_timers			= {};
@@ -70,6 +69,10 @@ module.exports = {
 	    return fallbackCopyTextToClipboard( text );
 
 	await navigator.clipboard.writeText( text );
+    },
+
+    async load_html ( src ) {
+	return await (await fetch( src )).text();
     },
 
     load_file ( file ) {

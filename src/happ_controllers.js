@@ -1,10 +1,9 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happs");
 
-const { AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
-const msgpack				= require('@msgpack/msgpack');
-let sha256, gzip;
+const { AgentPubKey }			= holohash;
+const { load_html }			= require('./common.js');
+
 
 function unpack_bundle ( zipped_bytes ) {
     let msgpack_bytes			= gzip.unzip( zipped_bytes );
@@ -18,7 +17,7 @@ module.exports = async function ( client ) {
 
     async function list () {
 	return {
-	    "template": (await import("./templates/happs/list.html")).default,
+	    "template": await load_html("/templates/happs/list.html"),
 	    "data": function() {
 		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
 		let agent_input		= input_cache;
@@ -126,7 +125,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/happs/create.html")).default,
+	    "template": await load_html("/templates/happs/create.html"),
 	    "data": function() {
 		return {
 		    "error": null,
@@ -184,7 +183,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/happs/update.html")).default,
+	    "template": await load_html("/templates/happs/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -263,7 +262,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/happs/single.html")).default,
+	    "template": await load_html("/templates/happs/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -362,7 +361,7 @@ module.exports = async function ( client ) {
 
     async function upload () {
 	return {
-	    "template": (await import("./templates/happs/upload.html")).default,
+	    "template": await load_html("/templates/happs/upload.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -457,10 +456,6 @@ module.exports = async function ( client ) {
 		this.id			= this.getPathId("id");
 
 		this.refresh();
-
-		if ( sha256 === undefined )
-		    sha256			= (await import("./lazyload_sha256.js")).default;
-		gzip				= (await import("./lazyload_gzip.js")).default;
 	    },
 	    "methods": {
 		async refresh () {
