@@ -1,13 +1,11 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("tests-main");
 
-const { faker }				= require('@faker-js/faker');
 
+const { faker }				= require('@faker-js/faker');
 const { AgentPubKey,
-	EntryHash,
-	...HoloHashTypes }		= require('@whi/holo-hash');
-const { Entity,
-	...EntityArchitect }		= require('@whi/entity-architect');
+	EntryHash }			= holohash;
+const { Entity }			= CruxPayloadParser.EntityArchitect;
 
 
 crypto.randomBytes			= function ( num ) {
@@ -57,7 +55,7 @@ function ZomeVersionEntry ( opts = {} ) {
 	"last_updated":		faker.date.recent(),
 	"changelog":		faker.lorem.sentence() + "..",
 	"mere_memory_addr":	new EntryHash( crypto.randomBytes(32) ),
-	"mere_memory_hash":	faker.datatype.hexadecimal(64).slice(2).toLowerCase(),
+	"mere_memory_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
 	"hdk_version":		"v0.0.132",
 	"metadata":		{},
     };
@@ -103,6 +101,12 @@ function DnaVersionEntry ( opts = {} ) {
 	    "version":		new EntryHash( crypto.randomBytes(32) ),
 	    "resource":		new EntryHash( crypto.randomBytes(32) ),
 	    "resource_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
+	},{
+	    "name":		faker.commerce.product(),
+	    "zome":		new EntryHash( crypto.randomBytes(32) ),
+	    "version":		new EntryHash( crypto.randomBytes(32) ),
+	    "resource":		new EntryHash( crypto.randomBytes(32) ),
+	    "resource_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
 	}],
 	"metadata":		{},
     };
@@ -133,7 +137,8 @@ function HappEntry ( opts = {} ) {
 }
 
 function HappReleaseEntry ( opts = {} ) {
-    const role_id			= faker.lorem.word().toLowerCase();
+    const role_id_1			= faker.lorem.word().toLowerCase();
+    const role_id_2			= faker.lorem.word().toLowerCase();
 
     const content			= {
 	"for_happ":		opts.parent || HappEntry(),
@@ -146,9 +151,22 @@ function HappReleaseEntry ( opts = {} ) {
 	    "name":			faker.lorem.word(),
 	    "description":		faker.lorem.sentence(),
 	    "roles": [{
-		"id":			role_id,
+		"id":			role_id_1,
 		"dna": {
-		    "bundled":		"./resource_path.dna",
+		    "bundled":		"./resource_1_path.dna",
+		    "clone_limit":	0,
+		    "uid":		null,
+		    "version":		null,
+		    "properties":	null,
+		},
+		"provisioning": {
+		    "strategy":		"create",
+		    "deferred":		false,
+		},
+	    },{
+		"id":			role_id_2,
+		"dna": {
+		    "bundled":		"./resource_2_path.dna",
 		    "clone_limit":	0,
 		    "uid":		null,
 		    "version":		null,
@@ -163,7 +181,12 @@ function HappReleaseEntry ( opts = {} ) {
 	"dna_hash":		faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
 	"hdk_version":		"v0.0.132",
 	"dnas": [{
-	    "role_id":		role_id,
+	    "role_id":		role_id_1,
+	    "dna":		new EntryHash( crypto.randomBytes(32) ),
+	    "version":		new EntryHash( crypto.randomBytes(32) ),
+	    "wasm_hash":	faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),
+	},{
+	    "role_id":		role_id_2,
 	    "dna":		new EntryHash( crypto.randomBytes(32) ),
 	    "version":		new EntryHash( crypto.randomBytes(32) ),
 	    "wasm_hash":	faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),

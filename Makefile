@@ -85,6 +85,15 @@ static/dependencies/vue-router.js:			node_modules/vue-router/dist/vue-router.glo
 
 
 #
+# Testing
+#
+build-components-test:
+	cd tests/components; npx webpack
+build-components-test-watch:
+	cd tests/components; npx webpack --watch
+
+
+#
 # HTTP Server
 #
 run-simple-http-server:
