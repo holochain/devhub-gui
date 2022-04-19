@@ -12,4 +12,3 @@ tests/components/dist
 web_assets.zip
 bundled/DevHub.happ
 bundled/*.webhapp
-src/components/*.js

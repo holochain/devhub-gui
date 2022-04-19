@@ -1,0 +1,117 @@
+<page-view id="upload-dna-bundle-page">
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.name">
+	<a v-if="$dna.loaded" @click="fetchDna()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.loading }"></i>
+	</a>
+    </breadcrumbs>
+
+    <hr>
+
+    <page-header class="mb-3">
+	<template #default>
+	    <div v-if="dna">
+		<h1 class="fs-2">{{ dna.name }}</h1>
+	    </div>
+	</template>
+    </page-header>
+
+    <div class="row">
+	<div class="col-6">
+	    <dna-card v-if="dna" :id="dna.$id" :fetch-versions="true" :versions="versions" :expand="1" :link="false"></dna-card>
+	</div>
+    </div>
+
+    <div class="row">
+	<div class="col-6">
+	    <ul class="step-progress-bar my-5">
+		<li v-for="n in 5" :class="{ 'spb-step-active': step === n }">
+		    <div style="width: 1em; height: 1em;"></div>
+		    <label v-if="step === n">Upload DNA bundle</label>
+		</li>
+	    </ul>
+	</div>
+    </div>
+
+    <div class="row">
+	<div class="col-6">
+	    <h3>DNA Version</h3>
+	    <pre v-if="latest_version">{{ debug( versions ) }}</pre>
+	</div>
+    </div>
+
+    <div v-if="step === 0">
+	<h3>Upload</h3>
+
+	<form ref="form" :class="{ 'was-validated': validated }">
+	    <div class="row">
+		<div class="col-6">
+		    <loading v-if="bundle_file" :when="bundle_unpacking">
+			<div v-if="bundle_file" class="alert alert-primary alert-dismissible fade show" role="alert">
+			    <div v-html="file_valid_feedback"></div>
+			    <button type="button" class="btn-close" aria-label="Close" @click="reset_file()"></button>
+			</div>
+		    </loading>
+		</div>
+	    </div>
+
+	    <div class="row">
+		<div class="col-6">
+		    <loading v-if="!bundle_file" :when="(!!latest_version && !$dna_version.current)">
+			<div>
+			    <label class="form-label fw-6">Drag and drop DNA bundle here</label>
+			    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
+				<input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving_version" required>
+			    </input-feedback>
+			</div>
+		    </loading>
+		</div>
+	    </div>
+	</form>
+    </div>
+
+    <div v-if="step === 1">
+	<pre v-if="bundle">{{ JSON.stringify( bundle.manifest, null, 4 ) }}</pre>
+	<pre v-if="bundle">{{ debug( bundle.resources ) }}</pre>
+    </div>
+
+    <div v-if="step === 4">
+	<form ref="form" :class="{ 'was-validated': validated }">
+	    <h2 class="mt-4">Details</h2>
+
+	    <div v-if="bundle_file" class="row">
+		<div class="col-6">
+		    <label class="form-label fw-6">Version Name</label>
+		    <input-feedback>
+			<input type="text" v-model="input.name" class="form-control" :disabled="saving_version" required>
+		    </input-feedback>
+
+		    <label class="form-label fw-6">Description</label>
+		    <input-feedback>
+			<textarea v-model="input.description" class="form-control" rows="10"
+				  :disabled="saving_version" required></textarea>
+		    </input-feedback>
+		</div>
+	    </div>
+
+	    <div class="row">
+		<div class="col-6">
+		    <display-error class="mt-5" :error="error"></display-error>
+
+		    <div class="row mt-5">
+			<div class="col-6"></div>
+			<div class="col-3">
+			    <router-link to="/dnas" class="btn btn-outline-primary w-100">Cancel</router-link>
+			</div>
+			<div class="col-3">
+			    <a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving || missingZomes() }">
+				<span v-if="saving_version"
+				      class="spinner-border spinner-border-sm me-3"></span>
+				Save
+			    </a>
+			</div>
+		    </div>
+		</div>
+	    </div>
+	</form>
+    </div>
+</page-view>

@@ -61,6 +61,12 @@ module.exports = {
 		"WEBASSETS_HASH":	JSON.stringify( WEBASSETS_HASH ),
 	    },
 	}),
+	new Copy({
+	    patterns: [{
+		"from":		"src/components/*.html",
+		"to":		"components/[name].html",
+	    }],
+	}),
     ],
     stats: {
 	colors: true,

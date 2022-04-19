@@ -356,9 +356,48 @@ window.PersistentStorage		= {
 	log.error("Vue App Error (%s):", info, err, vm );
     };
 
-    for ( let tag in components ) {
-	app.component( tag, components[tag] );
+    function toKebabCase ( str ) {
+	return str.split('').map( (letter, i) => {
+	    return letter.toUpperCase() === letter
+		? `${ i !== 0 ? '-' : '' }${ letter.toLowerCase() }`
+		: letter;
+	}).join('');
     }
+
+    const components			= [
+	"Breadcrumbs",
+	"DeprecationAlert",
+	"DisplayError",
+	"HoloHash",
+	"InputFeedback",
+	"ListGroup",
+	"ListGroupItem",
+	"Loading",
+	"Modal",
+	"PageHeader",
+	"PageView",
+	"Placeholder",
+	"Search",
+
+	"ZomeCard",
+	"ZomeVersionCard",
+	"DnaCard",
+	"DnaVersionCard",
+	"HappCard",
+	"HappReleaseCard",
+    ];
+    await Promise.all(
+	components.map( async name => {
+	    const start			= Date.now();
+
+	    const tag			= toKebabCase( name );
+	    const component		= await require(`./components/${name}.js`)( tag, name );
+	    app.component( tag, component );
+
+	    log.normal("Loaded and/or added component: %s (%sms)", tag, Date.now() - start );
+	})
+    );
+    log.normal("Configured %s components for App", components.length );
 
     app.use( router );
     app.use( store );

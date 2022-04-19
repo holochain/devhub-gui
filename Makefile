@@ -39,8 +39,11 @@ build:			static-links
 static-links:\
 	static/dependencies\
 	static/dependencies/holochain-client.js\
+	static/dependencies/holochain-client.js.map\
 	static/dependencies/crux-payload-parser.js\
+	static/dependencies/crux-payload-parser.js.map\
 	static/dependencies/holo-hash.js\
+	static/dependencies/holo-hash.js.map\
 	static/dependencies/sha256.js\
 	static/dependencies/gzip.js\
 	static/dependencies/msgpack.js\
@@ -50,13 +53,19 @@ static-links:\
 	static/dependencies/vue-router.js
 static/dependencies:
 	mkdir -p $@
-static/dependencies/holochain-client.js:		node_modules/@whi/holochain-client/dist/holochain-client.bundled.js Makefile
+static/dependencies/holochain-client.js:		node_modules/@whi/holochain-client/dist/holochain-client.js Makefile
+	cp $< $@
+static/dependencies/holochain-client.js.map:		node_modules/@whi/holochain-client/dist/holochain-client.js.map Makefile
 	cp $< $@
 
-static/dependencies/crux-payload-parser.js:		node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.bundled.js Makefile
+static/dependencies/crux-payload-parser.js:		node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js Makefile
+	cp $< $@
+static/dependencies/crux-payload-parser.js.map:		node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js.map Makefile
 	cp $< $@
 
-static/dependencies/holo-hash.js:			node_modules/@whi/holo-hash/dist/holo-hash.bundled.js Makefile
+static/dependencies/holo-hash.js:			node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js Makefile
+	cp $< $@
+static/dependencies/holo-hash.js.map:			node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js.map Makefile
 	cp $< $@
 
 static/dependencies/sha256.js:				node_modules/js-sha256/src/sha256.js Makefile
@@ -159,20 +168,32 @@ clean-files-all:	clean-remove-chaff
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
 web_assets.zip:		static/dist/webpacked.app.js Makefile
-	cp node_modules/js-sha256/build/sha256.min.js				static/dependencies/sha256.js
-	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.min.js		static/dependencies/msgpack.js
-	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.min.js.map	static/dependencies/msgpack.js.map
-	cp node_modules/showdown/dist/showdown.min.js				static/dependencies/showdown.js
-	cp node_modules/showdown/dist/showdown.min.js.map			static/dependencies/showdown.js.map
-	cp node_modules/vue/dist/vue.global.prod.js				static/dependencies/vue.js
-	cp node_modules/vuex/dist/vuex.global.prod.js				static/dependencies/vuex.js
-	cp node_modules/vue-router/dist/vue-router.global.prod.js		static/dependencies/vue-router.js
+	cp node_modules/@whi/holochain-client/dist/holochain-client.prod.js		static/dependencies/holochain-client.js
+	cp node_modules/@whi/holochain-client/dist/holochain-client.prod.js.map		static/dependencies/holochain-client.js.map
+	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.prod.js	static/dependencies/crux-payload-parser.js
+	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.prod.js.map	static/dependencies/crux-payload-parser.js.map
+	cp node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.prod.js	static/dependencies/holo-hash.js
+	cp node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.prod.js.map	static/dependencies/holo-hash.js.map
+	cp node_modules/js-sha256/build/sha256.min.js					static/dependencies/sha256.js
+	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.min.js			static/dependencies/msgpack.js
+	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.min.js.map		static/dependencies/msgpack.js.map
+	cp node_modules/showdown/dist/showdown.min.js					static/dependencies/showdown.js
+	cp node_modules/showdown/dist/showdown.min.js.map				static/dependencies/showdown.js.map
+	cp node_modules/vue/dist/vue.global.prod.js					static/dependencies/vue.js
+	cp node_modules/vuex/dist/vuex.global.prod.js					static/dependencies/vuex.js
+	cp node_modules/vue-router/dist/vue-router.global.prod.js			static/dependencies/vue-router.js
 	cd static; zip -r ../web_assets.zip ./*
-	cp node_modules/js-sha256/src/sha256.js					static/dependencies/sha256.js
-	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.js		static/dependencies/msgpack.js
-	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.js.map		static/dependencies/msgpack.js.map
-	cp node_modules/showdown/dist/showdown.js				static/dependencies/showdown.js
-	cp node_modules/showdown/dist/showdown.js.map				static/dependencies/showdown.js.map
-	cp node_modules/vue/dist/vue.global.js					static/dependencies/vue.js
-	cp node_modules/vuex/dist/vuex.global.js				static/dependencies/vuex.js
-	cp node_modules/vue-router/dist/vue-router.global.js			static/dependencies/vue-router.js
+	cp node_modules/@whi/holochain-client/dist/holochain-client.js			static/dependencies/holochain-client.js
+	cp node_modules/@whi/holochain-client/dist/holochain-client.js.map		static/dependencies/holochain-client.js.map
+	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js		static/dependencies/crux-payload-parser.js
+	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js.map	static/dependencies/crux-payload-parser.js.map
+	cp node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js	static/dependencies/holo-hash.js
+	cp node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js.map	static/dependencies/holo-hash.js.map
+	cp node_modules/js-sha256/src/sha256.js						static/dependencies/sha256.js
+	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.js			static/dependencies/msgpack.js
+	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.js.map			static/dependencies/msgpack.js.map
+	cp node_modules/showdown/dist/showdown.js					static/dependencies/showdown.js
+	cp node_modules/showdown/dist/showdown.js.map					static/dependencies/showdown.js.map
+	cp node_modules/vue/dist/vue.global.js						static/dependencies/vue.js
+	cp node_modules/vuex/dist/vuex.global.js					static/dependencies/vuex.js
+	cp node_modules/vue-router/dist/vue-router.global.js				static/dependencies/vue-router.js

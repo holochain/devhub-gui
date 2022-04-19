@@ -20,8 +20,8 @@
   "dependencies": {
     "@babel/runtime": "^7.15.3",
     "@msgpack/msgpack": "^2.7.1",
-    "@whi/crux-payload-parser": "^0.1.0",
-    "@whi/holochain-client": "^0.24.2",
+    "@whi/crux-payload-parser": "^0.1.3",
+    "@whi/holochain-client": "^0.32.1",
     "@whi/weblogger": "^0.1.4",
     "gzip-js": "^0.3.2",
     "js-sha256": "^0.9.0",
