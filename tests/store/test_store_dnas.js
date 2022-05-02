@@ -30,6 +30,10 @@ function dna_action_tests () {
 	store				= await store_init();
     });
 
+    after(async () => {
+	await store.state.client.close();
+    });
+
     let zome_id, zome_version_id, dna_id, dna_version_id;
 
     it("should test Zome store actions", async function () {

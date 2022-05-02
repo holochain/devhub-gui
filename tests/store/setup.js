@@ -6,7 +6,6 @@ const log				= require('@whi/stdlog')(path.basename( __filename ), {
 const fs				= require('fs');
 const HoloHashes			= require('@whi/holo-hash');
 const { LocalStorage }			= require('node-localstorage');
-const { mock_caller }			= require('../mock_call.js');
 
 
 global.Vuex				= require('vuex');
@@ -39,12 +38,14 @@ Object.assign( global.process.env, {
 });
 
 const client_init			= require('../../src/client.js');
-
-
-// Required by: /src/store.js
-
 const store_init			= require('../../src/store.js');
 global.window				= undefined;
+
+
+// Required by: ../mock_call.js
+global.crypto				= require('crypto');
+
+const { mock_caller }			= require('../mock_call.js');
 
 
 module.exports				= {

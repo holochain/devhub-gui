@@ -105,6 +105,7 @@ module.exports = async function ( client ) {
     return new Vuex.Store({
 	state () {
 	    return {
+		client,
 		"entities": {},
 		"collections": {},
 		"metadata": {},
@@ -351,7 +352,7 @@ module.exports = async function ( client ) {
 		log.debug("Getting dna %s", () => [
 		    fmt_client_args( dna, zome, func, args ) ]);
 		try {
-		    const resp			= await client.call( dna, zome, func, args, timeout );
+		    const resp		= await client.call( dna, zome, func, args, timeout );
 		    log.trace("Received response:", resp );
 
 		    return resp;
@@ -363,43 +364,52 @@ module.exports = async function ( client ) {
 	    },
 	    async fetchResource ({ dispatch, commit }, [ path, dna, zome, func, args, timeout ]) {
 		commit("signalLoading", path );
-		try {
-		    return await dispatch("callClient", [ dna, zome, func, args, timeout ]);
-		} finally {
-		    commit("recordLoaded", path );
-		}
+
+		const resource		= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
+
+		// Should use a different cache because resources are not required to be instance of Entity
+		commit("cacheEntity", [ path, resource ] );
+		commit("recordLoaded", path );
+
+		return resource;
 	    },
 	    async fetchEntity ({ dispatch, commit }, [ path, dna, zome, func, args, timeout ]) {
-		const entity		= await dispatch("fetchResource", [ path, dna, zome, func, args, timeout ]);
+		commit("signalLoading", path );
+
+		const entity		= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
 
 		if ( entity.constructor.name !== "Entity" )
 		    log.warn("Expected instance of Entity for request %s; received type '%s'", fmt_client_args( dna, zome, func, args ), typeof entity );
 
 		commit("cacheEntity", [ path, entity ] );
+		commit("recordLoaded", path );
 
 		return entity;
 	    },
 	    async fetchCollection ({ dispatch, commit }, [ path, dna, zome, func, args, timeout ]) {
-		const collection		= await dispatch("fetchResource", [ path, dna, zome, func, args, timeout ]);
+		commit("signalLoading", path );
+
+		const collection	= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
 
 		if ( collection.constructor.name !== "Collection" )
 		    log.warn("Expected instance of Collection for request %s; received type '%s'", fmt_client_args( dna, zome, func, args ), typeof collection );
 
 		commit("cacheCollection", [ path, collection ] );
+		commit("recordLoaded", path );
 
 		return collection;
 	    },
 	    expireEntity ({ commit }, [ path_fn_name, id ] ) {
-		const path			= dataTypePath[ path_fn_name ]( id );
+		const path		= dataTypePath[ path_fn_name ]( id );
 
 		commit("expireEntity", path );
 	    },
 
 	    // Create
 	    async createEntity ({ dispatch, commit }, [ path_fn, dna, zome, func, args, timeout ]) {
-		const entity			= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
+		const entity		= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
 		log.debug("Created Entity with ID: %s", String(entity.$id) );
-		const path			= path_fn( entity.$id );
+		const path		= path_fn( entity.$id );
 
 		commit("cacheEntity", [ path, entity ] );
 		commit("metadata", [ path, { "writable": true }] );
@@ -412,7 +422,7 @@ module.exports = async function ( client ) {
 
 		try {
 		    // log.normal("Updating Zome (%s)", String(entity.$addr) );
-		    const entity		= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
+		    const entity	= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
 
 		    commit("cacheEntity", [ path, entity ] );
 
@@ -440,7 +450,7 @@ module.exports = async function ( client ) {
 
 		try {
 		    // log.normal("Deprecating DNA (%s) because: %s", String(entity.$addr), message );
-		    const entity		= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
+		    const entity	= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
 
 		    commit("cacheEntity", [ path, entity ] );
 
@@ -461,14 +471,16 @@ module.exports = async function ( client ) {
 	    },
 
 	    async fetchAgent ({ dispatch, commit }) {
-		const path			= "me";
+		const path		= "me";
+
+		commit("signalLoading", path );
 
 		log.debug("Getting agent info (whoami)");
-		const info			= await dispatch("fetchResource", [
-		    path, "dnarepo", "dna_library", "whoami"
+		const info		= await dispatch("callClient", [
+		    "dnarepo", "dna_library", "whoami"
 		]);
 
-		const resp			= {
+		const resp		= {
 		    "pubkey": {
 			"initial": new AgentPubKey( info.agent_initial_pubkey ),
 			"current": new AgentPubKey( info.agent_latest_pubkey ),
@@ -476,6 +488,7 @@ module.exports = async function ( client ) {
 		};
 
 		commit("cacheEntity", [ path, resp ] );
+		commit("recordLoaded", path );
 
 		return resp;
 	    },
@@ -618,19 +631,22 @@ module.exports = async function ( client ) {
 	    async fetchZomeVersionWasm ({ dispatch, commit }, addr ) {
 		const path		= dataTypePath.zomeVersionWasm( addr );
 
+		commit("signalLoading", path );
+
 		log.debug("Getting agent info (whoami)");
-		const result			= await dispatch("fetchResource", [
-		    path, "dnarepo", "mere_memory", "retrieve_bytes", addr
+		const result		= await dispatch("callClient", [
+		    "dnarepo", "mere_memory", "retrieve_bytes", addr
 		]);
-		const wasm_bytes		= new Uint8Array( result );
+		const wasm_bytes	= new Uint8Array( result );
 
 		commit("cacheEntity", [ path, wasm_bytes ] );
+		commit("recordLoaded", path );
 
 		return wasm_bytes;
 	    },
 
 	    async createZomeVersion ({ dispatch }, [ zome_id, input ] ) {
-		input.for_zome			= zome_id;
+		input.for_zome		= zome_id;
 
 		log.normal("Creating Zome Version: #%s", input.version );
 		return await dispatch("createEntity", [
@@ -751,18 +767,23 @@ module.exports = async function ( client ) {
 	    async fetchDnaVersionPackage ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.dnaVersionPackage( id );
 
+		commit("signalLoading", path );
+
 		log.debug("Getting DNA package %s", String(id) );
-		const pack		= await dispatch("fetchResource", [
-		    path, "dnarepo", "dna_library", "get_dna_package", { id }
+		const pack		= await dispatch("callClient", [
+		    "dnarepo", "dna_library", "get_dna_package", { id }
 		]);
 
+		const wasm_bytes	= new Uint8Array( result );
+
 		commit("cacheEntity", [ path, wasm_bytes ] );
+		commit("recordLoaded", path );
 
 		return pack;
 	    },
 
 	    async createDnaVersion ({ dispatch }, [ dna_id, input ] ) {
-		input.for_dna			= dna_id;
+		input.for_dna		= dna_id;
 
 		log.normal("Creating DNA Version: #%s", input.version );
 		return await dispatch("createEntity", [
@@ -886,14 +907,17 @@ module.exports = async function ( client ) {
 	    async fetchHappReleasePackage ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.happReleasePackage( id );
 
-		log.debug("Getting hApp package %s", String(id) );
-		const bytes		= new Uint8Array(
-		    await dispatch("fetchResource", [
-			path, "happs", "happ_library", "get_release_package", { id }, 30_000
-		    ])
-		);
+		commit("signalLoading", path );
 
-		commit("cacheEntity", [ path, bytes ] );
+		log.debug("Getting hApp package %s", String(id) );
+		const result		= await dispatch("callClient", [
+		    "happs", "happ_library", "get_release_package", { id }, 30_000
+		]);
+
+		const wasm_bytes	= new Uint8Array( result );
+
+		commit("cacheEntity", [ path, wasm_bytes ] );
+		commit("recordLoaded", path );
 
 		return bytes;
 	    },
@@ -901,20 +925,23 @@ module.exports = async function ( client ) {
 	    async fetchWebhappReleasePackage ({ dispatch, commit }, { name, id } ) {
 		const path		= dataTypePath.happReleasePackage( id + "-webhapp" );
 
+		commit("signalLoading", path );
+
 		log.debug("Getting hApp package %s", String(id) );
-		const bytes		= new Uint8Array(
-		    await dispatch("fetchResource", [
-			path, "happs", "happ_library", "get_webhapp_package", { name, id }, 30_000
-		    ])
-		);
+		const result			= await dispatch("callClient", [
+		    "happs", "happ_library", "get_webhapp_package", { name, id }, 30_000
+		]);
+
+		const wasm_bytes	= new Uint8Array( result );
 
 		commit("cacheEntity", [ path, bytes ] );
+		commit("recordLoaded", path );
 
 		return bytes;
 	    },
 
 	    async createHappRelease ({ dispatch }, [ happ_id, input ] ) {
-		input.for_happ			= happ_id;
+		input.for_happ		= happ_id;
 
 		log.normal("Creating hApp Release for hApp (%s): %s", String(happ_id), input.name );
 		return await dispatch("createEntity", [
@@ -955,8 +982,6 @@ module.exports = async function ( client ) {
 		const hdkvs		= await dispatch("fetchResource", [
 		    path, "happs", "happ_library", "get_webhapp_package", { name, id }, 30_000
 		]);
-
-		commit("cacheEntity", [ path, hdkvs ] );
 
 		return hdkvs;
 	    },

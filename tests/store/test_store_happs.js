@@ -30,6 +30,10 @@ function happ_action_tests () {
 	store				= await store_init();
     });
 
+    after(async () => {
+	await store.state.client.close();
+    });
+
     let happ_id, happ_release_id;
 
     it("should test hApp store actions", async function () {

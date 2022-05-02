@@ -1,5 +1,4 @@
 
-// const crypto				= require('crypto');
 const { EntryHash,
 	AgentPubKey }			= require('@whi/holo-hash');
 const { Entity, Collection }		= require('@whi/entity-architect');
@@ -13,8 +12,10 @@ const { WhoAmI,
 	HappReleaseEntry }		= require('./mock_entities.js');
 
 
-crypto.randomBytes			= function ( num ) {
-    return crypto.getRandomValues( new Uint8Array(num) );
+if ( !crypto.randomBytes ) {
+    crypto.randomBytes			= function ( num ) {
+	return crypto.getRandomValues( new Uint8Array(num) );
+    }
 }
 
 

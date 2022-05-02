@@ -1,13 +1,14 @@
 
-// const crypto				= require('crypto');
 const repr				= require('@whi/repr');
 const { faker }				= require('@faker-js/faker');
 const { AgentPubKey,
 	EntryHash }			= require('@whi/holo-hash');
 
 
-crypto.randomBytes			= function ( num ) {
-    return crypto.getRandomValues( new Uint8Array(num) );
+if ( !crypto.randomBytes ) {
+    crypto.randomBytes			= function ( num ) {
+	return crypto.getRandomValues( new Uint8Array(num) );
+    }
 }
 
 
