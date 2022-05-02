@@ -1,33 +1,15 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/dna-card");
 
-const { load_html }			= require('../common.js');
 const { EntryHash }			= holohash;
-const { Entity, Collection }		= CruxPayloadParser.EntityArchitect;
 
 
-module.exports = async function ( element_local_name, component_name ) {
+module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
-	    "entity": {
-		"type": Entity,
-	    },
-	    "versions": {
-		"type": Array,
-		"default": new Collection(),
-	    },
-
-	    // Only initial value is used
 	    "id": {
 		"type": EntryHash,
-	    },
-	    "expand": {
-		"type": Boolean,
-		"default": false,
-	    },
-	    "expandDepth": {
-		"type": Number,
-		"default": 0,
+		"required": true,
 	    },
 	    "link": {
 		"type": Boolean,
@@ -37,37 +19,39 @@ module.exports = async function ( element_local_name, component_name ) {
 		"type": Boolean,
 		"default": false,
 	    },
+
+	    // Only initial value is used
+	    "expand": {
+		"type": Boolean,
+		"default": false,
+	    },
+	    "expandDepth": {
+		"type": Number,
+		"default": 0,
+	    },
 	},
 	data () {
-	    if ( !(this.id || this.entity) )
-		throw new Error(`Must provide an ID or the entity for <${element_local_name}>`);
-
-	    if ( !this.entity )
-		this.fetchDna( this.id );
-
-	    if ( this.fetchVersions )
-		this.fetchVersionsForDna( this.id );
-
+	    log.info("DNA Card: %s", String(this.id) );
 	    return {
 		"error": null,
 		"expanded": this.expand || this.expandDepth > 0,
-
-		// "dna": this.entity,
 	    };
 	},
 	"computed": {
-	    dna_id () {
-		console.log("compute dna_id:", this.entity );
-		return this.entity
-		    ? this.entity.$id
-		    : this.id;
-	    },
 	    dna () {
-		return this.$store.getters.dna( this.dna_id ).entity;
+		return this.$store.getters.dna( this.id );
 	    },
 	    $dna () {
-		return this.$store.getters.dna( this.dna_id ).metadata;
+		return this.$store.getters.$dna( this.id );
 	    },
+
+	    versions () {
+		return this.$store.getters.dna_versions( this.id );
+	    },
+	    $versions () {
+		return this.$store.getters.$dna_versions( this.id );
+	    },
+
 	    more_version_count () {
 		return Math.max( 0, this.versions.length - 5 );
 	    },
@@ -84,27 +68,17 @@ module.exports = async function ( element_local_name, component_name ) {
 		return this.expandDepth - 1;
 	    },
 	},
+	created () {
+	    if ( !this.dna )
+		this.$store.dispatch("fetchDna", this.id );
+
+	    if ( !this.versions.length )
+		this.$store.dispatch("fetchVersionsForDna", this.id );
+	},
 	"methods": {
-	    async fetchDna ( id ) {
-		try {
-		    await this.$store.dispatch("fetchDna", id );
-		} catch (err) {
-		    console.error( err );
-		    this.error		= err;
-		}
-	    },
-	    async fetchVersionsForDna ( id ) {
-		try {
-		    await this.$store.dispatch("fetchVersionsForDna", id );
-		} catch (err) {
-		    console.error( err );
-		    this.error		= err;
-		}
-	    },
 	    toggle_expansion () {
 		this.expanded		= !this.expanded;
 	    },
 	},
-	"template": await load_html(`/dist/components/${component_name}.html`),
     };
 }

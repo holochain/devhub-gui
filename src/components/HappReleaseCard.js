@@ -1,24 +1,25 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/happ-release-card");
 
-const { load_html }			= require('../common.js');
 const { EntryHash }			= holohash;
 
 
-module.exports = async function ( element_local_name, component_name ) {
+module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
-	    "entity": {
-		"type": Object,
-	    },
-
-	    // Only initial value is used
 	    "id": {
 		"type": EntryHash,
+		"required": true,
 	    },
 	    "title": {
 		"type": String,
 	    },
+	    "link": {
+		"type": Boolean,
+		"default": true,
+	    },
+
+	    // Only initial value is used
 	    "expand": {
 		"type": Boolean,
 		"default": false,
@@ -27,32 +28,27 @@ module.exports = async function ( element_local_name, component_name ) {
 		"type": Number,
 		"default": 0,
 	    },
-	    "link": {
-		"type": Boolean,
-		"default": true,
-	    },
 	    "parenRef": {
 		"type": Boolean,
 		"default": true,
 	    },
 	},
 	data () {
-	    if ( !(this.id || this.entity) )
-		throw new Error(`Must provide an 'id' or the 'entity' for <${element_local_name}>`);
-
-	    if ( !this.entity )
-		this.fetchHappRelease( this.id );
-
+	    log.info("hApp Card: %s", String(this.id) );
 	    return {
 		"error": null,
-		"loading": false,
 		"expanded": this.expand || this.expandDepth > 0,
 		"show_parent_ref": this.parentRef,
-
-		"release": this.entity,
 	    };
 	},
 	"computed": {
+	    release () {
+		return this.$store.getters.happ_release( this.id );
+	    },
+	    $release () {
+		return this.$store.getters.$happ_release( this.id );
+	    },
+
 	    header_prefix () {
 		return this.title || "Release";
 	    },
@@ -64,40 +60,38 @@ module.exports = async function ( element_local_name, component_name ) {
 	    child_expand_depth () {
 		return this.expandDepth - 1;
 	    },
-	    dnas () {
-		let dnas			= this.release.dnas;
 
-		if ( Array.isArray( dnas ) ) {
-		    dnas			= dnas.reduce( (acc, dna_ref) => {
-			acc[dna_ref.role_id]	= dna_ref;
-			return acc;
-		    }, {});
+	    dnas () {
+		const dnas		= {};
+
+		if ( !this.release )
+		    return dnas;
+
+		if ( Array.isArray( this.release.dnas ) ) {
+		    for ( let ref of this.release.dnas )
+			dnas[ref.role_id] = ref.version;
+		} else {
+		    for ( let role_id in this.release.dnas )
+			dnas[role_id]	= this.release.dnas[role_id].$id;
 		}
 
-		return this.release
-		    ? dnas
-		    : {};
+		return dnas;
 	    },
-	    dna_ids () {
+	    dna_roles () {
 		return Object.keys( this.dnas );
 	    },
+	    dna_ids () {
+		return Object.values( this.dnas );
+	    },
+	},
+	created () {
+	    if ( !this.release )
+		this.$store.dispatch("fetchHappRelease", this.id );
 	},
 	"methods": {
-	    async fetchHappRelease ( id ) {
-		try {
-		    this.loading		= true;
-		    this.release		= await this.$store.dispatch("fetchHappRelease", id );
-		} catch (err) {
-		    console.error( err );
-		    this.error		= err;
-		} finally {
-		    this.loading		= false;
-		}
-	    },
 	    toggle_expansion () {
 		this.expanded		= !this.expanded;
 	    },
 	},
-	"template": await load_html(`/dist/components/${component_name}.html`),
     };
 }

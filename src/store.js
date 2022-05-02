@@ -101,7 +101,6 @@ function fmt_client_args ( dna, zome, func, args ) {
 }
 
 
-
 module.exports = async function ( client ) {
     return new Vuex.Store({
 	state () {
@@ -112,7 +111,7 @@ module.exports = async function ( client ) {
 	    };
 	},
 	"getters": {
-	    isExpired: ( state, getters ) => ( path ) => {
+	    isExpired: ( _, getters ) => ( path ) => {
 		return getters.metadata( path ).stored_at + CACHE_EXPIRATION_LIMIT < Date.now();
 	    },
 	    entity: ( state, getters ) => ( path ) => {
@@ -134,7 +133,7 @@ module.exports = async function ( client ) {
 	    //
 	    // Agent
 	    //
-	    agent: ( state, getters ) => {
+	    agent: ( _, getters ) => {
 		const path		= "me";
 		return {
 		    "entity":		getters.entity( path ),
@@ -145,47 +144,47 @@ module.exports = async function ( client ) {
 	    //
 	    // Zome
 	    //
-	    zomes: ( state, getters ) => ( agent = "me" ) => {
+	    zomes: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.zomes( agent );
 		return getters.collection( path );
 	    },
-	    $zomes: ( state, getters ) => ( agent = "me" ) => {
+	    $zomes: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.zomes( agent );
 		return getters.metadata( path );
 	    },
 
-	    zome: ( state, getters ) => ( id ) => {
+	    zome: ( _, getters ) => ( id ) => {
 		const path		= dataTypePath.zome( id );
 		return getters.entity( path );
 	    },
-	    $zome: ( state, getters ) => ( id ) => {
+	    $zome: ( _, getters ) => ( id ) => {
 		const path		= dataTypePath.zome( id );
 		return getters.metadata( path );
 	    },
 
-	    zome_versions: ( state, getters ) => ( zome_id ) =>  {
+	    zome_versions: ( _, getters ) => ( zome_id ) =>  {
 		const path		= dataTypePath.zomeVersions( zome_id );
 		return getters.collection( path );
 	    },
-	    $zome_versions: ( state, getters ) => ( zome_id ) => {
+	    $zome_versions: ( _, getters ) => ( zome_id ) => {
 		const path		= dataTypePath.zomeVersions( zome_id );
 		return getters.metadata( path );
 	    },
 
-	    zome_version: ( state, getters ) => ( id ) =>  {
+	    zome_version: ( _, getters ) => ( id ) =>  {
 		const path		= dataTypePath.zomeVersion( id );
 		return getters.entity( path );
 	    },
-	    $zome_version: ( state, getters ) => ( id ) => {
+	    $zome_version: ( _, getters ) => ( id ) => {
 		const path		= dataTypePath.zomeVersion( id );
 		return getters.metadata( path );
 	    },
 
-	    // zome_version_wasm: ( state, getters ) => ( addr ) =>  {
+	    // zome_version_wasm: ( _, getters ) => ( addr ) =>  {
 	    // 	const path		= dataTypePath.zomeVersionWasm( addr );
 	    // 	return getters.entity( path );
 	    // },
-	    $zome_version_wasm: ( state, getters ) => ( agent = "me" ) => {
+	    $zome_version_wasm: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.zomeVersionWasm( addr );
 		return getters.metadata( path );
 	    },
@@ -193,43 +192,43 @@ module.exports = async function ( client ) {
 	    //
 	    // DNA
 	    //
-	    dnas: ( state, getters ) => ( agent = "me" ) => {
+	    dnas: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.dnas( agent );
 		return getters.collection( path );
 	    },
-	    $dnas: ( state, getters ) => ( agent = "me" ) => {
+	    $dnas: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.dnas( agent );
 		return getters.metadata( path );
 	    },
 
-	    dna: ( state, getters ) => ( id ) => {
+	    dna: ( _, getters ) => ( id ) => {
 		const path		= dataTypePath.dna( id );
 		return getters.entity( path );
 	    },
-	    $dna: ( state, getters ) => ( id ) => {
+	    $dna: ( _, getters ) => ( id ) => {
 		const path		= dataTypePath.dna( id );
 		return getters.metadata( path );
 	    },
 
-	    dna_versions: ( state, getters ) => ( dna_id ) =>  {
+	    dna_versions: ( _, getters ) => ( dna_id ) =>  {
 		const path		= dataTypePath.dnaVersions( dna_id );
 		return getters.collection( path );
 	    },
-	    $dna_versions: ( state, getters ) => ( dna_id ) =>  {
+	    $dna_versions: ( _, getters ) => ( dna_id ) =>  {
 		const path		= dataTypePath.dnaVersions( dna_id );
 		return getters.metadata( path );
 	    },
 
-	    dna_version: ( state, getters ) => ( id ) =>  {
+	    dna_version: ( _, getters ) => ( id ) =>  {
 		const path		= dataTypePath.dnaVersion( id );
 		return getters.entity( path );
 	    },
-	    $dna_version: ( state, getters ) => ( id ) =>  {
+	    $dna_version: ( _, getters ) => ( id ) =>  {
 		const path		= dataTypePath.dnaVersion( id );
 		return getters.metadata( path );
 	    },
 
-	    $dna_version_package: ( state, getters ) => ( addr ) =>  {
+	    $dna_version_package: ( _, getters ) => ( addr ) =>  {
 		const path		= dataTypePath.dnaVersionPackage( addr );
 		return getters.metadata( path );
 	    },
@@ -237,47 +236,47 @@ module.exports = async function ( client ) {
 	    //
 	    // hApp
 	    //
-	    happs: ( state, getters ) => ( agent = "me" ) => {
+	    happs: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.happs( agent );
 		return getters.collection( path );
 	    },
-	    $happs: ( state, getters ) => ( agent = "me" ) => {
+	    $happs: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.happs( agent );
 		return getters.metadata( path );
 	    },
 
-	    happ: ( state, getters ) => ( id ) => {
+	    happ: ( _, getters ) => ( id ) => {
 		const path		= dataTypePath.happ( id );
 		return getters.entity( path );
 	    },
-	    $happ: ( state, getters ) => ( id ) => {
+	    $happ: ( _, getters ) => ( id ) => {
 		const path		= dataTypePath.happ( id );
 		return getters.metadata( path );
 	    },
 
-	    happ_releases: ( state, getters ) => ( happ_id ) =>  {
+	    happ_releases: ( _, getters ) => ( happ_id ) =>  {
 		const path		= dataTypePath.happReleases( happ_id );
 		return getters.collection( path );
 	    },
-	    $happ_releases: ( state, getters ) => ( happ_id ) =>  {
+	    $happ_releases: ( _, getters ) => ( happ_id ) =>  {
 		const path		= dataTypePath.happReleases( happ_id );
 		return getters.metadata( path );
 	    },
 
-	    happ_release: ( state, getters ) => ( id ) =>  {
+	    happ_release: ( _, getters ) => ( id ) =>  {
 		const path		= dataTypePath.happRelease( id );
 		return getters.entity( path );
 	    },
-	    $happ_release: ( state, getters ) => ( id ) =>  {
+	    $happ_release: ( _, getters ) => ( id ) =>  {
 		const path		= dataTypePath.happRelease( id );
 		return getters.metadata( path );
 	    },
 
-	    // happ_release_package: ( state, getters ) => ( addr ) =>  {
+	    // happ_release_package: ( _, getters ) => ( addr ) =>  {
 	    // 	const path		= dataTypePath.happReleasePackage( addr );
 	    // 	return getters.entity( path );
 	    // },
-	    $happ_release_package: ( state, getters ) => ( addr ) =>  {
+	    $happ_release_package: ( _, getters ) => ( addr ) =>  {
 		const path		= dataTypePath.happReleasePackage( addr );
 		return getters.metadata( path );
 	    },
@@ -285,11 +284,11 @@ module.exports = async function ( client ) {
 	    //
 	    // Miscellaneous
 	    //
-	    hdk_versions: ( state, getters ) => {
+	    hdk_versions: ( _, getters ) => {
 		const path		= dataTypePath.hdkVersions();
 		return getters.collection( path );
 	    },
-	    $hdk_versions: ( state, getters ) => {
+	    $hdk_versions: ( _, getters ) => {
 		const path		= dataTypePath.hdkVersions();
 		return getters.metadata( path );
 	    },
@@ -353,7 +352,7 @@ module.exports = async function ( client ) {
 		    fmt_client_args( dna, zome, func, args ) ]);
 		try {
 		    const resp			= await client.call( dna, zome, func, args, timeout );
-		    log.trace("Received response: %s", resp );
+		    log.trace("Received response:", resp );
 
 		    return resp;
 		} catch (err) {
@@ -373,7 +372,7 @@ module.exports = async function ( client ) {
 	    async fetchEntity ({ dispatch, commit }, [ path, dna, zome, func, args, timeout ]) {
 		const entity		= await dispatch("fetchResource", [ path, dna, zome, func, args, timeout ]);
 
-		if ( !(entity instanceof Entity ) )
+		if ( entity.constructor.name !== "Entity" )
 		    log.warn("Expected instance of Entity for request %s; received type '%s'", fmt_client_args( dna, zome, func, args ), typeof entity );
 
 		commit("cacheEntity", [ path, entity ] );
@@ -383,7 +382,7 @@ module.exports = async function ( client ) {
 	    async fetchCollection ({ dispatch, commit }, [ path, dna, zome, func, args, timeout ]) {
 		const collection		= await dispatch("fetchResource", [ path, dna, zome, func, args, timeout ]);
 
-		if ( !(collection instanceof Collection ) )
+		if ( collection.constructor.name !== "Collection" )
 		    log.warn("Expected instance of Collection for request %s; received type '%s'", fmt_client_args( dna, zome, func, args ), typeof collection );
 
 		commit("cacheCollection", [ path, collection ] );
@@ -399,6 +398,7 @@ module.exports = async function ( client ) {
 	    // Create
 	    async createEntity ({ dispatch, commit }, [ path_fn, dna, zome, func, args, timeout ]) {
 		const entity			= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
+		log.debug("Created Entity with ID: %s", String(entity.$id) );
 		const path			= path_fn( entity.$id );
 
 		commit("cacheEntity", [ path, entity ] );
@@ -619,11 +619,10 @@ module.exports = async function ( client ) {
 		const path		= dataTypePath.zomeVersionWasm( addr );
 
 		log.debug("Getting agent info (whoami)");
-		const wasm_bytes		= new Uint8Array(
-		    await dispatch("fetchResource", [
-			path, "dnarepo", "mere_memory", "retrieve_bytes", addr
-		    ])
-		);
+		const result			= await dispatch("fetchResource", [
+		    path, "dnarepo", "mere_memory", "retrieve_bytes", addr
+		]);
+		const wasm_bytes		= new Uint8Array( result );
 
 		commit("cacheEntity", [ path, wasm_bytes ] );
 
@@ -823,7 +822,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async createHapp ({ dispatch }, input ) {
-		log.normal("Creating Happ: %s", input.name );
+		log.normal("Creating Happ: %s", input.title );
 		return await dispatch("createEntity", [
 		    dataTypePath.happ, "happs", "happ_library", "create_happ", input
 		]);
@@ -917,7 +916,7 @@ module.exports = async function ( client ) {
 	    async createHappRelease ({ dispatch }, [ happ_id, input ] ) {
 		input.for_happ			= happ_id;
 
-		log.normal("Creating Happ Release: #%s", input.name );
+		log.normal("Creating hApp Release for hApp (%s): %s", String(happ_id), input.name );
 		return await dispatch("createEntity", [
 		    dataTypePath.happRelease, "happs", "happ_library", "create_happ_release", input
 		]);

@@ -1,7 +1,9 @@
+const fs			= require('fs');
 const path			= require('path');
+const crypto			= require('crypto');
 const webpack			= require('webpack');
 const TerserPlugin		= require("terser-webpack-plugin");
-const fs			= require('fs');
+const { DnaHash }		= require('@whi/holo-hash');
 
 
 module.exports = {
@@ -42,6 +44,12 @@ module.exports = {
 	    // Vue says to do this - https://github.com/vuejs/vue-next/tree/master/packages/vue#bundler-build-feature-flags
 	    "__VUE_OPTIONS_API__":	JSON.stringify( true ),
 	    "__VUE_PROD_DEVTOOLS__":	JSON.stringify( false ),
+	    "WEBPACK_MODE":		JSON.stringify( "development" ),
+	    "process.env": {
+		"DNAREPO_HASH":		JSON.stringify( String(new DnaHash( crypto.randomBytes(32) )) ),
+		"HAPPS_HASH":		JSON.stringify( String(new DnaHash( crypto.randomBytes(32) )) ),
+		"WEBASSETS_HASH":	JSON.stringify( String(new DnaHash( crypto.randomBytes(32) )) ),
+	    },
 	}),
     ],
     stats: {

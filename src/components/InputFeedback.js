@@ -1,10 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/input-feedback");
 
-const { load_html }			= require('../common.js');
 
-
-module.exports = async function ( element_local_name, component_name ) {
+module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "validator": {
@@ -123,6 +121,5 @@ module.exports = async function ( element_local_name, component_name ) {
 		}
 	    },
 	},
-	"template": await load_html(`/dist/components/${component_name}.html`),
     };
 }

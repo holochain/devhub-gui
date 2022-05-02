@@ -105,6 +105,8 @@ test-build-components:
 	cd tests/components; npx webpack
 test-build-components-watch:
 	cd tests/components; npx webpack --watch
+test-components-server:
+	python3 -m http.server 8765
 
 
 #

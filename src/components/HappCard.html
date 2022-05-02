@@ -1,78 +1,76 @@
 <div class="card entity-card happ-card">
-    <template v-if="happ">
+    <loading :when="!happ.current">
 	<div class="entity-card-header"><strong>{{ happ.title }}</strong> {{ happ.subtitle }}</div>
 	<div class="card-body">
-	    <loading :when="loading">
-		<div class="row mb-2">
-		    <div class="col-auto">
-			<p class="card-text text-truncate mb-1">{{ happ.description || "No description" }}</p>
-		    </div>
-		    <div class="col text-end">
-			<router-link v-if="link" class="text-decoration-none"
-				     :to="'/happs/' + happ.$id">
-			    <holo-hash :hash="happ.$id" class="float-end ms-3"></holo-hash>
-			</router-link>
-			<holo-hash v-else :hash="happ.$id" class="float-end ms-3"></holo-hash>
-		    </div>
+	    <div class="row mb-2">
+		<div class="col-auto">
+		    <p class="card-text text-truncate mb-1">{{ happ.description || "No description" }}</p>
 		</div>
+		<div class="col text-end">
+		    <router-link v-if="link" class="text-decoration-none"
+				 :to="'/happs/' + happ.$id">
+			<holo-hash :hash="happ.$id" class="float-end ms-3"></holo-hash>
+		    </router-link>
+		    <holo-hash v-else :hash="happ.$id" class="float-end ms-3"></holo-hash>
+		</div>
+	    </div>
 
-		<dl v-if="expanded" class="row mb-0">
-		    <dt class="col-3">Author ID</dt>
-		    <dd class="col-9 mb-1" style="margin-left: -0.5em;">
-			<holo-hash :hash="happ.designer" class="agent-badge"></holo-hash>
-		    </dd>
-		    <dt class="col-3">Tags</dt>
-		    <dd v-if="happ.tags && happ.tags.length" class="col-9 mb-1 lh-lg" style="margin-left: -0.5em;">
-			<span v-for="tag in happ.tags" class="badge bg-light text-secondary">{{ tag }}</span>
-		    </dd>
-		    <dd v-else class="col-9 mb-1 lh-lg">No tags</dd>
-		</dl>
-		<dl class="row mb-0">
-		    <dt class="col-3">Created</dt>
-		    <dd class="col-9 mb-1">
-			{{ $filters.time( happ.published_at ) }}
-			&mdash; <span class="fw-2">{{ $filters.time( happ.published_at, "weekday+date+time" ) }}</span>
-		    </dd>
-		</dl>
-		<dl v-if="expanded" class="row mb-0">
-		    <dt class="col-3">Last Updated</dt>
-		    <dd class="col-9 mb-1">
-			{{ $filters.time( happ.last_updated ) }}
-			&mdash; <span class="fw-2">{{ $filters.time( happ.last_updated, "weekday+date+time" ) }}</span>
-		    </dd>
-		</dl>
+	    <dl v-if="expanded" class="row mb-0">
+		<dt class="col-3">Author ID</dt>
+		<dd class="col-9 mb-1" style="margin-left: -0.5em;">
+		    <holo-hash :hash="happ.designer" class="agent-badge"></holo-hash>
+		</dd>
+		<dt class="col-3">Tags</dt>
+		<dd v-if="happ.tags && happ.tags.length" class="col-9 mb-1 lh-lg" style="margin-left: -0.5em;">
+		    <span v-for="tag in happ.tags" class="badge bg-light text-secondary">{{ tag }}</span>
+		</dd>
+		<dd v-else class="col-9 mb-1 lh-lg">No tags</dd>
+	    </dl>
+	    <dl class="row mb-0">
+		<dt class="col-3">Created</dt>
+		<dd class="col-9 mb-1">
+		    {{ $filters.time( happ.published_at ) }}
+		    &mdash; <span class="fw-2">{{ $filters.time( happ.published_at, "weekday+date+time" ) }}</span>
+		</dd>
+	    </dl>
+	    <dl v-if="expanded" class="row mb-0">
+		<dt class="col-3">Last Updated</dt>
+		<dd class="col-9 mb-1">
+		    {{ $filters.time( happ.last_updated ) }}
+		    &mdash; <span class="fw-2">{{ $filters.time( happ.last_updated, "weekday+date+time" ) }}</span>
+		</dd>
+	    </dl>
 
-		<div v-if="expanded" style="margin: 1rem 0 2.5rem 0;">
-		    <template v-if="releases.length">
-			<div v-if="more_release_count"
-			     class="card entity-card entity-card-layered happ-card">
-			    <div class="entity-card-header">... {{ more_release_count }} {{ more_release_text }}</div>
-			</div>
-			<div v-for="happ_release in recent_releases" 
-			     class="card entity-card entity-card-layered happ-card">
-			    <div class="entity-card-header">Release: <strong>{{ happ_release.name }}</strong></div>
-			</div>
-			<happ-release-card :entity="latest_release"
-					  :link="link"
-					  :expand-depth="child_expand_depth"
-					  :parent-ref="false"></happ-release-card>
-		    </template>
-		    <div v-else class="card my-4">
-			<div class="card-body text-center p-4">
-			    No releases have been published
-			</div>
+	    <div v-if="expanded" style="margin: 1rem 0 2.5rem 0;">
+		<template v-if="releases.length">
+		    <div v-if="more_release_count"
+			 class="card entity-card entity-card-layered happ-card">
+			<div class="entity-card-header">... {{ more_release_count }} {{ more_release_text }}</div>
+		    </div>
+		    <div v-for="happ_release in recent_releases"
+			 class="card entity-card entity-card-layered happ-card">
+			<div class="entity-card-header">Release: <strong>{{ happ_release.name }}</strong></div>
+		    </div>
+		    <happ-release-card :id="latest_release.$id"
+				       :link="link"
+				       :expand-depth="child_expand_depth"
+				       :parent-ref="false"></happ-release-card>
+		</template>
+		<div v-else class="card my-4">
+		    <div class="card-body text-center p-4">
+			No releases have been published
 		    </div>
 		</div>
+	    </div>
 
-		<div class="position-absolute bottom-0 end-0">
-		    <a v-show="!expanded" @click="toggle_expansion()">
-			<i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
-		    </a>
-		    <a v-show="expanded" @click="toggle_expansion()">
-			<i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
-		    </a>
-		</div>
-	    </loading>
+	    <div class="position-absolute bottom-0 end-0">
+		<a v-show="!expanded" @click="toggle_expansion()">
+		    <i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
+		</a>
+		<a v-show="expanded" @click="toggle_expansion()">
+		    <i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
+		</a>
+	    </div>
 	</div>
-    </template>
+    </loading>
 </div>

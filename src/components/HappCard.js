@@ -1,26 +1,23 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/happ-card");
 
-const { load_html }			= require('../common.js');
 const { EntryHash }			= holohash;
 const { Collection }			= CruxPayloadParser.EntityArchitect;
 
 
-module.exports = async function ( element_local_name, component_name ) {
+module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
-	    "entity": {
-		"type": Object,
+	    "id": {
+		"type": EntryHash,
+		"required": true,
 	    },
-	    "releases": {
-		"type": Array,
-		"default": new Collection(),
+	    "link": {
+		"type": Boolean,
+		"default": true,
 	    },
 
 	    // Only initial value is used
-	    "id": {
-		"type": EntryHash,
-	    },
 	    "expand": {
 		"type": Boolean,
 		"default": false,
@@ -29,34 +26,29 @@ module.exports = async function ( element_local_name, component_name ) {
 		"type": Number,
 		"default": 0,
 	    },
-	    "link": {
-		"type": Boolean,
-		"default": true,
-	    },
-	    "fetchReleases": {
-		"type": Boolean,
-		"default": false,
-	    },
 	},
 	data () {
-	    if ( !(this.id || this.entity) )
-		throw new Error(`Must provide an ID or the entity for <${element_local_name}>`);
-
-	    if ( !this.entity )
-		this.fetchHapp( this.id );
-
-	    if ( this.fetchReleases )
-		this.fetchReleasesForHapp( this.id );
-
+	    log.info("hApp Card: %s", String(this.id) );
 	    return {
 		"error": null,
-		"loading": false,
 		"expanded": this.expand || this.expandDepth > 0,
-
-		"happ": this.entity,
 	    };
 	},
 	"computed": {
+	    happ () {
+		return this.$store.getters.happ( this.id );
+	    },
+	    $happ () {
+		return this.$store.getters.$happ( this.id );
+	    },
+
+	    releases () {
+		return this.$store.getters.happ_releases( this.id );
+	    },
+	    $releases () {
+		return this.$store.getters.$happ_releases( this.id );
+	    },
+
 	    more_release_count () {
 		return Math.max( 0, this.releases.length - 5 );
 	    },
@@ -73,33 +65,17 @@ module.exports = async function ( element_local_name, component_name ) {
 		return this.expandDepth - 1;
 	    },
 	},
+	created () {
+	    if ( !this.happ )
+		this.$store.dispatch("fetchHapp", this.id );
+
+	    if ( !this.releases.length )
+		this.$store.dispatch("fetchReleasesForHapp", this.id );
+	},
 	"methods": {
-	    async fetchHapp ( id ) {
-		try {
-		    this.loading		= true;
-		    this.happ		= await this.$store.dispatch("fetchHapp", id );
-		} catch (err) {
-		    console.error( err );
-		    this.error		= err;
-		} finally {
-		    this.loading		= false;
-		}
-	    },
-	    async fetchReleasesForHapp ( id ) {
-		try {
-		    this.loading		= true;
-		    await this.$store.dispatch("fetchReleasesForHapp", id );
-		} catch (err) {
-		    console.error( err );
-		    this.error		= err;
-		} finally {
-		    this.loading		= false;
-		}
-	    },
 	    toggle_expansion () {
 		this.expanded		= !this.expanded;
 	    },
 	},
-	"template": await load_html(`/dist/components/${component_name}.html`),
     };
 }

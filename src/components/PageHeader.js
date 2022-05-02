@@ -1,10 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/page-header");
 
-const { load_html }			= require('../common.js');
 
-
-module.exports = async function ( element_local_name, component_name ) {
+module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "controlsCol": {
@@ -30,6 +28,5 @@ module.exports = async function ( element_local_name, component_name ) {
 	    this.header_col_classes[`col-${header_col_size}`] = true;
 	    this.controls_col_classes[`col-${controls_col_size}`] = true;
 	},
-	"template": await load_html(`/dist/components/${component_name}.html`),
     };
 }

@@ -180,4 +180,12 @@ module.exports = {
 
 	return text2.includes( text1 ) ? 1 : 0;
     },
+
+    toKebabCase ( str ) {
+	return str.split('').map( (letter, i) => {
+	    return letter.toUpperCase() === letter
+		? `${ i !== 0 ? '-' : '' }${ letter.toLowerCase() }`
+		: letter;
+	}).join('');
+    },
 };

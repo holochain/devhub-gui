@@ -14,6 +14,7 @@
 		integrity="sha512-GKLeb1CRVJqg4JTEdoUOdWXPHV/7+Uk24/f7Su++SRyrXvz9/FVt178ZpHa6qWL67HPIjEXNjdsj3+vZSPpdFg=="
 		crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+	<script src="../../static/dependencies/holochain-client.js"></script>
 	<script src="../../static/dependencies/crux-payload-parser.js"></script>
 	<script src="../../static/dependencies/holo-hash.js"></script>
 
@@ -277,15 +278,15 @@
 		    <h4 class="mt-3">Example</h4>
 		    <div class="row gy-3">
 			<div class="col-12">
-			    <zome-card :entity="zome" :versions="zome_versions"></zome-card>
+			    <zome-card :id="zome.$id"></zome-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: 1</h5>
-			    <zome-card :entity="zome" :versions="zome_versions" :expand-depth="1"></zome-card>
+			    <zome-card :id="zome.$id" :expand-depth="1"></zome-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: Infinity</h5>
-			    <zome-card :entity="zome" :versions="zome_versions" :expand-depth="Infinity"></zome-card>
+			    <zome-card :id="zome.$id" :expand-depth="Infinity"></zome-card>
 			</div>
 		    </div>
 
@@ -308,11 +309,11 @@
 		    <h4 class="mt-3">Example</h4>
 		    <div class="row gy-3">
 			<div class="col-12">
-			    <zome-version-card :entity="zome_versions[0]"></zome-version-card>
+			    <zome-version-card :id="zome_versions[0].$id"></zome-version-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: Infinity</h5>
-			    <zome-version-card :entity="zome_versions[0]" :expand-depth="Infinity"></zome-version-card>
+			    <zome-version-card :id="zome_versions[0].$id" :expand-depth="Infinity"></zome-version-card>
 			</div>
 		    </div>
 
@@ -335,19 +336,19 @@
 		    <h4 class="mt-3">Example</h4>
 		    <div class="row gy-3">
 			<div class="col-12">
-			    <dna-card :entity="dna" :versions="dna_versions"></dna-card>
+			    <dna-card :id="dna.$id" :versions="dna_versions"></dna-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: 1</h5>
-			    <dna-card :entity="dna" :versions="dna_versions" :expand-depth="1"></dna-card>
+			    <dna-card :id="dna.$id" :expand-depth="1"></dna-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: 2</h5>
-			    <dna-card :entity="dna" :versions="dna_versions" :expand-depth="2"></dna-card>
+			    <dna-card :id="dna.$id" :expand-depth="2"></dna-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: Infinity</h5>
-			    <dna-card :entity="dna" :versions="dna_versions" :expand-depth="Infinity"></dna-card>
+			    <dna-card :id="dna.$id" :expand-depth="Infinity"></dna-card>
 			</div>
 		    </div>
 
@@ -370,15 +371,15 @@
 		    <h4 class="mt-3">Example</h4>
 		    <div class="row gy-3">
 			<div class="col-12">
-			    <dna-version-card :entity="dna_versions[0]"></dna-version-card>
+			    <dna-version-card :id="dna_versions[0].$id"></dna-version-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: 1</h5>
-			    <dna-version-card :entity="dna_versions[0]" :expand-depth="1"></dna-version-card>
+			    <dna-version-card :id="dna_versions[0].$id" :expand-depth="1"></dna-version-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: Infinity</h5>
-			    <dna-version-card :entity="dna_versions[0]" :expand-depth="Infinity"></dna-version-card>
+			    <dna-version-card :id="dna_versions[0].$id" :expand-depth="Infinity"></dna-version-card>
 			</div>
 		    </div>
 
@@ -401,19 +402,19 @@
 		    <h4 class="mt-3">Example</h4>
 		    <div class="row gy-3">
 			<div class="col-12">
-			    <happ-card :entity="happ" :releases="happ_releases"></happ-card>
+			    <happ-card :id="happ.$id"></happ-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: 1</h5>
-			    <happ-card :entity="happ" :releases="happ_releases" :expand-depth="1"></happ-card>
+			    <happ-card :id="happ.$id" :expand-depth="1"></happ-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: 2</h5>
-			    <happ-card :entity="happ" :releases="happ_releases" :expand-depth="2"></happ-card>
+			    <happ-card :id="happ.$id" :expand-depth="2"></happ-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: Infinity</h5>
-			    <happ-card :entity="happ" :releases="happ_releases" :expand-depth="Infinity"></happ-card>
+			    <happ-card :id="happ.$id" :expand-depth="Infinity"></happ-card>
 			</div>
 		    </div>
 
@@ -436,15 +437,15 @@
 		    <h4 class="mt-3">Example</h4>
 		    <div class="row gy-3">
 			<div class="col-12">
-			    <happ-release-card :entity="happ_releases[0]"></happ-release-card>
+			    <happ-release-card :id="happ_releases[0].$id"></happ-release-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: 1</h5>
-			    <happ-release-card :entity="happ_releases[0]" :expand-depth="1"></happ-release-card>
+			    <happ-release-card :id="happ_releases[0].$id" :expand-depth="1"></happ-release-card>
 			</div>
 			<div class="col-12">
 			    <h5 class="mt-3">Expand Depth: Infinity</h5>
-			    <happ-release-card :entity="happ_releases[0]" :expand-depth="Infinity"></happ-release-card>
+			    <happ-release-card :id="happ_releases[0].$id" :expand-depth="Infinity"></happ-release-card>
 			</div>
 		    </div>
 
@@ -459,9 +460,6 @@
     [parent-ref="Boolean"]&gt;
 &lt;/happ-release-card&gt;</code></pre>
 		</div>
-
-		<!-- HappCard -->
-		<!-- HappReleaseCard -->
 	    </div>
 	</div>
 

@@ -1,5 +1,5 @@
 
-const crypto				= require('crypto');
+// const crypto				= require('crypto');
 const { EntryHash,
 	AgentPubKey }			= require('@whi/holo-hash');
 const { Entity, Collection }		= require('@whi/entity-architect');
@@ -11,6 +11,11 @@ const { WhoAmI,
 	DnaVersionEntry,
 	HappEntry,
 	HappReleaseEntry }		= require('./mock_entities.js');
+
+
+crypto.randomBytes			= function ( num ) {
+    return crypto.getRandomValues( new Uint8Array(num) );
+}
 
 
 function hash_bytes () {
@@ -183,7 +188,9 @@ const dna_library			= mock_zome( "dna_library", {
 
     // DNA Version
     async create_dna_version ( input ) {
-	const entry			= DnaVersionEntry( cell_state );
+	const entry			= DnaVersionEntry( cell_state, {
+	    "zomes": input.zomes,
+	});
 
 	entry.for_dna			= input.for_dna;
 
@@ -237,7 +244,9 @@ const happ_library			= mock_zome( "happ_library", {
 
     // hApp Release
     async create_happ_release ( input ) {
-	const entry			= HappReleaseEntry( cell_state );
+	const entry			= HappReleaseEntry( cell_state, {
+	    "dnas": input.dnas,
+	});
 
 	entry.for_happ			= input.for_happ;
 	entry.name			= input.name;

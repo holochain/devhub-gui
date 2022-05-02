@@ -4,23 +4,23 @@ const log				= new Logger("comp/zome-version-card");
 const { EntryHash }			= holohash;
 const { Entity }			= CruxPayloadParser.EntityArchitect;
 
-const { load_html }			= require('../common.js');
 
-
-module.exports = async function ( element_local_name, component_name ) {
+module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
-	    "entity": {
-		"type": Entity,
-	    },
-
-	    // Only initial value is used
 	    "id": {
 		"type": EntryHash,
+		"required": true,
 	    },
 	    "title": {
 		"type": String,
 	    },
+	    "link": {
+		"type": Boolean,
+		"default": true,
+	    },
+
+	    // Only initial value is used
 	    "expand": {
 		"type": Boolean,
 		"default": false,
@@ -29,32 +29,27 @@ module.exports = async function ( element_local_name, component_name ) {
 		"type": Number,
 		"default": 0,
 	    },
-	    "link": {
-		"type": Boolean,
-		"default": true,
-	    },
 	    "parenRef": {
 		"type": Boolean,
 		"default": true,
 	    },
 	},
 	data () {
-	    if ( !(this.id || this.entity) )
-		throw new Error(`Must provide an 'id' or the 'entity' for <${element_local_name}>`);
-
-	    if ( !this.entity )
-		this.fetchZomeVersion( this.id );
-
+	    log.info("Zome Version Card: %s", String(this.id) );
 	    return {
 		"error": null,
-		"loading": false,
 		"expanded": this.expand || this.expandDepth > 0,
 		"show_parent_ref": this.parentRef,
-
-		"version": this.entity,
 	    };
 	},
 	"computed": {
+	    version () {
+		return this.$store.getters.zome_version( this.id );
+	    },
+	    $version () {
+		return this.$store.getters.$zome_version( this.id );
+	    },
+
 	    header_prefix () {
 		return this.title || "Version";
 	    },
@@ -64,22 +59,14 @@ module.exports = async function ( element_local_name, component_name ) {
 		    : this.version.for_zome.$id;
 	    },
 	},
+	created () {
+	    if ( !this.version )
+		this.$store.dispatch("fetchZomeVersion", this.id );
+	},
 	"methods": {
-	    async fetchZomeVersion ( id ) {
-		try {
-		    this.loading		= true;
-		    this.version		= await this.$store.dispatch("fetchZomeVersion", id );
-		} catch (err) {
-		    console.error( err );
-		    this.error		= err;
-		} finally {
-		    this.loading		= false;
-		}
-	    },
 	    toggle_expansion () {
 		this.expanded		= !this.expanded;
 	    },
 	},
-	"template": await load_html(`/dist/components/${component_name}.html`),
     };
 }

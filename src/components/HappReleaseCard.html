@@ -1,86 +1,78 @@
-<div v-if="release" class="card entity-card happ-card">
-    <template v-if="release">
+<div class="card entity-card happ-release-card">
+    <loading :when="!$release.current">
 	<div class="entity-card-header">{{ header_prefix }}: <strong>{{ release.name }}</strong></div>
 	<div class="card-body">
-	    <loading :when="loading">
-		<div class="row mb-2">
-		    <div class="col-auto">
-			<p class="card-text text-truncate mb-1">HDK {{ release.hdk_version }}</p>
-		    </div>
-		    <div class="col text-end">
-			<router-link v-if="link" class="text-decoration-none"
-				     :to="'/happs/' + parent_id + '/releases/' + release.$id">
-			    <holo-hash :hash="release.$id" class="float-end ms-3"></holo-hash>
-			</router-link>
-			<holo-hash v-else :hash="release.$id" class="float-end ms-3"></holo-hash>
+	    <div class="row mb-2">
+		<div class="col-auto">
+		    <p class="card-text text-truncate mb-1">HDK {{ release.hdk_version }}</p>
+		</div>
+		<div class="col text-end">
+		    <router-link v-if="link" class="text-decoration-none"
+				 :to="'/happs/' + parent_id + '/releases/' + release.$id">
+			<holo-hash :hash="release.$id" class="float-end ms-3"></holo-hash>
+		    </router-link>
+		    <holo-hash v-else :hash="release.$id" class="float-end ms-3"></holo-hash>
+		</div>
+	    </div>
+
+	    <template v-if="expanded">
+		<h4 class="fs-6 mt-2">Changelog</h4>
+		<div class="bg-light rounded-3 p-4 pb-3 mb-3">
+		    {{ release.changelog || "No changelog" }}
+		</div>
+	    </template>
+
+	    <dl v-if="show_parent_ref" class="row mb-0">
+		<dt class="col-3">hApp</dt>
+		<dd class="col-9 mb-1" style="margin-left: -0.5em;">
+		    <holo-hash :hash="parent_id"></holo-hash>
+		</dd>
+	    </dl>
+	    <dl v-if="expanded" class="row mb-0">
+		<dt class="col-3">Resource Hash</dt>
+		<dd class="col-9 mb-1">
+		    <code>{{ release.dna_hash }}</code>
+		</dd>
+	    </dl>
+	    <dl class="row mb-0">
+		<dt class="col-3">Created</dt>
+		<dd class="col-9 mb-1">
+		    {{ $filters.time( release.published_at ) }}
+		    &mdash; <span class="fw-2">{{ $filters.time( release.published_at, "weekday+date+time" ) }}</span>
+		</dd>
+	    </dl>
+	    <dl v-if="expanded" class="row mb-0">
+		<dt class="col-3">Last Updated</dt>
+		<dd class="col-9 mb-1">
+		    {{ $filters.time( release.last_updated ) }}
+		    &mdash; <span class="fw-2">{{ $filters.time( release.last_updated, "weekday+date+time" ) }}</span>
+		</dd>
+	    </dl>
+
+	    <div v-if="expanded" class="row gy-3" style="margin: 1rem 0 2.5rem 0;">
+		<div v-if="dna_ids.length"
+		     v-for="(dna_version_id, role_id) in dnas"
+		     class="col-12 px-0">
+		    <dna-version-card :id="dna_version_id"
+				      :title="role_id"
+				      :link="link"
+				      :expand-depth="child_expand_depth"></dna-version-card>
+		</div>
+		<div v-else class="card my-4">
+		    <div class="card-body text-center p-4">
+			No dnas
 		    </div>
 		</div>
+	    </div>
 
-		<template v-if="expanded">
-		    <h4 class="fs-6 mt-2">Changelog</h4>
-		    <div class="bg-light rounded-3 p-4 pb-3 mb-3">
-			{{ release.changelog || "No changelog" }}
-		    </div>
-		</template>
-
-		<dl v-if="show_parent_ref" class="row mb-0">
-		    <dt class="col-3">hApp</dt>
-		    <dd class="col-9 mb-1" style="margin-left: -0.5em;">
-			<holo-hash :hash="parent_id"></holo-hash>
-		    </dd>
-		</dl>
-		<dl v-if="expanded" class="row mb-0">
-		    <dt class="col-3">Resource Hash</dt>
-		    <dd class="col-9 mb-1">
-			<code>{{ release.dna_hash }}</code>
-		    </dd>
-		</dl>
-		<dl class="row mb-0">
-		    <dt class="col-3">Created</dt>
-		    <dd class="col-9 mb-1">
-			{{ $filters.time( release.published_at ) }}
-			&mdash; <span class="fw-2">{{ $filters.time( release.published_at, "weekday+date+time" ) }}</span>
-		    </dd>
-		</dl>
-		<dl v-if="expanded" class="row mb-0">
-		    <dt class="col-3">Last Updated</dt>
-		    <dd class="col-9 mb-1">
-			{{ $filters.time( release.last_updated ) }}
-			&mdash; <span class="fw-2">{{ $filters.time( release.last_updated, "weekday+date+time" ) }}</span>
-		    </dd>
-		</dl>
-
-		<div v-if="expanded" class="row gy-3" style="margin: 1rem 0 2.5rem 0;">
-		    <div v-if="dna_ids.length"
-			 v-for="(dna_version, name) in dnas"
-			 class="col-12 px-0">
-			<dna-version-card v-if="dna_version instanceof Entity"
-					   :title="name"
-					   :link="link"
-					   :expand-depth="child_expand_depth"
-					   :entity="dna_version"></dna-version-card>
-			<dna-version-card v-else
-					   :title="name"
-					   :link="link"
-					   :expand-depth="child_expand_depth"
-					   :id="dna_version.version"></dna-version-card>
-		    </div>
-		    <div v-else class="card my-4">
-			<div class="card-body text-center p-4">
-			    No dnas
-			</div>
-		    </div>
-		</div>
-
-		<div class="position-absolute bottom-0 end-0">
-		    <a v-show="!expanded" @click="toggle_expansion()">
-			<i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
-		    </a>
-		    <a v-show="expanded" @click="toggle_expansion()">
-			<i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
-		    </a>
-		</div>
-	    </loading>
+	    <div class="position-absolute bottom-0 end-0">
+		<a v-show="!expanded" @click="toggle_expansion()">
+		    <i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
+		</a>
+		<a v-show="expanded" @click="toggle_expansion()">
+		    <i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
+		</a>
+	    </div>
 	</div>
-    </template>
+    </loading>
 </div>

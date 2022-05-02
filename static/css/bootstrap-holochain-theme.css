@@ -491,27 +491,36 @@ a.text-primary:hover {
 
 */
 
-.zome-card {
+.zome-card,
+.zome-version-card {
   border-color: #00a1df;
 }
 .zome-card > div > div > i,
-.zome-card > .entity-card-header {
+.zome-card > .entity-card-header,
+.zome-version-card > div > div > i,
+.zome-version-card > .entity-card-header {
   color: #00a1df;
 }
 
-.dna-card {
+.dna-card,
+.dna-version-card {
   border-color: #c000ff;
 }
 .dna-card > div > div > i,
-.dna-card > .entity-card-header {
+.dna-card > .entity-card-header,
+.dna-version-card > div > div > i,
+.dna-version-card > .entity-card-header {
   color: #c000ff;
 }
 
-.happ-card {
+.happ-card,
+.happ-release-card {
   border-color: #6e00e0;
 }
 .happ-card > div > div > i,
-.happ-card > .entity-card-header {
+.happ-card > .entity-card-header,
+.happ-release-card > div > div > i,
+.happ-release-card > .entity-card-header {
   color: #6e00e0;
 }
 

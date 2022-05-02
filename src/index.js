@@ -284,14 +284,6 @@ window.PersistentStorage		= {
 	log.error("Vue App Error (%s):", info, err, vm );
     };
 
-    function toKebabCase ( str ) {
-	return str.split('').map( (letter, i) => {
-	    return letter.toUpperCase() === letter
-		? `${ i !== 0 ? '-' : '' }${ letter.toLowerCase() }`
-		: letter;
-	}).join('');
-    }
-
     const components			= [
 	"Breadcrumbs",
 	"DeprecationAlert",
@@ -318,8 +310,14 @@ window.PersistentStorage		= {
 	components.map( async name => {
 	    const start			= Date.now();
 
-	    const tag			= toKebabCase( name );
-	    const component		= await require(`./components/${name}.js`)( tag, name );
+	    const tag			= common.toKebabCase( name );
+	    const component		= require(`./components/${name}.js`)( tag, name );
+	    component.template		= await common.load_html(`/dist/components/${name}.html`);
+	    component.errorCaptured	= function (err, vm, info) {
+		console.error("Error in %s <%s>:", name, tag, err, vm, info );
+		this.error = `${err.stack}\n\nfound in ${info} of component`
+		return false
+	    };
 	    app.component( tag, component );
 
 	    log.normal("Loaded and/or added component: %s (%sms)", tag, Date.now() - start );

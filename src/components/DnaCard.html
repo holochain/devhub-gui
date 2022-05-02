@@ -1,7 +1,7 @@
 <div class="card entity-card dna-card">
-    <div class="entity-card-header">DNA: <placeholder :when="$dna.loading"><strong>{{ dna.name }}</strong></placeholder></div>
-    <div class="card-body">
-	<loading :when="$dna.loading">
+    <loading :when="!$dna.current">
+	<div class="entity-card-header">DNA: <placeholder :when="!$dna.current"><strong>{{ dna.name }}</strong></placeholder></div>
+	<div class="card-body">
 	    <div class="row mb-2">
 		<div class="col-auto">
 		    <p class="card-text text-truncate mb-1">{{ dna.description || "No description" }}</p>
@@ -51,7 +51,7 @@
 			 class="card entity-card entity-card-layered dna-card">
 			<div class="entity-card-header">Version: <strong>{{ dna_version.version }}</strong></div>
 		    </div>
-		    <dna-version-card :entity="latest_version"
+		    <dna-version-card :id="latest_version.$id"
 				      :link="link"
 				      :expand-depth="child_expand_depth"
 				      :parent-ref="false"></dna-version-card>
@@ -71,6 +71,6 @@
 		    <i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
 		</a>
 	    </div>
-	</loading>
-    </div>
+	</div>
+    </loading>
 </div>

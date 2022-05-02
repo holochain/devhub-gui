@@ -1,10 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/deprecation-alert");
 
-const { load_html }			= require('../common.js');
 
-
-module.exports = async function ( element_local_name ) {
+module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "title": {
@@ -15,6 +13,5 @@ module.exports = async function ( element_local_name ) {
 		"type": String,
 	    },
 	},
-	"template": await load_html(`/dist/components/DeprecationAlert.html`),
     };
 }

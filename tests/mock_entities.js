@@ -1,9 +1,14 @@
 
-const crypto				= require('crypto');
+// const crypto				= require('crypto');
 const repr				= require('@whi/repr');
 const { faker }				= require('@faker-js/faker');
 const { AgentPubKey,
 	EntryHash }			= require('@whi/holo-hash');
+
+
+crypto.randomBytes			= function ( num ) {
+    return crypto.getRandomValues( new Uint8Array(num) );
+}
 
 
 function WhoAmI ( cell_state = {}, opts = {} ) {
@@ -79,9 +84,28 @@ function DnaEntry ( cell_state = {}, opts = {} ) {
     };
 }
 
+function RandomZomeRef () {
+    return {
+	"name":			faker.commerce.product(),
+	"zome":			new EntryHash( crypto.randomBytes(32) ),
+	"version":		new EntryHash( crypto.randomBytes(32) ),
+	"resource":		new EntryHash( crypto.randomBytes(32) ),
+	"resource_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
+    };
+}
+
 function DnaVersionEntry ( cell_state = {}, opts = {} ) {
     if ( String(cell_state) !== "[object Object]" )
 	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
+
+    const zomes				= [];
+
+    if ( !opts.zomes )
+	opts.zomes			= Array( opts.zome_count || 2 ).fill({});
+
+    for ( let zome of opts.zomes ) {
+	zomes.push( Object.assign( RandomZomeRef(), zome ) );
+    }
 
     return {
 	"for_dna":		opts.parent || DnaEntry( cell_state ),
@@ -91,19 +115,7 @@ function DnaVersionEntry ( cell_state = {}, opts = {} ) {
 	"changelog":		faker.lorem.sentence() + "..",
 	"wasm_hash":		faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
 	"hdk_version":		"v0.0.132",
-	"zomes": [{
-	    "name":		faker.commerce.product(),
-	    "zome":		new EntryHash( crypto.randomBytes(32) ),
-	    "version":		new EntryHash( crypto.randomBytes(32) ),
-	    "resource":		new EntryHash( crypto.randomBytes(32) ),
-	    "resource_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
-	},{
-	    "name":		faker.commerce.product(),
-	    "zome":		new EntryHash( crypto.randomBytes(32) ),
-	    "version":		new EntryHash( crypto.randomBytes(32) ),
-	    "resource":		new EntryHash( crypto.randomBytes(32) ),
-	    "resource_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
-	}],
+	"zomes":		zomes,
 	"metadata":		{},
     };
 }
@@ -131,12 +143,47 @@ function HappEntry ( cell_state = {}, opts = {} ) {
     };
 }
 
+function RandomDnaRef () {
+    return {
+	"role_id":		faker.lorem.word().toLowerCase(),
+	"dna":			new EntryHash( crypto.randomBytes(32) ),
+	"version":		new EntryHash( crypto.randomBytes(32) ),
+	"wasm_hash":		faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),
+    };
+}
+
 function HappReleaseEntry ( cell_state = {}, opts = {} ) {
     if ( String(cell_state) !== "[object Object]" )
 	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
 
     const role_id_1			= faker.lorem.word().toLowerCase();
     const role_id_2			= faker.lorem.word().toLowerCase();
+    const roles				= [];
+    const dnas				= [];
+
+    if ( !opts.dnas )
+	opts.dnas			= Array( opts.dna_count || 2 ).fill({});
+
+    for ( let i in opts.dnas ) {
+	const dna			= opts.dnas[i];
+	const dna_ref			= Object.assign( RandomDnaRef(), dna );
+
+	roles.push({
+	    "id":			dna_ref.role_id,
+	    "dna": {
+		"bundled":		`./resource_${i}_path.dna`,
+		"clone_limit":		0,
+		"uid":			null,
+		"version":		null,
+		"properties":		null,
+	    },
+	    "provisioning": {
+		"strategy":		"create",
+		"deferred":		false,
+	    },
+	});
+	dnas.push( dna_ref );
+    }
 
     return {
 	"for_happ":		opts.parent || HappEntry( cell_state ),
@@ -148,47 +195,11 @@ function HappReleaseEntry ( cell_state = {}, opts = {} ) {
 	    "manifest_version":		`${ faker.datatype.number() }`,
 	    "name":			faker.lorem.word(),
 	    "description":		faker.lorem.sentence(),
-	    "roles": [{
-		"id":			role_id_1,
-		"dna": {
-		    "bundled":		"./resource_1_path.dna",
-		    "clone_limit":	0,
-		    "uid":		null,
-		    "version":		null,
-		    "properties":	null,
-		},
-		"provisioning": {
-		    "strategy":		"create",
-		    "deferred":		false,
-		},
-	    },{
-		"id":			role_id_2,
-		"dna": {
-		    "bundled":		"./resource_2_path.dna",
-		    "clone_limit":	0,
-		    "uid":		null,
-		    "version":		null,
-		    "properties":	null,
-		},
-		"provisioning": {
-		    "strategy":		"create",
-		    "deferred":		false,
-		},
-	    }],
+	    "roles":			roles,
 	},
 	"dna_hash":		faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
 	"hdk_version":		"v0.0.132",
-	"dnas": [{
-	    "role_id":		role_id_1,
-	    "dna":		new EntryHash( crypto.randomBytes(32) ),
-	    "version":		new EntryHash( crypto.randomBytes(32) ),
-	    "wasm_hash":	faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),
-	},{
-	    "role_id":		role_id_2,
-	    "dna":		new EntryHash( crypto.randomBytes(32) ),
-	    "version":		new EntryHash( crypto.randomBytes(32) ),
-	    "wasm_hash":	faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),
-	}],
+	"dnas":			dnas,
 	"gui": {
 	    "asset_group_id":	new EntryHash( crypto.randomBytes(32) ),
 	    "holo_hosting_settings": {
