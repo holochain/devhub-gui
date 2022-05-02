@@ -1,0 +1,219 @@
+
+const crypto				= require('crypto');
+const repr				= require('@whi/repr');
+const { faker }				= require('@faker-js/faker');
+const { AgentPubKey,
+	EntryHash }			= require('@whi/holo-hash');
+
+
+function WhoAmI ( cell_state = {}, opts = {} ) {
+    if ( String(cell_state) !== "[object Object]" )
+	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
+
+    return {
+	"agent_initial_pubkey":		cell_state.agent || crypto.randomBytes( 32 ),
+	"agent_latest_pubkey":		cell_state.agent || crypto.randomBytes( 32 ),
+    };
+}
+
+function ZomeEntry ( cell_state = {}, opts = {} ) {
+    if ( String(cell_state) !== "[object Object]" )
+	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
+
+    return {
+	"name":			faker.commerce.product(),
+	"description":		faker.lorem.sentence(),
+	"published_at":		faker.date.past(),
+	"last_updated":		faker.date.recent(),
+	"developer": {
+	    "pubkey":		cell_state.agent || new AgentPubKey( crypto.randomBytes(32) ),
+	},
+	"metadata":		{},
+	"deprecation":		opts.deprecated ? null : {
+	    "message":		faker.lorem.sentence(),
+	    "recommended_alternatives": [
+		new EntryHash( crypto.randomBytes(32) ),
+	    ],
+	},
+    };
+}
+
+function ZomeVersionEntry ( cell_state = {}, opts = {} ) {
+    if ( String(cell_state) !== "[object Object]" )
+	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
+
+    return {
+	"for_zome":		opts.parent || ZomeEntry(),
+	"version":		`v${ faker.datatype.number() }`,
+	"published_at":		faker.date.past(),
+	"last_updated":		faker.date.recent(),
+	"changelog":		faker.lorem.sentence() + "..",
+	"mere_memory_addr":	new EntryHash( crypto.randomBytes(32) ),
+	"mere_memory_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
+	"hdk_version":		"v0.0.132",
+	"metadata":		{},
+    };
+}
+
+function DnaEntry ( cell_state = {}, opts = {} ) {
+    if ( String(cell_state) !== "[object Object]" )
+	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
+
+    return {
+	"name":			faker.commerce.product(),
+	"description":		faker.lorem.sentence(),
+	"published_at":		faker.date.past(),
+	"last_updated":		faker.date.recent(),
+	"developer": {
+	    "pubkey":		cell_state.agent || new AgentPubKey( crypto.randomBytes(32) ),
+	},
+	"metadata":		{},
+	"icon":			crypto.randomBytes( 39223 ),
+	"tags":			[ faker.commerce.productAdjective() ],
+	"deprecation":		opts.deprecated ? null : {
+	    "message":		faker.lorem.sentence(),
+	    "recommended_alternatives": [
+		new EntryHash( crypto.randomBytes(32) ),
+	    ],
+	},
+    };
+}
+
+function DnaVersionEntry ( cell_state = {}, opts = {} ) {
+    if ( String(cell_state) !== "[object Object]" )
+	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
+
+    return {
+	"for_dna":		opts.parent || DnaEntry( cell_state ),
+	"version":		`v${ faker.datatype.number() }`,
+	"published_at":		faker.date.past(),
+	"last_updated":		faker.date.recent(),
+	"changelog":		faker.lorem.sentence() + "..",
+	"wasm_hash":		faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
+	"hdk_version":		"v0.0.132",
+	"zomes": [{
+	    "name":		faker.commerce.product(),
+	    "zome":		new EntryHash( crypto.randomBytes(32) ),
+	    "version":		new EntryHash( crypto.randomBytes(32) ),
+	    "resource":		new EntryHash( crypto.randomBytes(32) ),
+	    "resource_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
+	},{
+	    "name":		faker.commerce.product(),
+	    "zome":		new EntryHash( crypto.randomBytes(32) ),
+	    "version":		new EntryHash( crypto.randomBytes(32) ),
+	    "resource":		new EntryHash( crypto.randomBytes(32) ),
+	    "resource_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
+	}],
+	"metadata":		{},
+    };
+}
+
+function HappEntry ( cell_state = {}, opts = {} ) {
+    if ( String(cell_state) !== "[object Object]" )
+	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
+
+    return {
+	"title":		faker.commerce.product(),
+	"subtitle":		faker.lorem.words(3),
+	"description":		faker.lorem.sentence(),
+	"designer":		cell_state.agent || new AgentPubKey( crypto.randomBytes(32) ),
+	"published_at":		faker.date.past(),
+	"last_updated":		faker.date.recent(),
+	"metadata":		{},
+	"icon":			crypto.randomBytes( 39223 ),
+	"tags":			[ faker.commerce.productAdjective() ],
+	"deprecation":		opts.deprecated ? null : {
+	    "message":		faker.lorem.sentence(),
+	    "recommended_alternatives": [
+		new EntryHash( crypto.randomBytes(32) ),
+	    ],
+	},
+    };
+}
+
+function HappReleaseEntry ( cell_state = {}, opts = {} ) {
+    if ( String(cell_state) !== "[object Object]" )
+	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
+
+    const role_id_1			= faker.lorem.word().toLowerCase();
+    const role_id_2			= faker.lorem.word().toLowerCase();
+
+    return {
+	"for_happ":		opts.parent || HappEntry( cell_state ),
+	"name":			`v${ faker.datatype.number() }`,
+	"description":		faker.lorem.sentence(),
+	"published_at":		faker.date.past(),
+	"last_updated":		faker.date.recent(),
+	"manifest": {
+	    "manifest_version":		`${ faker.datatype.number() }`,
+	    "name":			faker.lorem.word(),
+	    "description":		faker.lorem.sentence(),
+	    "roles": [{
+		"id":			role_id_1,
+		"dna": {
+		    "bundled":		"./resource_1_path.dna",
+		    "clone_limit":	0,
+		    "uid":		null,
+		    "version":		null,
+		    "properties":	null,
+		},
+		"provisioning": {
+		    "strategy":		"create",
+		    "deferred":		false,
+		},
+	    },{
+		"id":			role_id_2,
+		"dna": {
+		    "bundled":		"./resource_2_path.dna",
+		    "clone_limit":	0,
+		    "uid":		null,
+		    "version":		null,
+		    "properties":	null,
+		},
+		"provisioning": {
+		    "strategy":		"create",
+		    "deferred":		false,
+		},
+	    }],
+	},
+	"dna_hash":		faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
+	"hdk_version":		"v0.0.132",
+	"dnas": [{
+	    "role_id":		role_id_1,
+	    "dna":		new EntryHash( crypto.randomBytes(32) ),
+	    "version":		new EntryHash( crypto.randomBytes(32) ),
+	    "wasm_hash":	faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),
+	},{
+	    "role_id":		role_id_2,
+	    "dna":		new EntryHash( crypto.randomBytes(32) ),
+	    "version":		new EntryHash( crypto.randomBytes(32) ),
+	    "wasm_hash":	faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),
+	}],
+	"gui": {
+	    "asset_group_id":	new EntryHash( crypto.randomBytes(32) ),
+	    "holo_hosting_settings": {
+		"uses_web_sdk":	false,
+	    },
+	},
+	"metadata":		{},
+	"icon":			crypto.randomBytes( 39223 ),
+	"tags":			[ faker.commerce.productAdjective() ],
+	"deprecation":		opts.deprecated ? null : {
+	    "message":		faker.lorem.sentence(),
+	    "recommended_alternatives": [
+		new EntryHash( crypto.randomBytes(32) ),
+	    ],
+	},
+    };
+}
+
+
+module.exports = {
+    WhoAmI,
+    ZomeEntry,
+    ZomeVersionEntry,
+    DnaEntry,
+    DnaVersionEntry,
+    HappEntry,
+    HappReleaseEntry,
+};

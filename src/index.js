@@ -2,22 +2,18 @@ const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("main");
 
 const json				= require('@whi/json');
-const { CruxConfig,
-	EntityArchitect,
+const { EntityArchitect,
 	...crux }			= CruxPayloadParser;
-const { AgentClient,
-	TimeoutError }			= HolochainClient;
-const { DnaHash,
-	AgentPubKey }			= holohash;
+const { TimeoutError }			= HolochainClient;
+const { AgentPubKey }			= holohash;
 
 
 log.level.trace && crux.log.setLevel("trace");
 
+const client_init			= require('./client.js');
 const store_init			= require('./store.js');
 const common				= require('./common.js');
 const filters				= require('./filters.js');
-const components			= require('./components/index.js');
-const entity_types			= require('./entity_architecture.js');
 
 const zomes_init			= require('./zome_controllers.js');
 const zome_versions_init		= require('./zome_version_controllers.js');
@@ -28,19 +24,6 @@ const happ_releases_init		= require('./happ_release_controllers.js');
 
 
 const HISTORY_PUSH_STATE		= window.localStorage.getItem("PUSH_STATE");
-const AGENT_HASH			= window.localStorage.getItem("AGENT_PUBKEY");
-const HOST_VALUE			= window.localStorage.getItem("APP_HOST");
-const PORT_VALUE			= window.localStorage.getItem("APP_PORT");
-const APP_PORT				= parseInt( PORT_VALUE ) || 44001;
-const APP_HOST				= HOST_VALUE || "localhost";
-const CONDUCTOR_URI			= `${APP_HOST}:${APP_PORT}`;
-
-if ( isNaN( APP_PORT ) )
-    throw new Error(`Invalid 'APP_PORT' (${PORT_VALUE}); run 'localStorage.setItem( "APP_PORT", "<port number>" );`);
-
-const DNAREPO_HASH			= new DnaHash( process.env.DNAREPO_HASH );
-const HAPPS_HASH			= new DnaHash( process.env.HAPPS_HASH );
-const WEBASSETS_HASH			= new DnaHash( process.env.WEBASSETS_HASH );
 
 
 
@@ -83,65 +66,10 @@ window.PersistentStorage		= {
     //   agent			- Local storage
     //   connection		- Local storage
     //
-    const crux_config			= new CruxConfig( entity_types, [] );
-
-    let  client;
-    try {
-	const resp			= await fetch("./.launcher-env.json");
-	const launcher_config		= await resp.json();
-
-	client				= await AgentClient.createFromAppInfo(
-	    launcher_config.INSTALLED_APP_ID,
-	    launcher_config.APP_INTERFACE_PORT
-	);
-    } catch (err) {
-	log.warn("Using hard-coded configuration because launcher config produced error: %s", err.toString() );
-    }
-
-    if ( !client ) {
-	if ( typeof AGENT_HASH !== "string" )
-	    throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
-
-	log.warn("Using Agent hash: %s", AGENT_HASH );
-	const AGENT_PUBKEY		= new AgentPubKey( AGENT_HASH );
-
-	client				=  new AgentClient( AGENT_PUBKEY, {
-	    "dnarepo":         DNAREPO_HASH,
-	    "happs":           HAPPS_HASH,
-	    "webassets":       WEBASSETS_HASH,
-	}, CONDUCTOR_URI );
-    }
-
-    log.normal("App schema");
-    log.level.normal && Object.entries( client._app_schema._dnas ).forEach( ([nick, schema]) => {
-	log.normal("  %s : %s", nick.padStart( 10 ), String( schema._hash ), schema );
-
-	log.level.info && Object.entries( schema._zomes ).forEach( ([name, zome_api]) => {
-	    log.info("  %s : %s", name.padStart( 10 ), zome_api._name, zome_api );
-	});
-    });
-
-    client.addProcessor("input", async function (input) {
-	let keys			= input ? ` ${Object.keys( input ).join(", ")} ` : "";
-	log.trace("Calling %s::%s->%s(%s)", this.dna, this.zome, this.func, keys );
-	return input;
-    });
-    client.addProcessor("output", async function (output) {
-	log.trace("Response for %s::%s->%s(%s)", this.dna, this.zome, this.func, this.input ? " ... " : "", output );
-	return output;
-    });
-
-    if ( WEBPACK_MODE === "development" ) {
-	client.addProcessor("input", async function (input) {
-	    await new Promise( f => setTimeout(f, (Math.random() * 1_000) + 500) ); // range 500ms to 1500ms
-	    return input;
-	});
-    }
-    crux_config.upgrade( client );
-
+    const client			= await client_init();
     log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(client._agent), client._conn._uri, WEBPACK_MODE );
 
-    const store				= await store_init( client, Vue );
+    const store				= await store_init( client );
     const zome_controllers		= await zomes_init( client );
     const zome_version_controllers	= await zome_versions_init( client );
     const dna_controllers		= await dnas_init( client );

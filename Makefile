@@ -96,9 +96,14 @@ static/dependencies/vue-router.js:			node_modules/vue-router/dist/vue-router.glo
 #
 # Testing
 #
-build-components-test:
+test-unit:
+	npx mocha --recursive ./tests/store
+test-unit-debug:
+	LOG_LEVEL=silly npx mocha --recursive ./tests/store
+
+test-build-components:
 	cd tests/components; npx webpack
-build-components-test-watch:
+test-build-components-watch:
 	cd tests/components; npx webpack --watch
 
 
