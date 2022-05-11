@@ -1,7 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("common");
 
-const { AgentPubKey }			= holohash;
+const { HoloHash,
+	AgentPubKey }			= holohash;
 
 
 const _debounce_timers			= {};
@@ -26,7 +27,7 @@ function fallbackCopyTextToClipboard ( text ) {
     }
 }
 
-module.exports = {
+const common				= {
     sort_by_object_key ( list_of_objects, key ) {
 	return list_of_objects.sort( (a,b) => {
 	    if ( a[key] === undefined )
@@ -188,4 +189,57 @@ module.exports = {
 		: letter;
 	}).join('');
     },
+
+    unpack_bundle ( zipped_bytes ) {
+	// Bundle types
+	//
+	//   - DNA Bundle		Identified by the "zomes" list in the manifest
+	//   - hApp Bundle		Identified by the "roles" list in the manifest
+	//   - Web hApp Bundle		Identified by the "ui" and/or "happ_manifest" in the manifest
+	//
+	log.trace("Unpacking bundle with %s bytes", zipped_bytes.length );
+	const msgpack_bytes		= gzip.unzip( zipped_bytes );
+	const bundle			= MessagePack.decode( msgpack_bytes );
+	const resource_keys		= Object.keys( bundle.resources );
+
+	log.debug("Bundle has %s resources: %s", resource_keys.length, resource_keys.join(", ") );
+	for ( let key of resource_keys ) {
+	    bundle.resources[ key ]	= new Uint8Array( bundle.resources[ key ] );
+	}
+
+	if ( bundle.manifest.zomes ) {
+	    bundle.manifest.type	= "dna";
+	    for ( let zome of bundle.manifest.zomes ) {
+		zome.resource		= bundle.resources[ zome.bundled ];
+		delete zome.bundled;
+	    }
+	}
+	else if ( bundle.manifest.roles ) {
+	    bundle.manifest.type	= "happ";
+	    for ( let role of bundle.manifest.roles ) {
+		role.dna.resource	= bundle.resources[ role.dna.bundled ];
+		delete role.dna.bundled;
+	    }
+	}
+	else if ( bundle.manifest.ui && bundle.manifest.happ_manifest ) {
+	    bundle.manifest.type		= "webhapp";
+	    bundle.manifest.ui			= bundle.resources[ bundle.manifest.ui.bundled ];
+	    bundle.manifest.happ_manifest	= common.unpack_bundle( bundle.resources[ bundle.manifest.happ_manifest.bundled ] );
+	}
+
+	return bundle.manifest;
+    },
+
+    array_move ( arr, from_index, to_index ) {
+	if ( arr[from_index] === undefined )
+	    throw new Error(`Cannot move undefined index (${from_index}); array has ${arr.length} items`);
+
+	if ( arr[to_index-1] === undefined )
+	    throw new Error(`Cannot move to destination index (${from_index}) because array length is ${arr.length}`);
+
+	return arr.splice( to_index, 0, arr.splice( from_index, 1 )[0] );
+    },
 };
+
+
+module.exports = common;

@@ -8,7 +8,7 @@
 		</div>
 		<div class="col text-end">
 		    <router-link v-if="link" class="text-decoration-none"
-				 :to="'/dnas/' + parent_id + '/versions/' + version.$id">
+				 :to="'/zomes/' + parent_id + '/versions/' + version.$id">
 			<holo-hash :hash="version.$id" class="float-end ms-3"></holo-hash>
 		    </router-link>
 		    <holo-hash v-else :hash="version.$id" class="float-end ms-3"></holo-hash>

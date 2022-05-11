@@ -52,8 +52,8 @@ module.exports = async function ( client ) {
 		happs () {
 		    return (
 			this.agent_input.length
-			    ? this.$store.getters.happs( this.agent ).collection
-			    : this.$store.getters.happs( "all" ).collection
+			    ? this.$store.getters.happs( this.agent )
+			    : this.$store.getters.happs( "all" )
 		    ).filter( entity => {
 			const filter	= this.list_filter.trim();
 
@@ -77,8 +77,8 @@ module.exports = async function ( client ) {
 		},
 		$happs () {
 		    return this.agent_input.length
-			? this.$store.getters.happs( this.agent ).metadata
-			: this.$store.getters.happs( "all" ).metadata;
+			? this.$store.getters.$happs( this.agent )
+			: this.$store.getters.$happs( "all" );
 		},
 	    },
 	    "methods": {
@@ -195,10 +195,10 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		happ () {
-		    return this.$store.getters.happ( this.id ).entity;
+		    return this.$store.getters.happ( this.id );
 		},
 		$happ () {
-		    return this.$store.getters.happ( this.id ).metadata;
+		    return this.$store.getters.$happ( this.id );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -281,16 +281,16 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		happ () {
-		    return this.$store.getters.happ( this.id ).entity;
+		    return this.$store.getters.happ( this.id );
 		},
 		$happ () {
-		    return this.$store.getters.happ( this.id ).metadata;
+		    return this.$store.getters.$happ( this.id );
 		},
 		releases () {
-		    return this.$store.getters.happ_releases( this.id ).collection;
+		    return this.$store.getters.happ_releases( this.id );
 		},
 		$releases () {
-		    return this.$store.getters.happ_releases( this.id ).metadata;
+		    return this.$store.getters.$happ_releases( this.id );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -395,35 +395,35 @@ module.exports = async function ( client ) {
 		    return this.$refs["form"];
 		},
 		happ () {
-		    return this.$store.getters.happ( this.id ).entity;
+		    return this.$store.getters.happ( this.id );
 		},
 		$happ () {
-		    return this.$store.getters.happ( this.id ).metadata;
+		    return this.$store.getters.$happ( this.id );
 		},
 		releases () {
-		    return this.$store.getters.happ_releases( this.id ).collection;
+		    return this.$store.getters.happ_releases( this.id );
 		},
 		$releases () {
-		    return this.$store.getters.happ_releases( this.id ).metadata;
+		    return this.$store.getters.$happ_releases( this.id );
 		},
 		happ_release () {
 		    if ( this.latest_release )
-			return this.$store.getters.happ_release( String(this.latest_release.$id) ).entity;
+			return this.$store.getters.happ_release( String(this.latest_release.$id) );
 		},
 		$happ_release () {
 		    if ( this.latest_release )
-			return this.$store.getters.happ_release( String(this.latest_release.$id) ).metadata;
+			return this.$store.getters.$happ_release( String(this.latest_release.$id) );
 		    else
-			return this.$store.getters.happ_release("").metadata;
+			return this.$store.getters.$happ_release("");
 		},
 		dna_version () {
 		    return ( id ) => {
-			return this.$store.getters.dna_version( String(id) ).entity;
+			return this.$store.getters.dna_version( String(id) );
 		    };
 		},
 		$dna_version () {
 		    return ( id ) => {
-			return this.$store.getters.dna_version( String(id) ).metadata;
+			return this.$store.getters.$dna_version( String(id) );
 		    };
 		},
 		latest_release () {
@@ -438,10 +438,10 @@ module.exports = async function ( client ) {
 		    }, null );
 		},
 		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.collection;
+		    return this.$store.getters.hdk_versions;
 		},
 		$previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.metadata;
+		    return this.$store.getters.$hdk_versions;
 		},
 		file_valid_feedback () {
 		    const file		= this.bundle_file;

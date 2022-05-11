@@ -1,14 +1,12 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/dna-card");
 
-const { EntryHash }			= holohash;
-
 
 module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": EntryHash,
+		"type": Uint8Array,
 		"required": true,
 	    },
 	    "link": {

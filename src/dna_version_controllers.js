@@ -1,21 +1,13 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dna versions");
 
-const { load_html }			= require('./common.js');
+const { load_html,
+	...common }			= require('./common.js');
+
 const md_converter			= new showdown.Converter({
     "headerLevelStart": 3,
 });
 
-
-function array_move ( arr, from_index, to_index ) {
-    if ( arr[from_index] === undefined )
-	throw new Error(`Cannot move undefined index (${from_index}); array has ${arr.length} items`);
-
-    if ( arr[to_index-1] === undefined )
-	throw new Error(`Cannot move to destination index (${from_index}) because array length is ${arr.length}`);
-
-    return arr.splice( to_index, 0, arr.splice( from_index, 1 )[0] );
-}
 
 module.exports = async function ( client ) {
 
@@ -42,21 +34,24 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		zomes () {
-		    return this.$store.getters.zomes( "all" ).collection;
-		},
-		$zomes () {
-		    return this.$store.getters.zomes( "all" ).metadata;
-		},
 		form () {
 		    return this.$refs["form"];
 		},
+
+		zomes () {
+		    return this.$store.getters.zomes( "all" );
+		},
+		$zomes () {
+		    return this.$store.getters.$zomes( "all" );
+		},
+
 		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.collection;
+		    return this.$store.getters.hdk_versions;
 		},
 		$previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.metadata;
+		    return this.$store.getters.$hdk_versions;
 		},
+
 		filtered_zomes () {
 		    return this.zomes.filter( zome => {
 			return zome.name.toLowerCase()
@@ -161,8 +156,8 @@ module.exports = async function ( client ) {
 		    const from_index	= event.dataTransfer.getData("zome/index");
 		    log.info("Moving index %s => %s", from_index, to_index );
 
-		    array_move( this.added_zomes, from_index, to_index );
-		    array_move( this.input.zomes, from_index, to_index );
+		    common.array_move( this.added_zomes, from_index, to_index );
+		    common.array_move( this.input.zomes, from_index, to_index );
 		},
 		async fetchHDKVersions () {
 		    await this.$store.dispatch("fetchHDKVersions");
@@ -196,20 +191,22 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		version () {
-		    if ( this.$store.getters.dna_version( this.id ).entity )
-			this._version	= this.copy( this.$store.getters.dna_version( this.id ).entity );
+		    if ( this._version === null && this.$store.getters.dna_version( this.id ) )
+			this._version	= this.copy( this.$store.getters.dna_version( this.id ) );
 
 		    return this._version;
 		},
 		$version () {
-		    return this.$store.getters.dna_version( this.id ).metadata;
+		    return this.$store.getters.$dna_version( this.id );
 		},
+
 		dna () {
 		    return this.version ? this.version.for_dna : null;
 		},
 		$dna () {
 		    return this.$version;
 		},
+
 		form () {
 		    return this.$refs["form"];
 		},
@@ -279,19 +276,21 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		version () {
-		    return this.$store.getters.dna_version( this.id ).entity;
+		    return this.$store.getters.dna_version( this.id );
 		},
 		$version () {
-		    return this.$store.getters.dna_version( this.id ).metadata;
+		    return this.$store.getters.$dna_version( this.id );
 		},
+
 		dna () {
 		    return this.version ? this.version.for_dna : null;
 		},
 		$dna () {
 		    return this.$version;
 		},
+
 		$packageBytes () {
-		    return this.$store.getters.dna_version_package( this.version ? this.version.$id : null ).metadata;
+		    return this.$store.getters.$dna_version_package( this.version ? this.version.$id : null );
 		},
 		modal () {
 		    return this.$refs["modal"].modal;

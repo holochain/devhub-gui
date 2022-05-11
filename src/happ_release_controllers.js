@@ -1,21 +1,13 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happ releases");
 
-const { load_html }			= require('./common.js');
+const { load_html,
+	...common }			= require('./common.js');
+
 const md_converter			= new showdown.Converter({
     "headerLevelStart": 3,
 });
 
-
-function array_move ( arr, from_index, to_index ) {
-    if ( arr[from_index] === undefined )
-	throw new Error(`Cannot move undefined index (${from_index}); array has ${arr.length} items`);
-
-    if ( arr[to_index-1] === undefined )
-	throw new Error(`Cannot move to destination index (${from_index}) because array length is ${arr.length}`);
-
-    return arr.splice( to_index, 0, arr.splice( from_index, 1 )[0] );
-}
 
 module.exports = async function ( client ) {
 
@@ -50,25 +42,25 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		happ () {
-		    return this.$store.getters.happ( this.happ_id ).entity;
+		    return this.$store.getters.happ( this.happ_id );
 		},
 		$happ () {
-		    return this.$store.getters.happ( this.happ_id ).metadata;
+		    return this.$store.getters.$happ( this.happ_id );
 		},
 		dnas () {
-		    return this.$store.getters.dnas().collection;
+		    return this.$store.getters.dnas();
 		},
 		$dnas () {
-		    return this.$store.getters.dnas().metadata;
+		    return this.$store.getters.$dnas();
 		},
 		form () {
 		    return this.$refs["form"];
 		},
 		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.collection;
+		    return this.$store.getters.hdk_versions;
 		},
 		$previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.metadata;
+		    return this.$store.getters.hdk_versions;
 		},
 		filtered_dnas () {
 		    return this.dnas.filter( dna => {
@@ -219,8 +211,8 @@ module.exports = async function ( client ) {
 		    const from_index	= event.dataTransfer.getData("dna/index");
 		    log.info("Moving index %s => %s", from_index, to_index );
 
-		    array_move( this.added_dnas, from_index, to_index );
-		    array_move( this.input.dnas, from_index, to_index );
+		    common.array_move( this.added_dnas, from_index, to_index );
+		    common.array_move( this.input.dnas, from_index, to_index );
 		},
 		async fetchHDKVersions () {
 		    await this.$store.dispatch("fetchHDKVersions");
@@ -265,13 +257,13 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		release () {
-		    if ( this.$store.getters.happ_release( this.id ).entity )
-			this._release	= this.copy( this.$store.getters.happ_release( this.id ).entity );
+		    if ( this.$store.getters.happ_release( this.id ) )
+			this._release	= this.copy( this.$store.getters.happ_release( this.id ) );
 
 		    return this._release;
 		},
 		$release () {
-		    return this.$store.getters.happ_release( this.id ).metadata;
+		    return this.$store.getters.$happ_release( this.id );
 		},
 		happ () {
 		    return this.release ? this.release.for_happ : null;
@@ -349,10 +341,10 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		release () {
-		    return this.$store.getters.happ_release( this.id ).entity;
+		    return this.$store.getters.happ_release( this.id );
 		},
 		$release () {
-		    return this.$store.getters.happ_release( this.id ).metadata;
+		    return this.$store.getters.$happ_release( this.id );
 		},
 		happ () {
 		    return this.release ? this.release.for_happ : null;
@@ -361,10 +353,10 @@ module.exports = async function ( client ) {
 		    return this.$release;
 		},
 		$packageBytes () {
-		    return this.$store.getters.happ_release_package( this.release ? this.release.$id : null ).metadata;
+		    return this.$store.getters.$happ_release_package( this.release ? this.release.$id : null );
 		},
 		$webhappPackageBytes () {
-		    return this.$store.getters.happ_release_package( this.release ? this.release.$id + "-webhapp" : null ).metadata;
+		    return this.$store.getters.$happ_release_package( this.release ? this.release.$id + "-webhapp" : null );
 		},
 		modal () {
 		    return this.$refs["modal"].modal;

@@ -181,10 +181,6 @@ module.exports = async function ( client ) {
 		return getters.metadata( path );
 	    },
 
-	    // zome_version_wasm: ( _, getters ) => ( addr ) =>  {
-	    // 	const path		= dataTypePath.zomeVersionWasm( addr );
-	    // 	return getters.entity( path );
-	    // },
 	    $zome_version_wasm: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.zomeVersionWasm( addr );
 		return getters.metadata( path );
@@ -980,7 +976,7 @@ module.exports = async function ( client ) {
 
 		log.debug("Getting previous HDK versions");
 		const hdkvs		= await dispatch("fetchResource", [
-		    path, "happs", "happ_library", "get_webhapp_package", { name, id }, 30_000
+		    path, "dnarepo", "dna_library", "get_hdk_versions"
 		]);
 
 		return hdkvs;

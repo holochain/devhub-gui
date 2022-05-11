@@ -70,9 +70,9 @@
 			<dd class="col-sm-12"><placeholder :when="!$version.current"><code>{{ version.wasm_hash }}</code></placeholder></dd>
 		    </dl>
 
-		    <list-group v-if="dna" :list="Object.values(version.zomes)" no-result-text="No Zomes" class="my-5" :loading="!$version.current">
+		    <list-group v-if="version" :list="Object.values(version.zomes)" no-result-text="No Zomes" class="my-5" :loading="!$version.current">
 			<zome-version-card v-for="(zome_version, name) in version.zomes" class="my-2"
-					   :entity="zome_version"></zome-version-card>
+					   :id="zome_version.$id"></zome-version-card>
 		    </list-group>
 
 		    <loading :when="!$version.current">

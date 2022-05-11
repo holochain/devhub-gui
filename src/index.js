@@ -201,14 +201,15 @@ window.PersistentStorage		= {
 		"Entity":		EntityArchitect.Entity,
 		"Collection":		EntityArchitect.Collection,
 
-		$debug ( value ) {
-		    log.trace("JSON debug for value:", value );
-		    return json.debug( value );
-		},
 		console,
 	    };
 	},
 	"methods": {
+	    $debug ( value ) {
+		log.trace("JSON debug for value:", value );
+		return json.debug( value );
+	    },
+
 	    async catchStatusCodes ( status_codes, err ) {
 		if ( !Array.isArray(status_codes) )
 		    status_codes	= [ status_codes ];
@@ -320,7 +321,7 @@ window.PersistentStorage		= {
 	    };
 	    app.component( tag, component );
 
-	    log.normal("Loaded and/or added component: %s (%sms)", tag, Date.now() - start );
+	    log.info("Loaded and/or added component: %s (%sms)", tag, Date.now() - start );
 	})
     );
     log.normal("Configured %s components for App", components.length );

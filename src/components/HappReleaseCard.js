@@ -1,14 +1,12 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/happ-release-card");
 
-const { EntryHash }			= holohash;
-
 
 module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": EntryHash,
+		"type": Uint8Array,
 		"required": true,
 	    },
 	    "title": {
@@ -53,7 +51,7 @@ module.exports = function ( element_local_name, component_name ) {
 		return this.title || "Release";
 	    },
 	    parent_id () {
-		return this.release.for_happ instanceof EntryHash
+		return this.release.for_happ instanceof Uint8Array
 		    ? this.release.for_happ
 		    : this.release.for_happ.$id;
 	    },

@@ -40,11 +40,12 @@ module.exports = async function ( client ) {
 		agent () {
 		    return this.agent_input.length ? this.agent_input : "me";
 		},
+
 		dnas () {
 		    return (
 			this.agent_input.length
-			    ? this.$store.getters.dnas( this.agent ).collection
-			    : this.$store.getters.dnas( "all" ).collection
+			    ? this.$store.getters.dnas( this.agent )
+			    : this.$store.getters.dnas( "all" )
 		    ).filter( entity => {
 			const filter	= this.list_filter.trim();
 
@@ -67,8 +68,8 @@ module.exports = async function ( client ) {
 		},
 		$dnas () {
 		    return this.agent_input.length
-			? this.$store.getters.dnas( this.agent ).metadata
-			: this.$store.getters.dnas( "all" ).metadata;
+			? this.$store.getters.$dnas( this.agent )
+			: this.$store.getters.$dnas( "all" );
 		},
 	    },
 	    "methods": {
@@ -182,15 +183,17 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		dna () {
-		    return this.$store.getters.dna( this.id ).entity;
-		},
-		$dna () {
-		    return this.$store.getters.dna( this.id ).metadata;
-		},
 		form () {
 		    return this.$refs["form"];
 		},
+
+		dna () {
+		    return this.$store.getters.dna( this.id );
+		},
+		$dna () {
+		    return this.$store.getters.$dna( this.id );
+		},
+
 		tags () {
 		    return this.input.tags || this.dna.tags;
 		},
@@ -270,21 +273,24 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
-		dna () {
-		    return this.$store.getters.dna( this.id ).entity;
-		},
-		$dna () {
-		    return this.$store.getters.dna( this.id ).metadata;
-		},
-		versions () {
-		    return this.$store.getters.dna_versions( this.id ).collection;
-		},
-		$versions () {
-		    return this.$store.getters.dna_versions( this.id ).metadata;
-		},
 		form () {
 		    return this.$refs["form"];
 		},
+
+		dna () {
+		    return this.$store.getters.dna( this.id );
+		},
+		$dna () {
+		    return this.$store.getters.$dna( this.id );
+		},
+
+		versions () {
+		    return this.$store.getters.dna_versions( this.id );
+		},
+		$versions () {
+		    return this.$store.getters.$dna_versions( this.id );
+		},
+
 		modal () {
 		    return this.$refs["modal"].modal;
 		},

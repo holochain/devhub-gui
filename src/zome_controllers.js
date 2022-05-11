@@ -44,8 +44,8 @@ module.exports = async function ( client ) {
 		zomes () {
 		    return (
 			this.agent_input.length
-			    ? this.$store.getters.zomes( this.agent ).collection
-			    : this.$store.getters.zomes( "all" ).collection
+			    ? this.$store.getters.zomes( this.agent )
+			    : this.$store.getters.zomes( "all" )
 		    ).filter( entity => {
 			const filter	= this.list_filter.trim();
 
@@ -68,8 +68,8 @@ module.exports = async function ( client ) {
 		},
 		$zomes () {
 		    return this.agent_input.length
-			? this.$store.getters.zomes( this.agent ).metadata
-			: this.$store.getters.zomes( "all" ).metadata;
+			? this.$store.getters.$zomes( this.agent )
+			: this.$store.getters.$zomes( "all" );
 		},
 	    },
 	    "methods": {
@@ -184,10 +184,10 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		zome () {
-		    return this.$store.getters.zome( this.id ).entity;
+		    return this.$store.getters.zome( this.id );
 		},
 		$zome () {
-		    return this.$store.getters.zome( this.id ).metadata;
+		    return this.$store.getters.$zome( this.id );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -270,16 +270,16 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		zome () {
-		    return this.$store.getters.zome( this.id ).entity;
+		    return this.$store.getters.zome( this.id );
 		},
 		$zome () {
-		    return this.$store.getters.zome( this.id ).metadata;
+		    return this.$store.getters.$zome( this.id );
 		},
 		versions () {
-		    return this.$store.getters.zome_versions( this.id ).collection;
+		    return this.$store.getters.zome_versions( this.id );
 		},
 		$versions () {
-		    return this.$store.getters.zome_versions( this.id ).metadata;
+		    return this.$store.getters.$zome_versions( this.id );
 		},
 		form () {
 		    return this.$refs["form"];

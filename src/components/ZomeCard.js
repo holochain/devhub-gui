@@ -1,15 +1,12 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/zome-card");
 
-const { EntryHash }			= holohash;
-const { Collection }			= CruxPayloadParser.EntityArchitect;
-
 
 module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": EntryHash,
+		"type": Uint8Array,
 	    },
 	    "link": {
 		"type": Boolean,

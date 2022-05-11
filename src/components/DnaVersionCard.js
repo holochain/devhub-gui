@@ -1,14 +1,12 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/dna-version-card");
 
-const { EntryHash }			= holohash;
-
 
 module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": EntryHash,
+		"type": Uint8Array,
 		"required": true,
 	    },
 	    "title": {
@@ -53,7 +51,7 @@ module.exports = function ( element_local_name, component_name ) {
 		return this.title || "Version";
 	    },
 	    parent_id () {
-		return this.version.for_dna instanceof EntryHash
+		return this.version.for_dna instanceof Uint8Array
 		    ? this.version.for_dna
 		    : this.version.for_dna.$id;
 	    },

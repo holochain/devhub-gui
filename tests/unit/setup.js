@@ -12,6 +12,7 @@ global.Vuex				= require('vuex');
 global.fetch				= require('node-fetch');
 global.HolochainClient			= require('@whi/holochain-client');
 global.CruxPayloadParser		= require('@whi/crux-payload-parser');
+
 global.holohash				= HoloHashes
 global.localStorage			= new LocalStorage("./scratch");
 
@@ -20,7 +21,7 @@ function readfile ( relative_path ) {
 }
 
 
-// Required by: /src/client.js
+// Things that require the 'window' variable
 global.window				= { localStorage };
 global.WEBPACK_MODE			= "development";
 
@@ -37,9 +38,15 @@ Object.assign( global.process.env, {
     WEBASSETS_HASH,
 });
 
+global.gzip				= require('../../static/dependencies/gzip.js');
+global.MessagePack			= require('../../static/dependencies/msgpack.js');
+
 const client_init			= require('../../src/client.js');
 const store_init			= require('../../src/store.js');
+const common				= require('../../src/common.js');
+
 global.window				= undefined;
+// END 'window' global
 
 
 // Required by: ../mock_call.js
@@ -56,4 +63,5 @@ module.exports				= {
 
 	return await store_init( client );
     },
+    common,
 };
