@@ -39,6 +39,7 @@ Object.assign( global.process.env, {
 });
 
 global.gzip				= require('../../static/dependencies/gzip.js');
+global.sha256				= require('../../static/dependencies/sha256.js');
 global.MessagePack			= require('../../static/dependencies/msgpack.js');
 
 const client_init			= require('../../src/client.js');

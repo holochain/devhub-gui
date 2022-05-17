@@ -1,6 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("store");
 
+const common				= require('./common.js');
+
 const { HoloHash,
 	AgentPubKey }			= holohash;
 const { EntityArchitect }		= CruxPayloadParser;
@@ -991,6 +993,114 @@ module.exports = async function ( client ) {
 		]);
 	    },
 
+	    async unpack_bundle ({ dispatch, commit }, zipped_bytes ) {
+		// Bundle types
+		//
+		//   - DNA Bundle		Identified by the "zomes" list in the manifest
+		//   - hApp Bundle		Identified by the "roles" list in the manifest
+		//   - Web hApp Bundle		Identified by the "ui" and/or "happ_manifest" in the manifest
+		//
+		// Steps
+		//
+		//   - Unzip
+		//   - Decode
+		//   - Determine bundle type
+		//   - Set promise(s) for unpacking child bundles
+		//   - Calculate path
+		//   - Return details including path and child bundle promises
+		//
+
+		const bundle_hash		= common.toHex( common.digest( zipped_bytes ) );
+		const path			= `/bundles/${bundle_hash}`;
+
+		return [ path, common.once( async () => {
+		    log.info("Unpacking bundle with %s bytes", zipped_bytes.length );
+		    const msgpack_bytes		= gzip.unzip( zipped_bytes );
+		    log.debug("Unzipped bundle has %s bytes", msgpack_bytes.length );
+
+		    const bundle		= MessagePack.decode( msgpack_bytes );
+
+		    for ( let prop of ["manifest", "resources"] )
+			if( !(bundle[prop] instanceof Object) )
+			    throw new TypeError(`The bundle format is expected to have a '${prop}' property.  Type of '${typeof bundle[prop]}' found`);
+
+		    const manifest		= bundle.manifest;
+		    const resources		= bundle.resources;
+
+		    log.debug("Decoded manifest has keys: %s", () => [ Object.keys(manifest).join(", ") ]);
+		    const resource_keys		= Object.keys( resources );
+
+		    log.trace("Bundle has %s resources: %s", resource_keys.length, resource_keys.join(", ") );
+		    for ( let key of resource_keys ) {
+			resources[ key ]	= new Uint8Array( resources[ key ] );
+		    }
+
+		    if ( manifest.zomes ) {
+			log.trace("Detected a DNA bundle");
+			manifest.type		= "dna";
+
+			manifest.zomes.forEach( zome => {
+			    log.trace("Preparing resource Promises for zome: %s", zome.bundled );
+
+			    zome.bytes		= resources[ zome.bundled ];
+			    zome.digest		= common.digest( zome.bytes );
+			    zome.hash		= common.toHex( zome.digest );
+
+			    delete zome.bundled;
+			});
+
+			manifest.zome_digests	= manifest.zomes.map( zome => zome.digest );
+
+			const hashes		= manifest.zome_digests.slice();
+			hashes.sort( common.array_compare );
+			manifest.dna_digest	= common.digest( ...hashes );
+			manifest.dna_hash	= common.toHex( manifest.dna_digest );
+		    }
+		    else if ( manifest.roles ) {
+			log.trace("Detected a hApp bundle");
+			manifest.type		= "happ";
+
+			manifest.roles.forEach( role => {
+			    const dna		= role.dna;
+			    log.trace("Preparing Promises for role: %s", dna.bundled );
+
+			    dna.bytes		= resources[ dna.bundled ];
+			    dna.digest		= common.digest( dna.bytes );
+			    dna.hash		= common.toHex( dna.digest );
+			    dna.manifest	= dispatch("unpack_bundle", dna.bytes );
+
+			    delete dna.bundled;
+			});
+
+			manifest.dna_digests	= common.once( async () => {
+			    return await Promise.all(
+				manifest.roles.map( async role => {
+				    const [_, unpack]	= await role.dna.manifest;
+				    const bundle	= await unpack();
+				    return bundle.dna_digest;
+				})
+			    );
+			});
+			manifest.happ_digest	= common.once( async () => {
+			    const hashes	= await manifest.dna_digests();
+			    hashes.sort( common.array_compare );
+			    return common.digest( ...hashes );
+			});
+			manifest.happ_hash	= common.once( async () => {
+			    return common.toHex( await manifest.happ_digest() );
+			});
+		    }
+		    else if ( manifest.ui && manifest.happ_manifest ) {
+			log.trace("Detected a Web hApp bundle");
+			manifest.type		= "webhapp";
+
+			manifest.ui		= resources[ manifest.ui.bundled ];
+			manifest.happ_manifest	= dispatch("unpack_bundle", resources[ manifest.happ_manifest.bundled ] );
+		    }
+
+		    return manifest;
+		}) ];
+	    },
 	},
     });
 };
