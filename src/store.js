@@ -72,6 +72,8 @@ const dataTypePath			= {
 
     hdkVersions:	()		=> store_path( "misc", "hdk_versions" ),
     webAsset:		( id )		=> store_path( "web_assets", id ),
+    file:		( id )		=> store_path( "files", id ),
+    bundle:		( id )		=> store_path( "bundles", id ),
 };
 
 
@@ -110,6 +112,7 @@ module.exports = async function ( client ) {
 		client,
 		"entities": {},
 		"collections": {},
+		"values": {},
 		"metadata": {},
 	    };
 	},
@@ -128,6 +131,12 @@ module.exports = async function ( client ) {
 		    return [];
 
 		return state.collections[ path ] || [];
+	    },
+	    value: ( state, getters ) => ( path ) => {
+		if ( getters.isExpired( path ) )
+		    return null;
+
+		return state.values[ path ] || null;
 	    },
 	    metadata: ( state, getters ) => ( path ) => {
 		return state.metadata[ path ] || copy( DEFAULT_METADATA_STATES );
@@ -291,6 +300,24 @@ module.exports = async function ( client ) {
 		const path		= dataTypePath.hdkVersions();
 		return getters.metadata( path );
 	    },
+
+	    file: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.file( id );
+		return getters.value( path );
+	    },
+	    $file: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.file( id );
+		return getters.metadata( path );
+	    },
+
+	    bundle: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.bundle( id );
+		return getters.value( path );
+	    },
+	    $bundle: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.bundle( id );
+		return getters.metadata( path );
+	    },
 	},
 	"mutations": {
 	    expireEntity ( state, path ) {
@@ -312,6 +339,16 @@ module.exports = async function ( client ) {
 	    },
 	    cacheCollection ( state, [ path, collection ]) {
 		state.collections[path]		= collection;
+
+		if ( state.metadata[path] === undefined )
+		    state.metadata[path]	= copy( DEFAULT_METADATA_STATES );
+
+		state.metadata[path].stored_at	= Date.now();
+		state.metadata[path].loaded	= true;
+		state.metadata[path].current	= true;
+	    },
+	    cacheValue ( state, [ path, value ] ) {
+		state.values[path]		= value;
 
 		if ( state.metadata[path] === undefined )
 		    state.metadata[path]	= copy( DEFAULT_METADATA_STATES );
@@ -993,7 +1030,37 @@ module.exports = async function ( client ) {
 		]);
 	    },
 
-	    async unpack_bundle ({ dispatch, commit }, zipped_bytes ) {
+	    async saveFile ({ commit }, bytes ) {
+		const digest		= common.digest( bytes );
+		const hash		= common.toHex( digest );
+		const path		= dataTypePath.file( hash );
+		const file		= {
+		    bytes,
+		    digest,
+		    hash,
+		};
+
+		commit("cacheValue", [ path, file ] );
+
+		return file;
+	    },
+
+	    async uploadFile ({ commit }, [ id, file ] ) {
+		const path		= dataTypePath.file( id );
+
+		commit("signalLoading", path );
+
+		const bytes		= await common.load_file( file );
+		commit("cacheValue", [ path, bytes ] );
+
+		try {
+		    return common.dispatch("saveFile", bytes );
+		} finally {
+		    commit("recordLoaded", path );
+		}
+	    },
+
+	    async unpackBundle ({ dispatch, commit, getters }, hash ) {
 		// Bundle types
 		//
 		//   - DNA Bundle		Identified by the "zomes" list in the manifest
@@ -1009,97 +1076,113 @@ module.exports = async function ( client ) {
 		//   - Calculate path
 		//   - Return details including path and child bundle promises
 		//
+		let file;
+		if ( typeof hash !== "string" ) {
+		    file		= await dispatch("saveFile", hash );
+		}
+		else {
+		    file		= getters.file( hash );
+		}
 
-		const bundle_hash		= common.toHex( common.digest( zipped_bytes ) );
-		const path			= `/bundles/${bundle_hash}`;
+		if ( getters.bundle( file.hash ) )
+		    return getters.bundle( file.hash );
 
-		return [ path, common.once( async () => {
-		    log.info("Unpacking bundle with %s bytes", zipped_bytes.length );
-		    const msgpack_bytes		= gzip.unzip( zipped_bytes );
-		    log.debug("Unzipped bundle has %s bytes", msgpack_bytes.length );
+		const path		= dataTypePath.bundle( file.hash );
 
-		    const bundle		= MessagePack.decode( msgpack_bytes );
+		commit("signalLoading", path );
 
-		    for ( let prop of ["manifest", "resources"] )
-			if( !(bundle[prop] instanceof Object) )
-			    throw new TypeError(`The bundle format is expected to have a '${prop}' property.  Type of '${typeof bundle[prop]}' found`);
+		log.info("Unpacking bundle with %s bytes", file.bytes.length );
+		const msgpack_bytes	= gzip.unzip( file.bytes );
+		log.debug("Unzipped bundle has %s bytes", msgpack_bytes.length );
 
-		    const manifest		= bundle.manifest;
-		    const resources		= bundle.resources;
+		const bundle		= MessagePack.decode( msgpack_bytes );
 
-		    log.debug("Decoded manifest has keys: %s", () => [ Object.keys(manifest).join(", ") ]);
-		    const resource_keys		= Object.keys( resources );
+		for ( let prop of ["manifest", "resources"] )
+		    if( !(bundle[prop] instanceof Object) )
+			throw new TypeError(`The bundle format is expected to have a '${prop}' property.  Type of '${typeof bundle[prop]}' found`);
 
-		    log.trace("Bundle has %s resources: %s", resource_keys.length, resource_keys.join(", ") );
-		    for ( let key of resource_keys ) {
-			resources[ key ]	= new Uint8Array( resources[ key ] );
-		    }
+		const manifest		= bundle.manifest;
+		const resources		= bundle.resources;
 
-		    if ( manifest.zomes ) {
-			log.trace("Detected a DNA bundle");
-			manifest.type		= "dna";
+		log.debug("Decoded manifest has keys: %s", () => [ Object.keys(manifest).join(", ") ]);
+		const resource_keys	= Object.keys( resources );
 
-			manifest.zomes.forEach( zome => {
-			    log.trace("Preparing resource Promises for zome: %s", zome.bundled );
+		log.trace("Bundle has %s resources: %s", resource_keys.length, resource_keys.join(", ") );
+		for ( let key of resource_keys ) {
+		    resources[ key ]	= new Uint8Array( resources[ key ] );
+		}
 
-			    zome.bytes		= resources[ zome.bundled ];
-			    zome.digest		= common.digest( zome.bytes );
-			    zome.hash		= common.toHex( zome.digest );
+		if ( manifest.zomes ) {
+		    log.trace("Detected a DNA bundle");
+		    manifest.type	= "dna";
 
-			    delete zome.bundled;
-			});
+		    manifest.zomes.forEach( zome => {
+			log.trace("Preparing resource Promises for zome: %s", zome.bundled );
 
-			manifest.zome_digests	= manifest.zomes.map( zome => zome.digest );
+			zome.bytes	= resources[ zome.bundled ];
+			zome.digest	= common.digest( zome.bytes );
+			zome.hash	= common.toHex( zome.digest );
 
-			const hashes		= manifest.zome_digests.slice();
+			delete zome.bundled;
+		    });
+
+		    manifest.zome_digests	= manifest.zomes.map( zome => zome.digest );
+
+		    const hashes	= manifest.zome_digests.slice();
+		    hashes.sort( common.array_compare );
+		    manifest.dna_digest	= common.digest( ...hashes );
+		    manifest.dna_hash	= common.toHex( manifest.dna_digest );
+		}
+		else if ( manifest.roles ) {
+		    log.trace("Detected a hApp bundle");
+		    manifest.type	= "happ";
+
+		    manifest.roles.forEach( role => {
+			const dna		= role.dna;
+			log.trace("Preparing Promises for role: %s", dna.bundled );
+			const bytes		= resources[ dna.bundled ];
+
+			dna.source	= common.once( () => dispatch("saveFile", bytes ) );
+			dna.manifest	= common.once( async () => dispatch("unpackBundle", (await dna.source()).hash ) );
+
+			delete dna.bundled;
+		    });
+
+		    manifest.dna_digests	= common.once( async () => {
+			return await Promise.all(
+			    manifest.roles.map( async role => {
+				const bundle	= await role.dna.manifest();
+				return bundle.dna_digest;
+			    })
+			);
+		    });
+		    manifest.happ_digest	= common.once( async () => {
+			const hashes		= await manifest.dna_digests();
 			hashes.sort( common.array_compare );
-			manifest.dna_digest	= common.digest( ...hashes );
-			manifest.dna_hash	= common.toHex( manifest.dna_digest );
-		    }
-		    else if ( manifest.roles ) {
-			log.trace("Detected a hApp bundle");
-			manifest.type		= "happ";
+			return common.digest( ...hashes );
+		    });
+		    manifest.happ_hash	= common.once( async () => {
+			return common.toHex( await manifest.happ_digest() );
+		    });
+		}
+		else if ( manifest.ui && manifest.happ_manifest ) {
+		    log.trace("Detected a Web hApp bundle");
+		    manifest.type	= "webhapp";
 
-			manifest.roles.forEach( role => {
-			    const dna		= role.dna;
-			    log.trace("Preparing Promises for role: %s", dna.bundled );
+		    const ui			= resources[ manifest.ui.bundled ];
+		    const bytes			= resources[ manifest.happ_manifest.bundled ];
 
-			    dna.bytes		= resources[ dna.bundled ];
-			    dna.digest		= common.digest( dna.bytes );
-			    dna.hash		= common.toHex( dna.digest );
-			    dna.manifest	= dispatch("unpack_bundle", dna.bytes );
+		    manifest.ui			= common.once( () => dispatch("saveFile", ui ) );
+		    manifest.happ		= {
+			"source":	common.once( () => dispatch("saveFile", bytes ) ),
+			"bundle":	common.once( async () => dispatch("unpackBundle", (await manifest.happ.source()).hash ) ),
+		    };
+		}
 
-			    delete dna.bundled;
-			});
+		commit("cacheValue", [ path, manifest ] );
+		commit("recordLoaded", path );
 
-			manifest.dna_digests	= common.once( async () => {
-			    return await Promise.all(
-				manifest.roles.map( async role => {
-				    const [_, unpack]	= await role.dna.manifest;
-				    const bundle	= await unpack();
-				    return bundle.dna_digest;
-				})
-			    );
-			});
-			manifest.happ_digest	= common.once( async () => {
-			    const hashes	= await manifest.dna_digests();
-			    hashes.sort( common.array_compare );
-			    return common.digest( ...hashes );
-			});
-			manifest.happ_hash	= common.once( async () => {
-			    return common.toHex( await manifest.happ_digest() );
-			});
-		    }
-		    else if ( manifest.ui && manifest.happ_manifest ) {
-			log.trace("Detected a Web hApp bundle");
-			manifest.type		= "webhapp";
-
-			manifest.ui		= resources[ manifest.ui.bundled ];
-			manifest.happ_manifest	= dispatch("unpack_bundle", resources[ manifest.happ_manifest.bundled ] );
-		    }
-
-		    return manifest;
-		}) ];
+		return manifest;
 	    },
 	},
     });

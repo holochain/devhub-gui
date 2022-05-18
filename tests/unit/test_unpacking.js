@@ -30,11 +30,11 @@ function unpacking_tests () {
 	store				= await store_init();
     });
 
-    beforeEach(async function () {
-	// This break between each test makes the timing more consistent on reruns
-	this.timeout( 2_000 );
-	await common.delay( 1_000 );
-    });
+    // beforeEach(async function () {
+    // 	// This break between each test makes the timing more consistent on reruns
+    // 	this.timeout( 2_000 );
+    // 	await common.delay( 1_000 );
+    // });
 
     after(async function () {
 	await store.state.client.close();
@@ -43,8 +43,14 @@ function unpacking_tests () {
     it("should unpack DNA bundle", async function () {
 	this.timeout( 5_000 );
 
-	const [ path, unpack ]		= await store.dispatch("unpack_bundle", dna_bundle_bytes );
-	const bundle			= await unpack();
+	const file			= await store.dispatch("saveFile", dna_bundle_bytes );
+	const value			= () => store.getters.bundle( file.hash );
+
+	expect( value()			).to.be.null;
+	await store.dispatch("unpackBundle", file.hash );
+	expect( value()			).to.be.a("object");
+
+	const bundle			= value();
 
 	expect( bundle.type		).to.equal("dna");
 	expect( bundle.zomes		).has.length.gt( 0 );
@@ -57,32 +63,40 @@ function unpacking_tests () {
     it("should get hApp bundle paths", async function () {
 	this.timeout( 5_000 );
 
-	const [ path, unpack ]		= await store.dispatch("unpack_bundle", happ_bundle_bytes );
-	const bundle			= await unpack();
+	const file			= await store.dispatch("saveFile", happ_bundle_bytes );
+	const value			= () => store.getters.bundle( file.hash );
+
+	expect( value()			).to.be.null;
+	await store.dispatch("unpackBundle", file.hash );
+	expect( value()			).to.be.a("object");
+
+	const bundle			= value();
 
 	expect( bundle.type		).to.equal("happ");
 	expect( bundle.roles		).has.length.gt( 0 );
 
 	for ( let role of bundle.roles ) {
-	    const [ role_path, _ ]	= await role.dna.manifest;
+	    const file			= await role.dna.source();
 
-	    expect( role_path		).to.be.a("string");
+	    expect( file.bytes		).to.be.a("uint8array");
+	    expect( file.digest		).to.be.a("uint8array");
+	    expect( file.digest		).to.have.length( 32 )
+	    expect( file.hash		).to.be.a("string");
 	}
     });
 
     it("should unpack hApp bundle", async function () {
 	this.timeout( 20_000 );
 
-	const [ path, unpack ]		= await store.dispatch("unpack_bundle", happ_bundle_bytes );
-	const bundle			= await unpack();
+	const file			= await store.dispatch("saveFile", happ_bundle_bytes );
+	const bundle			= store.getters.bundle( file.hash );
 
+	expect( bundle			).to.be.a("object");
 	expect( bundle.type		).to.equal("happ");
 	expect( bundle.roles		).has.length.gt( 0 );
 
 	for ( let role of bundle.roles ) {
-	    const [ role_path,
-		    unpack_dna ]	= await role.dna.manifest;
-	    const dna_bundle		= await unpack_dna();
+	    const dna_bundle		= await role.dna.manifest();
 
 	    expect( dna_bundle.type		).to.equal("dna");
 	    expect( dna_bundle.zomes		).has.length.gt( 0 );
@@ -96,8 +110,7 @@ function unpacking_tests () {
 	expect( await bundle.happ_digest()	).to.be.a("Uint8Array");
 	expect( await bundle.happ_hash()	).to.be.a("string");
 
-	const [ _, unpack_dna ]		= await bundle.roles[0].dna.manifest;
-	const dna			= await unpack_dna();
+	const dna			= await bundle.roles[0].dna.manifest();
 
 	expect( dna.type		).to.equal("dna");
 	expect( dna.zomes		).has.length.gt( 0 );
@@ -110,13 +123,18 @@ function unpacking_tests () {
     it("should unpack hApp bundle", async function () {
 	this.timeout( 20_000 );
 
-	const [ path, unpack ]		= await store.dispatch("unpack_bundle", webhapp_bundle_bytes );
-	const bundle			= await unpack();
+	const file			= await store.dispatch("saveFile", webhapp_bundle_bytes );
+	const value			= () => store.getters.bundle( file.hash );
+
+	expect( value()			).to.be.null;
+	await store.dispatch("unpackBundle", file.hash );
+	expect( value()			).to.be.a("object");
+
+	const bundle			= value();
 
 	expect( bundle.type		).to.equal("webhapp");
 
-	const [ happ_path, happ_unpack ] = await bundle.happ_manifest;
-	const manifest			= await happ_unpack();
+	const manifest			= await bundle.happ.bundle();
 
 	expect( manifest.type		).to.equal("happ");
 	expect( manifest.roles		).has.length.gt( 0 );

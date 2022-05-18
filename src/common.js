@@ -174,15 +174,20 @@ const common				= {
     },
 
     once ( fn ) {
-	let result;
+	let P;
 
 	return async () => {
-	    if ( result )
-		return result;
+	    if ( P === undefined ) {
+		P = new Promise( async (f,r) => {
+		    try {
+			f( await fn() );
+		    } catch (err) {
+			r( err );
+		    }
+		});
+	    }
 
-	    result			= await fn();
-
-	    return result;
+	    return await P;
 	};
     },
 

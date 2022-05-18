@@ -36,6 +36,38 @@ function common_tests () {
 	}
     });
 
+    it("should run async once", async function () {
+	const long_process		= common.once( () => {
+	    for (let i=0; i<1e7;) i++;
+	});
+
+	{
+	    const start			= Date.now();
+	    const lp1			= long_process();
+	    const lp2			= long_process();
+
+	    // First await should take more than 2ms
+	    await lp1;
+	    const delta			= Date.now() - start;
+	    expect( delta		).to.be.gt( 2 );
+
+	    // Second await should fulfill instantly even though they started at the same time
+	    const start_2		= Date.now();
+	    await lp2;
+	    const delta_2		= Date.now() - start_2;
+	    expect( delta_2		).to.be.lt( 2 );
+	}
+
+	{
+	    // Later runs should also fulfill instantly
+	    const start			= Date.now();
+	    await long_process();
+	    const delta			= Date.now() - start;
+
+	    expect( delta		).to.be.lt( 2 );
+	}
+    });
+
 }
 
 function errors_tests () {
