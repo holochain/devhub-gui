@@ -45,7 +45,7 @@
 			Description
 		    </div>
 		    <div class="card-body">
-			<placeholder :when="!$release.current" size="p" class="h-100">
+			<placeholder :when="!$release.current" size="p">
 			    <input-feedback class="h-100">
 				<textarea v-model="release.description" class="form-control h-100 border-0 shadow-none" rows="10"
 					  @change="copy(release, input, 'description')"

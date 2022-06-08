@@ -1,6 +1,23 @@
 <div class="card entity-card zome-version-card">
-    <loading :when="!$version.current">
+    <div v-if="not_found" class="text-center">
+	<p class="m-4">
+	    This version of <strong v-if="title">{{ title }}</strong><span v-else>the Zome</span>
+	    does not exist or has been unpublished
+	</p>
+    </div>
+    <loading v-else :when="!$version.current">
 	<div class="entity-card-header">{{ header_prefix }}: <strong>{{ version.version }}</strong></div>
+	<div v-if="actions.length" class="entity-card-actions">
+	    <template v-for="action in actions">
+		<a v-if="!action.hide"
+		   class="float-start"
+		   :title="action.title"
+		   :alt="action.alt"
+		   @click="action.method()">
+		    <i :class="'bi-' + action.icon"></i>
+		</a>
+	    </template>
+	</div>
 	<div class="card-body">
 	    <div class="row mb-2">
 		<div class="col-auto">
@@ -50,10 +67,10 @@
 	    </dl>
 
 	    <div class="position-absolute bottom-0 end-0">
-		<a v-show="!expanded" @click="toggle_expansion()">
+		<a v-show="!expanded" @click.stop="toggle_expansion()">
 		    <i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
 		</a>
-		<a v-show="expanded" @click="toggle_expansion()">
+		<a v-show="expanded" @click.stop="toggle_expansion()">
 		    <i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
 		</a>
 	    </div>

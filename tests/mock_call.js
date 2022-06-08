@@ -245,12 +245,13 @@ const happ_library			= mock_zome( "happ_library", {
 
     // hApp Release
     async create_happ_release ( input ) {
-	const entry			= HappReleaseEntry( cell_state, {
+	const entry			= Object.assign( HappReleaseEntry( cell_state, {
 	    "dnas": input.dnas,
-	});
+	}), input );
 
 	entry.for_happ			= input.for_happ;
 	entry.name			= input.name;
+	entry.hdk_version		= input.name;
 
 	const happ_release		= RandomEntity( "happ_release", "info", entry );
 

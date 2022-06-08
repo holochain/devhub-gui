@@ -122,7 +122,7 @@
 		    Created
 		</div>
 		<div class="col-2 fw-7">
-		    File size
+		    HDK Version
 		</div>
 		<div class="col"></div>
 	    </div>
@@ -138,7 +138,7 @@
 			Created on {{ $filters.time( version.published_at, "weekday+date" ) }}
 		    </div>
 		    <div class="col-2">
-			N/A
+			<div class="badge bg-light text-dark font-monospace">v{{ version.hdk_version }}</div>
 		    </div>
 		    <div class="col text-end text-nowrap">
 			<a v-if="$zome.writable" @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">

@@ -285,7 +285,21 @@ module.exports = async function ( client ) {
 		},
 
 		versions () {
-		    return this.$store.getters.dna_versions( this.id );
+		    const versions	= this.$store.getters.dna_versions( this.id );
+		    versions.sort( (a,b) => {
+			if( a.version > b.version )
+			    return -1;
+			if( a.version < b.version )
+			    return 1;
+
+			if( a.published_at > b.published_at )
+			    return -1;
+			if( a.published_at < b.published_at )
+			    return 1;
+
+			return 0;
+		    });
+		    return versions;
 		},
 		$versions () {
 		    return this.$store.getters.$dna_versions( this.id );
@@ -339,6 +353,7 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 
+		    this.$store.dispatch("fetchAllDnas");
 		    this.$store.dispatch("fetchDnas", { "agent": "me" });
 		},
 		promptUnpublish ( version ) {

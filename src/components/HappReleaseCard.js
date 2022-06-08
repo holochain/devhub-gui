@@ -34,6 +34,7 @@ module.exports = function ( element_local_name, component_name ) {
 	data () {
 	    log.info("hApp Card: %s", String(this.id) );
 	    return {
+		"not_found": false,
 		"error": null,
 		"expanded": this.expand || this.expandDepth > 0,
 		"show_parent_ref": this.parentRef,
@@ -82,9 +83,14 @@ module.exports = function ( element_local_name, component_name ) {
 		return Object.values( this.dnas );
 	    },
 	},
-	created () {
-	    if ( !this.release )
-		this.$store.dispatch("fetchHappRelease", this.id );
+	async created () {
+	    try {
+		if ( !this.release )
+		    await this.$store.dispatch("fetchHappRelease", this.id );
+	    } catch (err) {
+		if ( err.name === "EntryNotFoundError" )
+		    this.not_found	= true;
+	    }
 	},
 	"methods": {
 	    toggle_expansion () {

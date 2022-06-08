@@ -81,5 +81,11 @@ module.exports = async function () {
 
     crux_config.upgrade( client );
 
+    const response			= await client.call( "happs", "happ_library", "register_peer_dnas", {
+	"dnarepo":	client._app_schema._dnas.dnarepo._hash,
+	"happs":	client._app_schema._dnas.happs._hash,
+	"webassets":	client._app_schema._dnas.webassets._hash,
+    });
+
     return client;
 }

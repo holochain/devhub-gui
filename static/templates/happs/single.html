@@ -135,7 +135,7 @@
 		    Created
 		</div>
 		<div class="col-2 fw-7">
-		    File size
+		    HDK Version
 		</div>
 		<div class="col"></div>
 	    </div>
@@ -151,7 +151,7 @@
 			Created on {{ $filters.time( release.published_at, "weekday+date" ) }}
 		    </div>
 		    <div class="col-2">
-			N/A
+			<div class="badge bg-light text-dark font-monospace">v{{ release.hdk_version }}</div>
 		    </div>
 		    <div class="col text-end text-nowrap">
 			<a v-if="$happ.writable" @click="promptUnpublish( release )" class="btn btn-secondary text-nowrap">

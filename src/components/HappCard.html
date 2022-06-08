@@ -64,10 +64,10 @@
 	    </div>
 
 	    <div class="position-absolute bottom-0 end-0">
-		<a v-show="!expanded" @click="toggle_expansion()">
+		<a v-show="!expanded" @click.stop="toggle_expansion()">
 		    <i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
 		</a>
-		<a v-show="expanded" @click="toggle_expansion()">
+		<a v-show="expanded" @click.stop="toggle_expansion()">
 		    <i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
 		</a>
 	    </div>

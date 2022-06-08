@@ -12,7 +12,8 @@
                 <slot name="controls">
                     <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal"
                             @click="cancel()">Cancel</button>
-                    <button type="button" class="btn btn-primary" :class="{ 'disabled': running_action }"
+                    <button v-if="action"
+			    type="button" class="btn btn-primary" :class="{ 'disabled': running_action }"
                             @click="runAction()">
                         <span v-if="running_action"
                               class="spinner-border spinner-border-sm me-3"></span>

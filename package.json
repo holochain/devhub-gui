@@ -38,7 +38,7 @@
     "@faker-js/faker": "^6.1.2",
     "@whi/holochain-backdrop": "^0.24.1",
     "@whi/holochain-conductor-cli": "^0.1.0",
-    "@whi/json": "^0.1.3",
+    "@whi/json": "^0.1.5",
     "@whi/repr": "^0.1.0",
     "@whi/stdlog": "^0.3.4",
     "babel-loader": "^8.2.2",

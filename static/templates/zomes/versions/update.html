@@ -47,7 +47,7 @@
 			   @click="toggleChangelogPreview()">{{ preview_toggle_text }}</a>
 		    </div>
 		    <div class="card-body">
-			<placeholder :when="!$version.current" size="p" class="h-100">
+			<placeholder :when="!$version.current" size="p">
 			    <div v-if="show_changelog_preview" v-html="changelog_html"></div>
 			    <input-feedback v-else class="h-100">
 				<textarea v-model="version.changelog" class="form-control font-monospace h-100 border-0 shadow-none" rows="10"

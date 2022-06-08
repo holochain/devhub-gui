@@ -212,9 +212,14 @@ a.text-primary:hover {
   border-color: #4820E3;
 }
 
+.btn-outline-primary.disabled, .btn-outline-primary:disabled {
+  color: #9d87f1;
+  border-color: #9d87f1;
+}
 
 
-.badge {
+
+.badge.font-monospace {
   padding: .5em .65em .25em !important;
 }
 .badge-md {
@@ -469,6 +474,24 @@ a.text-primary:hover {
   font-weight: 600;
   /* text-transform: uppercase; */
 }
+.entity-card-actions {
+  position: absolute;
+  top: -14px;
+  right: -10px;
+  background-color: white;
+  border: solid 2px black;
+  border-radius: 14px / 50%;
+  font-size: .8em;
+}
+.entity-card-actions a:first-child {
+  padding-left: 1em;
+}
+.entity-card-actions a:last-child {
+  padding-right: 1em;
+}
+.entity-card-actions a {
+  padding: .1em .6em .09em;
+}
 .entity-card p,
 .entity-card dl {
   margin-bottom: .5rem;
@@ -492,35 +515,47 @@ a.text-primary:hover {
 */
 
 .zome-card,
+.zome-card > .entity-card-actions,
+.zome-version-card > .entity-card-actions,
 .zome-version-card {
   border-color: #00a1df;
 }
 .zome-card > div > div > i,
 .zome-card > .entity-card-header,
+.zome-card > .entity-card-actions,
 .zome-version-card > div > div > i,
-.zome-version-card > .entity-card-header {
+.zome-version-card > .entity-card-header,
+.zome-version-card > .entity-card-actions {
   color: #00a1df;
 }
 
 .dna-card,
+.dna-card > .entity-card-actions,
+.dna-version-card > .entity-card-actions,
 .dna-version-card {
   border-color: #c000ff;
 }
 .dna-card > div > div > i,
 .dna-card > .entity-card-header,
+.dna-card > .entity-card-actions,
 .dna-version-card > div > div > i,
-.dna-version-card > .entity-card-header {
+.dna-version-card > .entity-card-header,
+.dna-version-card > .entity-card-actions {
   color: #c000ff;
 }
 
 .happ-card,
+.happ-card > .entity-card-actions,
+.happ-release-card > .entity-card-actions,
 .happ-release-card {
   border-color: #6e00e0;
 }
 .happ-card > div > div > i,
 .happ-card > .entity-card-header,
+.happ-card > .entity-card-actions,
 .happ-release-card > div > div > i,
-.happ-release-card > .entity-card-header {
+.happ-release-card > .entity-card-header,
+.happ-release-card > .entity-card-actions {
   color: #6e00e0;
 }
 
@@ -627,7 +662,6 @@ dl dt {
 .step-progress-bar li.spb-step-active div {
   background-color: #4820E3;
 }
-
 
 /* Animations */
 

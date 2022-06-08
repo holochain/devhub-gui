@@ -51,7 +51,7 @@ function happ_action_tests () {
 	}
 
 	{
-	    store.dispatch("expireEntity", [ "happ", happ_id ] );
+	    store.dispatch("removeEntity", [ "happ", happ_id ] );
 	    const [id,get,meta]		= wrap( store.getters.happ, store.getters.$happ, happ_id );
 
 	    expect( get()		).to.be.null;
@@ -75,6 +75,7 @@ function happ_action_tests () {
     });
 
     it("should test hApp Release store actions", async function () {
+	let hdk_version;
 	{
 	    const entity		= await store.dispatch("createHappRelease", [ happ_id, {
 		"name": "v0.1.0",
@@ -85,11 +86,16 @@ function happ_action_tests () {
 	    expect( meta().current	).to.be.true;
 	    expect( get().name		).to.be.a("string");
 
+	    hdk_version			= get().hdk_version;
 	    happ_release_id		= id;
 	}
 
+	await store.dispatch("createHappRelease", [ happ_id, {
+	    "name": "v0.2.0",
+	} ] );
+
 	{
-	    store.dispatch("expireEntity", [ "happRelease", happ_release_id ] );
+	    store.dispatch("removeEntity", [ "happRelease", happ_release_id ] );
 	    const [id,get,meta]		= wrap( store.getters.happ_release, store.getters.$happ_release, happ_release_id );
 
 	    expect( get()		).to.be.null;
@@ -109,6 +115,20 @@ function happ_action_tests () {
 	    await store.dispatch("fetchReleasesForHapp", base );
 
 	    expect( list()		).to.have.length.gt( 0 );
+	}
+
+	{
+	    const happ_release		= await store.dispatch("getLatestReleaseForHapp", [ happ_id, null ] );
+
+	    for ( let release of store.getters.happ_releases( happ_id ) ) {
+		expect( happ_release.published_at	).to.be.gte( release.published_at );
+	    }
+	}
+
+	{
+	    const happ_release		= await store.dispatch("getLatestReleaseForHapp", [ happ_id, hdk_version ] );
+
+	    expect( happ_release.$id	).to.deep.equal( happ_release_id );
 	}
     });
 }

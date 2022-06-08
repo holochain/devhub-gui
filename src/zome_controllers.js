@@ -332,6 +332,7 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 
+		    this.$store.dispatch("fetchAllZomes");
 		    this.$store.dispatch("fetchZomes", { "agent": "me" });
 		},
 		promptUnpublish ( version ) {

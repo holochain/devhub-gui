@@ -34,6 +34,7 @@ module.exports = function ( element_local_name, component_name ) {
 	data () {
 	    log.info("DNA Version Card: %s", String(this.id) );
 	    return {
+		"not_found": false,
 		"error": null,
 		"expanded": this.expand || this.expandDepth > 0,
 		"show_parent_ref": this.parentRef,
@@ -82,9 +83,14 @@ module.exports = function ( element_local_name, component_name ) {
 		return Object.values( this.zomes );
 	    },
 	},
-	created () {
-	    if ( !this.version )
-		this.$store.dispatch("fetchDnaVersion", this.id );
+	async created () {
+	    try {
+		if ( !this.version )
+		    await this.$store.dispatch("fetchDnaVersion", this.id );
+	    } catch (err) {
+		if ( err.name === "EntryNotFoundError" )
+		    this.not_found	= true;
+	    }
 	},
 	"methods": {
 	    toggle_expansion () {

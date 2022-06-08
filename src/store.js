@@ -52,8 +52,10 @@ const store_path			= ( ...segments ) => segments.join("/");
 
 const dataTypePath			= {
     zomes:		( agent )	=> store_path( "zomes", agent ),
+    zomesByName:	( name )	=> store_path( "zomes", name ),
     zome:		( id )		=> store_path( "zome", id ),
     zomeVersions:	( id )		=> store_path( "zome", id, "versions" ),
+    zomeVersionsByHash:	( hash )	=> store_path( "zome", "versions", hash ),
     zomeVersion:	( id )		=> store_path( "zome", "version", id ),
 
     dnas:		( agent )	=> store_path( "dnas", agent ),
@@ -105,6 +107,14 @@ function fmt_client_args ( dna, zome, func, args ) {
 }
 
 
+// "uhCEk...r1cYf"		- When would we not care about type name/model
+// "uhCEk...r1cYf/dna"		- When would we not care about the model
+// "uhCEk...r1cYf/dna/summary"	- Does this affect metadata for info?
+// "uhCEk...r1cYf/dna/info"	- Does metadata only matter for this?
+
+// Perhaps we want to completely ignore summary models and only car about full info models?
+
+
 module.exports = async function ( client ) {
     return new Vuex.Store({
 	state () {
@@ -121,20 +131,29 @@ module.exports = async function ( client ) {
 		return getters.metadata( path ).stored_at + CACHE_EXPIRATION_LIMIT < Date.now();
 	    },
 	    entity: ( state, getters ) => ( path ) => {
-		if ( getters.isExpired( path ) )
-		    return null;
+		// Enforcing the cache expiry causes unexpected results unless there was an
+		// automated re-fetching of the expired data.
+
+		// if ( getters.isExpired( path ) )
+		//     return null;
 
 		return state.entities[ path ] || null;
 	    },
 	    collection: ( state, getters ) => ( path ) => {
-		if ( getters.isExpired( path ) )
-		    return [];
+		// Enforcing the cache expiry causes unexpected results unless there was an
+		// automated re-fetching of the expired data.
+
+		// if ( getters.isExpired( path ) )
+		//     return [];
 
 		return state.collections[ path ] || [];
 	    },
 	    value: ( state, getters ) => ( path ) => {
-		if ( getters.isExpired( path ) )
-		    return null;
+		// Enforcing the cache expiry causes unexpected results unless there was an
+		// automated re-fetching of the expired data.
+
+		// if ( getters.isExpired( path ) )
+		//     return null;
 
 		return state.values[ path ] || null;
 	    },
@@ -146,11 +165,10 @@ module.exports = async function ( client ) {
 	    // Agent
 	    //
 	    agent: ( _, getters ) => {
-		const path		= "me";
-		return {
-		    "entity":		getters.entity( path ),
-		    "metadata":		getters.metadata( path ),
-		};
+		return getters.entity("me");
+	    },
+	    $agent: ( _, getters ) => {
+		return getters.metadata("me");
 	    },
 
 	    //
@@ -162,6 +180,15 @@ module.exports = async function ( client ) {
 	    },
 	    $zomes: ( _, getters ) => ( agent = "me" ) => {
 		const path		= dataTypePath.zomes( agent );
+		return getters.metadata( path );
+	    },
+
+	    zomes_by_name: ( _, getters ) => ( name ) => {
+		const path		= dataTypePath.zomesByName( name );
+		return getters.collection( path );
+	    },
+	    $zomes_by_name: ( _, getters ) => ( name ) => {
+		const path		= dataTypePath.zomesByName( name );
 		return getters.metadata( path );
 	    },
 
@@ -183,6 +210,15 @@ module.exports = async function ( client ) {
 		return getters.metadata( path );
 	    },
 
+	    zome_versions_by_hash: ( _, getters ) => ( hash ) => {
+		const path		= dataTypePath.zomeVersionsByHash( hash );
+		return getters.collection( path );
+	    },
+	    $zome_versions_by_hash: ( _, getters ) => ( hash ) => {
+		const path		= dataTypePath.zomeVersionsByHash( hash );
+		return getters.metadata( path );
+	    },
+
 	    zome_version: ( _, getters ) => ( id ) =>  {
 		const path		= dataTypePath.zomeVersion( id );
 		return getters.entity( path );
@@ -192,7 +228,7 @@ module.exports = async function ( client ) {
 		return getters.metadata( path );
 	    },
 
-	    $zome_version_wasm: ( _, getters ) => ( agent = "me" ) => {
+	    $zome_version_wasm: ( _, getters ) => ( addr ) => {
 		const path		= dataTypePath.zomeVersionWasm( addr );
 		return getters.metadata( path );
 	    },
@@ -320,12 +356,27 @@ module.exports = async function ( client ) {
 	    },
 	},
 	"mutations": {
-	    expireEntity ( state, path ) {
+	    expireData ( state, path ) {
 		if ( state.metadata[path] === undefined )
 		    state.metadata[path]	= copy( DEFAULT_METADATA_STATES );
 
 		state.metadata[path].stored_at	= -Infinity;
 		state.metadata[path].current	= false;
+	    },
+	    removeEntity ( state, path ) {
+		state.metadata[path]		= copy( DEFAULT_METADATA_STATES );
+
+		delete state.entities[ path ];
+	    },
+	    removeCollection ( state, path ) {
+		state.metadata[path]		= copy( DEFAULT_METADATA_STATES );
+
+		delete state.collections[ path ];
+	    },
+	    removeValue ( state, path ) {
+		state.metadata[path]		= copy( DEFAULT_METADATA_STATES );
+
+		delete state.values[ path ];
 	    },
 	    cacheEntity ( state, [ path, entity ] ) {
 		state.entities[path]		= entity;
@@ -361,9 +412,9 @@ module.exports = async function ( client ) {
 		if ( state.metadata[path] === undefined )
 		    state.metadata[path]	= copy( DEFAULT_METADATA_STATES );
 
-		const entity		= state.metadata[path];
+		const context		= state.metadata[path];
 		for ( let k in metadata ) {
-		    entity[k]		= metadata[k];
+		    context[k]		= metadata[k];
 		}
 	    },
 	    signalLoading ( state, path ) {
@@ -380,6 +431,8 @@ module.exports = async function ( client ) {
 		state.metadata[path].loaded	= true;
 		state.metadata[path].loading	= false;
 		state.metadata[path].current	= true;
+
+		log.trace("%s: record loaded", path );
 	    },
 	},
 	"actions": {
@@ -434,10 +487,25 @@ module.exports = async function ( client ) {
 
 		return collection;
 	    },
-	    expireEntity ({ commit }, [ path_fn_name, id ] ) {
+	    expireData ({ commit }, [ path_fn_name, id ] ) {
 		const path		= dataTypePath[ path_fn_name ]( id );
 
-		commit("expireEntity", path );
+		commit("expireData", path );
+	    },
+	    removeEntity ({ commit }, [ path_fn_name, id ] ) {
+		const path		= dataTypePath[ path_fn_name ]( id );
+
+		commit("removeEntity", path );
+	    },
+	    removeCollection ({ commit }, [ path_fn_name, id ] ) {
+		const path		= dataTypePath[ path_fn_name ]( id );
+
+		commit("removeCollection", path );
+	    },
+	    removeValue ({ commit }, [ path_fn_name, id ] ) {
+		const path		= dataTypePath[ path_fn_name ]( id );
+
+		commit("removeValue", path );
 	    },
 
 	    // Create
@@ -474,7 +542,7 @@ module.exports = async function ( client ) {
 		    // log.normal("Deleting Zome Version (%s)", String(id) );
 		    await dispatch("callClient", [ dna, zome, func, args, timeout ]);
 
-		    commit("expireEntity", path );
+		    commit("expireData", path );
 		} finally {
 		    commit("metadata", [ path, { "unpublishing": false }] );
 		}
@@ -499,8 +567,8 @@ module.exports = async function ( client ) {
 	    // Agent
 	    //
 	    async getAgent ({ getters, dispatch }) {
-		if ( getters.agent.entity )
-		    return getters.agent.entity;
+		if ( getters.agent )
+		    return getters.agent;
 		else
 		    return await dispatch("fetchAgent");
 	    },
@@ -540,6 +608,24 @@ module.exports = async function ( client ) {
 		const zomes		= await dispatch("fetchCollection", [
 		    path, ...args
 		]);
+
+		return zomes;
+	    },
+
+	    async fetchZomesByName ({ dispatch, commit }, name ) {
+		const path		= dataTypePath.zomesByName( name );
+		const zomes		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "dna_library", "get_zomes_by_filter", {
+			"filter": "name",
+			"keyword": name.toLowerCase(),
+		    },
+		]);
+
+		for ( let zome of zomes ) {
+		    commit("cacheEntity", [
+			dataTypePath.zome( zome.$id ), zome
+		    ] );
+		}
 
 		return zomes;
 	    },
@@ -595,12 +681,41 @@ module.exports = async function ( client ) {
 		return zome;
 	    },
 
-	    async fetchVersionsForZome ({ dispatch }, zome_id ) {
+	    async fetchVersionsForZome ({ dispatch, commit }, zome_id ) {
 		const path		= dataTypePath.zomeVersions( zome_id );
-
-		return await dispatch("fetchCollection", [
+		const versions		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_zome_versions", { "for_zome": zome_id }
 		]);
+
+		for ( let version of versions ) {
+		    commit("cacheEntity", [
+			dataTypePath.zomeVersion( version.$id ), version
+		    ] );
+		}
+
+		return versions;
+	    },
+
+	    async getLatestVersionForZome ({ dispatch, getters }, [ zome_id, hdk_version ] ) {
+		const path		= dataTypePath.zomeVersions( zome_id );
+
+		if ( getters.zome_versions( zome_id ).length === 0 )
+		    await dispatch("fetchVersionsForZome", zome_id );
+
+		const versions		= getters.zome_versions( zome_id );
+
+		return versions.reduce( (acc, version, i) => {
+		    if ( hdk_version && hdk_version !== version.hdk_version )
+			return acc;
+
+		    if ( acc === null )
+			return version;
+
+		    if ( version.version > acc.version )
+			return version;
+
+		    return acc;
+		}, null );
 	    },
 
 	    async createZome ({ dispatch }, input ) {
@@ -611,7 +726,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async updateZome ({ dispatch, getters }, [ id, input ] ) {
-		const entity		= getters.zome( id ).entity;
+		const entity		= getters.zome( id );
 		const path		= dataTypePath.zome( id );
 
 		log.normal("Updating Zome (%s)", String(entity.$addr) );
@@ -624,7 +739,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async deprecateZome ({ dispatch, getters }, [ id, { message } ] ) {
-		const entity		= getters.zome( id ).entity;
+		const entity		= getters.zome( id );
 		const path		= dataTypePath.zome( id );
 
 		log.normal("Deprecating Zome (%s) because: %s", String(entity.$addr), message );
@@ -644,6 +759,21 @@ module.exports = async function ( client ) {
 		]);
 	    },
 
+	    async fetchZomesWithHDKVersion ({ dispatch, commit }, hdk_version ) {
+		const path		= dataTypePath.zomes( hdk_version );
+		const zomes		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "dna_library", "get_zomes_with_an_hdk_version", hdk_version
+		]);
+
+		for ( let zome of zomes ) {
+		    commit("cacheEntity", [
+			dataTypePath.zome( zome.$id ), zome
+		    ] );
+		}
+
+		return zomes;
+	    },
+
 
 	    //
 	    // Zome Version
@@ -654,6 +784,10 @@ module.exports = async function ( client ) {
 		    path, "dnarepo", "dna_library", "get_zome_version", { id }
 		]);
 
+		commit("cacheEntity", [
+		    dataTypePath.zome( version.for_zome.$id ), version.for_zome
+		] );
+
 		let agent_info		= await dispatch("getAgent");
 
 		commit("metadata", [ path, {
@@ -661,6 +795,24 @@ module.exports = async function ( client ) {
 		}] );
 
 		return version;
+	    },
+
+	    async fetchZomeVersionsByHash ({ dispatch, commit }, hash ) {
+		const path		= dataTypePath.zomeVersionsByHash( hash );
+		const versions		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "dna_library", "get_zome_versions_by_filter", {
+			"filter": "uniqueness_hash",
+			"keyword": hash,
+		    },
+		]);
+
+		for ( let version of versions ) {
+		    commit("cacheEntity", [
+			dataTypePath.zomeVersion( version.$id ), version
+		    ] );
+		}
+
+		return versions;
 	    },
 
 	    async fetchZomeVersionWasm ({ dispatch, commit }, addr ) {
@@ -690,7 +842,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async updateZomeVersion ({ dispatch, getters }, [ id, input ] ) {
-		const entity		= getters.zome_version( id ).entity;
+		const entity		= getters.zome_version( id );
 		const path		= dataTypePath.zomeVersion( id );
 
 		log.normal("Updating Zome Version (%s)", String(entity.$addr) );
@@ -738,6 +890,28 @@ module.exports = async function ( client ) {
 		]);
 	    },
 
+	    async getLatestVersionForDna ({ dispatch, getters }, [ dna_id, hdk_version ] ) {
+		const path		= dataTypePath.dnaVersions( dna_id );
+
+		if ( getters.dna_versions( dna_id ).length === 0 )
+		    await dispatch("fetchVersionsForDna", dna_id );
+
+		const versions		= getters.dna_versions( dna_id );
+
+		return versions.reduce( (acc, version, i) => {
+		    if ( hdk_version && hdk_version !== version.hdk_version )
+			return acc;
+
+		    if ( acc === null )
+			return version;
+
+		    if ( version.version > acc.version )
+			return version;
+
+		    return acc;
+		}, null );
+	    },
+
 	    async createDna ({ dispatch }, input ) {
 		log.normal("Creating DNA: %s", input.name );
 		return await dispatch("createEntity", [
@@ -746,7 +920,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async updateDna ({ dispatch, getters }, [ id, input ] ) {
-		const entity		= getters.dna( id ).entity;
+		const entity		= getters.dna( id );
 		const path		= dataTypePath.dna( id );
 
 		log.normal("Updating DNA (%s)", String(entity.$addr) );
@@ -759,7 +933,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async deprecateDna ({ dispatch, getters }, [ id, { message } ] ) {
-		const entity		= getters.dna( id ).entity;
+		const entity		= getters.dna( id );
 		const path		= dataTypePath.dna( id );
 
 		log.normal("Deprecating DNA (%s) because: %s", String(entity.$addr), message );
@@ -790,6 +964,10 @@ module.exports = async function ( client ) {
 		    path, "dnarepo", "dna_library", "get_dna_version", { id }
 		]);
 
+		commit("cacheEntity", [
+		    dataTypePath.dna( version.for_dna.$id ), version.for_dna
+		] );
+
 		let agent_info		= await dispatch("getAgent");
 
 		commit("metadata", [ path, {
@@ -809,9 +987,9 @@ module.exports = async function ( client ) {
 		    "dnarepo", "dna_library", "get_dna_package", { id }
 		]);
 
-		const wasm_bytes	= new Uint8Array( result );
+		pack.bytes		= new Uint8Array( pack.bytes );
 
-		commit("cacheEntity", [ path, wasm_bytes ] );
+		commit("cacheEntity", [ path, pack ] );
 		commit("recordLoaded", path );
 
 		return pack;
@@ -827,7 +1005,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async updateDnaVersion ({ dispatch, getters }, [ id, input ] ) {
-		const entity		= getters.dna_version( id ).entity;
+		const entity		= getters.dna_version( id );
 		const path		= dataTypePath.dnaVersion( id );
 
 		log.normal("Updating DNA Version (%s)", String(entity.$addr) );
@@ -877,6 +1055,30 @@ module.exports = async function ( client ) {
 		]);
 	    },
 
+	    async getLatestReleaseForHapp ({ dispatch, getters }, [ happ_id, hdk_version ] ) {
+		const path		= dataTypePath.happReleases( happ_id );
+
+		if ( getters.happ_releases( happ_id ).length === 0 )
+		    await dispatch("fetchReleasesForHapp", happ_id );
+
+		const releases		= getters.happ_releases( happ_id );
+
+		return releases.reduce( (acc, release, i) => {
+		    if ( hdk_version ) {
+			if ( hdk_version !== release.hdk_version )
+			    return acc;
+		    }
+
+		    if ( acc === null )
+			return release;
+
+		    if ( release.published_at > acc.published_at )
+			return release;
+
+		    return acc;
+		}, null );
+	    },
+
 	    async createHapp ({ dispatch }, input ) {
 		log.normal("Creating Happ: %s", input.title );
 		return await dispatch("createEntity", [
@@ -885,7 +1087,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async updateHapp ({ dispatch, getters }, [ id, input ] ) {
-		const entity		= getters.happ( id ).entity;
+		const entity		= getters.happ( id );
 		const path		= dataTypePath.happ( id );
 
 		log.normal("Updating Happ (%s)", String(entity.$addr) );
@@ -898,7 +1100,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async deprecateHapp ({ dispatch, getters }, [ id, { message } ] ) {
-		const entity		= getters.happ( id ).entity;
+		const entity		= getters.happ( id );
 		const path		= dataTypePath.happ( id );
 
 		log.normal("Deprecating Happ (%s) because: %s", String(entity.$addr), message );
@@ -954,7 +1156,7 @@ module.exports = async function ( client ) {
 		commit("cacheEntity", [ path, wasm_bytes ] );
 		commit("recordLoaded", path );
 
-		return bytes;
+		return wasm_bytes;
 	    },
 
 	    async fetchWebhappReleasePackage ({ dispatch, commit }, { name, id } ) {
@@ -969,10 +1171,10 @@ module.exports = async function ( client ) {
 
 		const wasm_bytes	= new Uint8Array( result );
 
-		commit("cacheEntity", [ path, bytes ] );
+		commit("cacheEntity", [ path, wasm_bytes ] );
 		commit("recordLoaded", path );
 
-		return bytes;
+		return wasm_bytes;
 	    },
 
 	    async createHappRelease ({ dispatch }, [ happ_id, input ] ) {
@@ -985,7 +1187,7 @@ module.exports = async function ( client ) {
 	    },
 
 	    async updateHappRelease ({ dispatch, getters }, [ id, input ] ) {
-		const entity		= getters.happ_release( id ).entity;
+		const entity		= getters.happ_release( id );
 		const path		= dataTypePath.happRelease( id );
 
 		log.normal("Updating Happ Release (%s)", String(entity.$addr) );
@@ -1014,7 +1216,7 @@ module.exports = async function ( client ) {
 		const path		= dataTypePath.hdkVersions();
 
 		log.debug("Getting previous HDK versions");
-		const hdkvs		= await dispatch("fetchResource", [
+		const hdkvs		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_hdk_versions"
 		]);
 
@@ -1045,16 +1247,19 @@ module.exports = async function ( client ) {
 		return file;
 	    },
 
-	    async uploadFile ({ commit }, [ id, file ] ) {
+	    async uploadFile ({ dispatch, commit }, [ id, file ] ) {
 		const path		= dataTypePath.file( id );
 
 		commit("signalLoading", path );
 
 		const bytes		= await common.load_file( file );
-		commit("cacheValue", [ path, bytes ] );
 
 		try {
-		    return common.dispatch("saveFile", bytes );
+		    const file_info	= await dispatch("saveFile", bytes );
+
+		    commit("cacheValue", [ path, file_info ] );
+
+		    return file_info;
 		} finally {
 		    commit("recordLoaded", path );
 		}
@@ -1078,6 +1283,8 @@ module.exports = async function ( client ) {
 		//
 		let file;
 		if ( typeof hash !== "string" ) {
+		    if ( !(hash instanceof Uint8Array) )
+			throw new TypeError(`store action 'unpackBundle' expects a hash or Uint8Array; not typeof '${typeof hash}'`);
 		    file		= await dispatch("saveFile", hash );
 		}
 		else {

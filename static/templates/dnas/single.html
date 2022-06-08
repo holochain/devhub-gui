@@ -105,6 +105,13 @@
 		</a>
 	    </h2>
 
+            <router-link v-if="dna && $dna.writable" :to="'/dnas/' + id + '/upload'"
+			 class="btn btn-primary text-nowrap me-3"
+			 :class="{ 'disabled': deprecated }">
+		<i class="bi-upload"></i>
+		Upload Bundle
+            </router-link>
+
             <router-link v-if="dna && $dna.writable" :to="'/dnas/' + id + '/versions/new'"
 			 class="btn btn-primary text-nowrap"
 			 :class="{ 'disabled': deprecated }">
@@ -122,7 +129,7 @@
 		    Created
 		</div>
 		<div class="col-2 fw-7">
-		    File size
+		    HDK Version
 		</div>
 		<div class="col"></div>
 	    </div>
@@ -138,7 +145,7 @@
 			Created on {{ $filters.time( version.published_at, "weekday+date" ) }}
 		    </div>
 		    <div class="col-2">
-			N/A
+			<div class="badge bg-light text-dark font-monospace">v{{ version.hdk_version }}</div>
 		    </div>
 		    <div class="col text-end text-nowrap">
 			<a v-if="$dna.writable" @click="promptUnpublish( version )" class="btn btn-secondary text-nowrap">

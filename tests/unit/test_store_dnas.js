@@ -52,7 +52,7 @@ function dna_action_tests () {
 	}
 
 	{
-	    store.dispatch("expireEntity", [ "zome", zome_id ] );
+	    store.dispatch("removeEntity", [ "zome", zome_id ] );
 	    const [id,get,meta]		= wrap( store.getters.zome, store.getters.$zome, zome_id );
 
 	    expect( get()		).to.be.null;
@@ -82,13 +82,15 @@ function dna_action_tests () {
 	    const [id,get,meta]		= wrap( store.getters.zome_version, store.getters.$zome_version, entity.$id );
 
 	    expect( meta().current	).to.be.true;
-	    expect( get().version	).to.be.a("string");
+	    expect( get().version	).to.be.a("number");
 
 	    zome_version_id		= id;
 	}
 
+	await store.dispatch("createZomeVersion", [ zome_id, {} ] );
+
 	{
-	    store.dispatch("expireEntity", [ "zomeVersion", zome_version_id ] );
+	    store.dispatch("removeEntity", [ "zomeVersion", zome_version_id ] );
 	    const [id,get,meta]		= wrap( store.getters.zome_version, store.getters.$zome_version, zome_version_id );
 
 	    expect( get()		).to.be.null;
@@ -96,7 +98,7 @@ function dna_action_tests () {
 
 	    await store.dispatch("fetchZomeVersion", id );
 
-	    expect( get().version	).to.be.a("string");
+	    expect( get().version	).to.be.a("number");
 	}
 
 	{
@@ -108,6 +110,14 @@ function dna_action_tests () {
 	    await store.dispatch("fetchVersionsForZome", base );
 
 	    expect( list()		).to.have.length.gt( 0 );
+	}
+
+	{
+	    const zome_version		= await store.dispatch("getLatestVersionForZome", [ zome_id, null ] );
+
+	    for ( let version of store.getters.zome_versions( zome_id ) ) {
+		expect( zome_version.version	).to.be.gte( version.version );
+	    }
 	}
     });
 
@@ -127,7 +137,7 @@ function dna_action_tests () {
 	}
 
 	{
-	    store.dispatch("expireEntity", [ "dna", dna_id ] );
+	    store.dispatch("removeEntity", [ "dna", dna_id ] );
 	    const [id,get,meta]		= wrap( store.getters.dna, store.getters.$dna, dna_id );
 
 	    expect( get()		).to.be.null;
@@ -157,13 +167,15 @@ function dna_action_tests () {
 	    const [id,get,meta]		= wrap( store.getters.dna_version, store.getters.$dna_version, entity.$id );
 
 	    expect( meta().current	).to.be.true;
-	    expect( get().version	).to.be.a("string");
+	    expect( get().version	).to.be.a("number");
 
 	    dna_version_id		= id;
 	}
 
+	await store.dispatch("createDnaVersion", [ dna_id, {} ] );
+
 	{
-	    store.dispatch("expireEntity", [ "dnaVersion", dna_version_id ] );
+	    store.dispatch("removeEntity", [ "dnaVersion", dna_version_id ] );
 	    const [id,get,meta]		= wrap( store.getters.dna_version, store.getters.$dna_version, dna_version_id );
 
 	    expect( get()		).to.be.null;
@@ -171,11 +183,11 @@ function dna_action_tests () {
 
 	    await store.dispatch("fetchDnaVersion", id );
 
-	    expect( get().version	).to.be.a("string");
+	    expect( get().version	).to.be.a("number");
 	}
 
 	{
-	    const [base,list,meta]		= wrap( store.getters.dna_versions, store.getters.$dna_versions, dna_id );
+	    const [base,list,meta]	= wrap( store.getters.dna_versions, store.getters.$dna_versions, dna_id );
 
 	    expect( list()		).to.have.length( 0 );
 	    expect( meta().current	).to.be.false;
@@ -183,6 +195,14 @@ function dna_action_tests () {
 	    await store.dispatch("fetchVersionsForDna", base );
 
 	    expect( list()		).to.have.length.gt( 0 );
+	}
+
+	{
+	    const dna_version		= await store.dispatch("getLatestVersionForDna", [ dna_id, null ] );
+
+	    for ( let version of store.getters.dna_versions( dna_id ) ) {
+		expect( dna_version.version	).to.be.gte( version.version );
+	    }
 	}
     });
 }

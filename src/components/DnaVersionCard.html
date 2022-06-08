@@ -1,5 +1,11 @@
 <div class="card entity-card dna-version-card">
-    <loading :when="!$version.current">
+    <div v-if="not_found" class="text-center">
+	<p class="m-4">
+	    This version of <strong v-if="title">{{ title }}</strong><span v-else>the DNA</span>
+	    does not exist or has been unpublished
+	</p>
+    </div>
+    <loading v-else :when="!$version.current">
 	<div class="entity-card-header">{{ header_prefix }}: <strong>{{ version.version }}</strong></div>
 	<div class="card-body">
 	    <div class="row mb-2">
@@ -49,7 +55,10 @@
 		</dd>
 	    </dl>
 
-	    <div v-if="expanded" class="row gy-3" style="margin: 1rem 0 2.5rem 0;">
+	    <div v-if="$slots.default">
+		<slot></slot>
+	    </div>
+	    <div v-else-if="expanded" class="row gy-3" style="margin: 1rem 0 2.5rem 0;">
 		<div v-if="zome_ids.length"
 		     v-for="(zome_version_id, name) in zomes"
 		     class="col-12 px-0">
@@ -66,10 +75,10 @@
 	    </div>
 
 	    <div class="position-absolute bottom-0 end-0">
-		<a v-show="!expanded" @click="toggle_expansion()">
+		<a v-show="!expanded" @click.stop="toggle_expansion()">
 		    <i class="bi-arrows-angle-expand fs-5 float-end flip-x mx-1"></i>
 		</a>
-		<a v-show="expanded" @click="toggle_expansion()">
+		<a v-show="expanded" @click.stop="toggle_expansion()">
 		    <i class="bi-arrows-angle-contract fs-5 float-end flip-x mx-1"></i>
 		</a>
 	    </div>

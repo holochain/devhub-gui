@@ -15,7 +15,6 @@ module.exports = function ( element_local_name, component_name ) {
 	    },
 	    "action": {
 		"type": Function,
-		"default": () => null,
 	    },
 	    "cancel": {
 		"type": Function,

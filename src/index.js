@@ -93,6 +93,7 @@ window.PersistentStorage		= {
 	[ "/dnas/new",				dna_controllers.create,			"Add DNA" ],
 	[ "/dnas/:id",				dna_controllers.single,			"DNA Info" ],
 	[ "/dnas/:id/update",			dna_controllers.update,			"Edit DNA" ],
+	[ "/dnas/:id/upload",			dna_version_controllers.upload,		"Upload Bundle" ],
 	[ "/dnas/:dna/versions/new",		dna_version_controllers.create,		"Add DNA Version" ],
 	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"DNA Version Info" ],
 	[ "/dnas/:dna/versions/:id/update",	dna_version_controllers.update,		"Edit Version" ],
@@ -145,10 +146,10 @@ window.PersistentStorage		= {
 	},
 	"computed": {
 	    agent () {
-		return this.$store.getters.agent.entity;
+		return this.$store.getters.agent;
 	    },
 	    $agent () {
-		return this.$store.getters.agent.metadata;
+		return this.$store.getters.$agent;
 	    },
 	},
 	async created () {
@@ -167,7 +168,7 @@ window.PersistentStorage		= {
 	    try {
 		let agent_info		= await this.$store.dispatch("fetchAgent");
 
-		this.agent_id		= agent_info.pubkey.initial;
+		this.agent_id		= agent_info.pubkey.current;
 	    } catch (err) {
 		if ( err instanceof TimeoutError )
 		    return this.showStatusView( 408, {
@@ -315,7 +316,7 @@ window.PersistentStorage		= {
 	    const component		= require(`./components/${name}.js`)( tag, name );
 	    component.template		= await common.load_html(`/dist/components/${name}.html`);
 	    component.errorCaptured	= function (err, vm, info) {
-		console.error("Error in %s <%s>:", name, tag, err, vm, info );
+		console.error("Error in %s <%s>:", name, tag, err, vm, info, err.data );
 		this.error = `${err.stack}\n\nfound in ${info} of component`
 		return false
 	    };

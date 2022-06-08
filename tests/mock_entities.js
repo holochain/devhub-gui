@@ -50,13 +50,13 @@ function ZomeVersionEntry ( cell_state = {}, opts = {} ) {
 
     return {
 	"for_zome":		opts.parent || ZomeEntry(),
-	"version":		`v${ faker.datatype.number() }`,
+	"version":		faker.datatype.number(),
 	"published_at":		faker.date.past(),
 	"last_updated":		faker.date.recent(),
 	"changelog":		faker.lorem.sentence() + "..",
 	"mere_memory_addr":	new EntryHash( crypto.randomBytes(32) ),
 	"mere_memory_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
-	"hdk_version":		"v0.0.132",
+	"hdk_version":		`v0.0.${faker.datatype.number(100, 132)}`,
 	"metadata":		{},
     };
 }
@@ -110,7 +110,7 @@ function DnaVersionEntry ( cell_state = {}, opts = {} ) {
 
     return {
 	"for_dna":		opts.parent || DnaEntry( cell_state ),
-	"version":		`v${ faker.datatype.number() }`,
+	"version":		faker.datatype.number(),
 	"published_at":		faker.date.past(),
 	"last_updated":		faker.date.recent(),
 	"changelog":		faker.lorem.sentence() + "..",

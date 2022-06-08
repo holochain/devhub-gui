@@ -199,7 +199,7 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.$zome_version( this.id );
 		},
 		zome () {
-		    return this.version ? this.version.for_zome : null;
+		    return this.$store.getters.zome( this.version ? this.version.for_zome.$id || this.version.for_zome : null );
 		},
 		$zome () {
 		    return this.$version;

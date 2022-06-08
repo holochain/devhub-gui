@@ -12,7 +12,7 @@
 		       title="The parent DNA has been deprecated"></deprecation-alert>
 
     <div class="mb-4">
-	<h1 class="fs-2"><placeholder :when="!$version.current" size="25%">{{ dna.name }}</placeholder></h1>
+	<h1 class="fs-2"><placeholder :when="!$version.current || !dna" size="25%">{{ dna.name }}</placeholder></h1>
     </div>
 
     <page-header class="mb-2 p-3">
@@ -71,8 +71,15 @@
 		    </dl>
 
 		    <list-group v-if="version" :list="Object.values(version.zomes)" no-result-text="No Zomes" class="my-5" :loading="!$version.current">
-			<zome-version-card v-for="(zome_version, name) in version.zomes" class="my-2"
-					   :id="zome_version.$id"></zome-version-card>
+			<template v-for="(zome_version, name) in version.zomes">
+			    <zome-version-card v-if="zome_version" class="my-2"
+					       :id="zome_version.$id"></zome-version-card>
+			    <div v-else class="card my-2">
+				<div class="card-body text-center">
+				    <p><i>This version of <strong>{{ name }}</strong> has been unpublished</i></p>
+				</div>
+			    </div>
+			</template>
 		    </list-group>
 
 		    <loading :when="!$version.current">

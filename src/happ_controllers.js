@@ -343,6 +343,7 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 
+		    this.$store.dispatch("fetchAllHapps");
 		    this.$store.dispatch("fetchHapps", { "agent": "me" });
 		},
 		promptUnpublish ( release ) {
