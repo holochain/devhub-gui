@@ -1,15 +1,15 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zomes");
 
-const { AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+const { AgentPubKey }			= holohash;
+const { load_html }			= require('./common.js');
 
 
 module.exports = async function ( client ) {
 
     async function list () {
 	return {
-	    "template": (await import("./templates/zomes/list.html")).default,
+	    "template": await load_html("/templates/zomes/list.html"),
 	    "data": function() {
 		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
 		let agent_input		= input_cache;
@@ -44,8 +44,8 @@ module.exports = async function ( client ) {
 		zomes () {
 		    return (
 			this.agent_input.length
-			    ? this.$store.getters.zomes( this.agent ).collection
-			    : this.$store.getters.zomes( "all" ).collection
+			    ? this.$store.getters.zomes( this.agent )
+			    : this.$store.getters.zomes( "all" )
 		    ).filter( entity => {
 			const filter	= this.list_filter.trim();
 
@@ -68,8 +68,8 @@ module.exports = async function ( client ) {
 		},
 		$zomes () {
 		    return this.agent_input.length
-			? this.$store.getters.zomes( this.agent ).metadata
-			: this.$store.getters.zomes( "all" ).metadata;
+			? this.$store.getters.$zomes( this.agent )
+			: this.$store.getters.$zomes( "all" );
 		},
 	    },
 	    "methods": {
@@ -115,7 +115,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/zomes/create.html")).default,
+	    "template": await load_html("/templates/zomes/create.html"),
 	    "data": function() {
 		return {
 		    "error": null,
@@ -172,7 +172,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/zomes/update.html")).default,
+	    "template": await load_html("/templates/zomes/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -184,10 +184,10 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		zome () {
-		    return this.$store.getters.zome( this.id ).entity;
+		    return this.$store.getters.zome( this.id );
 		},
 		$zome () {
-		    return this.$store.getters.zome( this.id ).metadata;
+		    return this.$store.getters.$zome( this.id );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -251,7 +251,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/zomes/single.html")).default,
+	    "template": await load_html("/templates/zomes/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -270,16 +270,16 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		zome () {
-		    return this.$store.getters.zome( this.id ).entity;
+		    return this.$store.getters.zome( this.id );
 		},
 		$zome () {
-		    return this.$store.getters.zome( this.id ).metadata;
+		    return this.$store.getters.$zome( this.id );
 		},
 		versions () {
-		    return this.$store.getters.zome_versions( this.id ).collection;
+		    return this.$store.getters.zome_versions( this.id );
 		},
 		$versions () {
-		    return this.$store.getters.zome_versions( this.id ).metadata;
+		    return this.$store.getters.$zome_versions( this.id );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -332,6 +332,7 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 
+		    this.$store.dispatch("fetchAllZomes");
 		    this.$store.dispatch("fetchZomes", { "agent": "me" });
 		},
 		promptUnpublish ( version ) {

@@ -1,10 +1,9 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happs");
 
-const { AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
-const msgpack				= require('@msgpack/msgpack');
-let sha256, gzip;
+const { AgentPubKey }			= holohash;
+const { load_html }			= require('./common.js');
+
 
 function unpack_bundle ( zipped_bytes ) {
     let msgpack_bytes			= gzip.unzip( zipped_bytes );
@@ -18,7 +17,7 @@ module.exports = async function ( client ) {
 
     async function list () {
 	return {
-	    "template": (await import("./templates/happs/list.html")).default,
+	    "template": await load_html("/templates/happs/list.html"),
 	    "data": function() {
 		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
 		let agent_input		= input_cache;
@@ -53,8 +52,8 @@ module.exports = async function ( client ) {
 		happs () {
 		    return (
 			this.agent_input.length
-			    ? this.$store.getters.happs( this.agent ).collection
-			    : this.$store.getters.happs( "all" ).collection
+			    ? this.$store.getters.happs( this.agent )
+			    : this.$store.getters.happs( "all" )
 		    ).filter( entity => {
 			const filter	= this.list_filter.trim();
 
@@ -78,8 +77,8 @@ module.exports = async function ( client ) {
 		},
 		$happs () {
 		    return this.agent_input.length
-			? this.$store.getters.happs( this.agent ).metadata
-			: this.$store.getters.happs( "all" ).metadata;
+			? this.$store.getters.$happs( this.agent )
+			: this.$store.getters.$happs( "all" );
 		},
 	    },
 	    "methods": {
@@ -126,7 +125,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/happs/create.html")).default,
+	    "template": await load_html("/templates/happs/create.html"),
 	    "data": function() {
 		return {
 		    "error": null,
@@ -184,7 +183,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/happs/update.html")).default,
+	    "template": await load_html("/templates/happs/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -196,10 +195,10 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		happ () {
-		    return this.$store.getters.happ( this.id ).entity;
+		    return this.$store.getters.happ( this.id );
 		},
 		$happ () {
-		    return this.$store.getters.happ( this.id ).metadata;
+		    return this.$store.getters.$happ( this.id );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -263,7 +262,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/happs/single.html")).default,
+	    "template": await load_html("/templates/happs/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -282,16 +281,16 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		happ () {
-		    return this.$store.getters.happ( this.id ).entity;
+		    return this.$store.getters.happ( this.id );
 		},
 		$happ () {
-		    return this.$store.getters.happ( this.id ).metadata;
+		    return this.$store.getters.$happ( this.id );
 		},
 		releases () {
-		    return this.$store.getters.happ_releases( this.id ).collection;
+		    return this.$store.getters.happ_releases( this.id );
 		},
 		$releases () {
-		    return this.$store.getters.happ_releases( this.id ).metadata;
+		    return this.$store.getters.$happ_releases( this.id );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -344,6 +343,7 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 
+		    this.$store.dispatch("fetchAllHapps");
 		    this.$store.dispatch("fetchHapps", { "agent": "me" });
 		},
 		promptUnpublish ( release ) {
@@ -362,7 +362,7 @@ module.exports = async function ( client ) {
 
     async function upload () {
 	return {
-	    "template": (await import("./templates/happs/upload.html")).default,
+	    "template": await load_html("/templates/happs/upload.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -396,35 +396,35 @@ module.exports = async function ( client ) {
 		    return this.$refs["form"];
 		},
 		happ () {
-		    return this.$store.getters.happ( this.id ).entity;
+		    return this.$store.getters.happ( this.id );
 		},
 		$happ () {
-		    return this.$store.getters.happ( this.id ).metadata;
+		    return this.$store.getters.$happ( this.id );
 		},
 		releases () {
-		    return this.$store.getters.happ_releases( this.id ).collection;
+		    return this.$store.getters.happ_releases( this.id );
 		},
 		$releases () {
-		    return this.$store.getters.happ_releases( this.id ).metadata;
+		    return this.$store.getters.$happ_releases( this.id );
 		},
 		happ_release () {
 		    if ( this.latest_release )
-			return this.$store.getters.happ_release( String(this.latest_release.$id) ).entity;
+			return this.$store.getters.happ_release( String(this.latest_release.$id) );
 		},
 		$happ_release () {
 		    if ( this.latest_release )
-			return this.$store.getters.happ_release( String(this.latest_release.$id) ).metadata;
+			return this.$store.getters.$happ_release( String(this.latest_release.$id) );
 		    else
-			return this.$store.getters.happ_release("").metadata;
+			return this.$store.getters.$happ_release("");
 		},
 		dna_version () {
 		    return ( id ) => {
-			return this.$store.getters.dna_version( String(id) ).entity;
+			return this.$store.getters.dna_version( String(id) );
 		    };
 		},
 		$dna_version () {
 		    return ( id ) => {
-			return this.$store.getters.dna_version( String(id) ).metadata;
+			return this.$store.getters.$dna_version( String(id) );
 		    };
 		},
 		latest_release () {
@@ -439,10 +439,10 @@ module.exports = async function ( client ) {
 		    }, null );
 		},
 		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.collection;
+		    return this.$store.getters.hdk_versions;
 		},
 		$previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.metadata;
+		    return this.$store.getters.$hdk_versions;
 		},
 		file_valid_feedback () {
 		    const file		= this.bundle_file;
@@ -457,10 +457,6 @@ module.exports = async function ( client ) {
 		this.id			= this.getPathId("id");
 
 		this.refresh();
-
-		if ( sha256 === undefined )
-		    sha256			= (await import("./lazyload_sha256.js")).default;
-		gzip				= (await import("./lazyload_gzip.js")).default;
 	    },
 	    "methods": {
 		async refresh () {

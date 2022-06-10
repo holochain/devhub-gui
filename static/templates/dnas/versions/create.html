@@ -1,0 +1,112 @@
+<page-view id="create-dna-version-page">
+    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+
+    <hr>
+
+    <form ref="form" :class="{ 'was-validated': validated }">
+	<div v-if="!input.hdk_version" class="row">
+	    <div class="col-6">
+		<loading :when="!$previous_hdk_versions.current">
+		    <label class="form-label">Versions on DevHub</label>
+		    <select class="form-select"
+			    @change="selectHDKVersion( $event.target.value )"
+			    :disabled="previous_hdk_versions.length === 0">
+			<option selected value="">Choose an HDK version</option>
+			<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
+		    </select>
+		</loading>
+	    </div>
+	</div>
+
+	<div v-if="input.hdk_version" class="row">
+	    <div class="col-12">
+		<a class="btn btn-outline-secondary"
+		   @click="input.hdk_version = ''">
+		    <i class="bi-chevron-left"></i>
+		    Change HDK Version
+		</a>
+	    </div>
+	    <div class="col-6">
+		<label class="form-label fw-6">Version Number</label>
+		<input-feedback>
+		    <input type="number" v-model.number="input.version" class="form-control" :disabled="saving" required>
+		</input-feedback>
+
+		<label class="form-label fw-6">Changelog</label>
+		<input-feedback>
+		    <textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="saving"></textarea>
+		</input-feedback>
+
+		<label class="form-label fw-6">Zomes</label>
+
+		<list-group :list="input.zomes" no-result-text="No Zomes have been added"
+			    class="mt-0">
+		    <list-group-item v-for="(zome_ref, index) in input.zomes" class="py-3">
+			<input-feedback class="mb-3">
+			    <div class="input-group">
+				<span class="input-group-text">Zome Name</span>
+				<input type="text" v-model="zome_ref.name" class="form-control" required :disabled="saving">
+			    </div>
+			</input-feedback>
+
+			<zome-version-card :id="zome_ref.version"
+					   :actions="zome_card_actions( index )"></zome-version-card>
+		    </list-group-item>
+		</list-group>
+	    </div>
+	    <div class="col-6">
+		<div class="mb-3">
+		    <label class="form-label fw-6">Search zomes</label>
+		    <div class="form-input-search" :class="{ 'show-results': filtered_zomes.length }">
+			<input type="text" class="form-control no-validate" placeholder="start typing a Zome name"
+			       v-model="zome_search_text" @keyup.enter="addZome( filtered_zomes[0] )">
+		    </div>
+		</div>
+
+		<list-group :list="compatible_zomes" :loading="$compatible_zomes.loading" no-result-text="No Zomes" class="mt-0">
+		    <template v-for="zome in filtered_zomes" :key="zome.$id">
+			<list-group-item v-if="!zomeIsAdded( zome.$id )" class="py-3">
+			    <zome-card :id="zome.$id"
+				       :link="false"
+				       :actions="[ addZomeAction( zome ) ]"></zome-card>
+			</list-group-item>
+		    </template>
+		</list-group>
+	    </div>
+	</div>
+
+	<div v-if="input.hdk_version" class="row">
+	    <div class="col-6">
+		<display-error class="mt-5" :error="error"></display-error>
+
+		<div class="row mt-5">
+		    <div class="col-6"></div>
+		    <div class="col-3">
+			<router-link :to="'/dnas/' + dna_id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		    </div>
+		    <div class="col-3">
+			<a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
+			    <span v-if="saving"
+				  class="spinner-border spinner-border-sm me-3"></span>
+			    Save
+			</a>
+		    </div>
+		</div>
+	    </div>
+	</div>
+    </form>
+
+    <modal ref="changeVersion"
+	   :title="'Change version for ' + (change_version_context ? change_version_context[1].name : '...')"
+	   data-bs-backdrop="static">
+	<loading :when="!$alternative_versions.current">
+	    <div v-for="version in alternative_versions" class="mb-3">
+		<zome-version-card :id="version.$id"
+				   :link="false"
+				   class="cursor-pointer"
+				   @click="selectNewVersion( version )"></zome-version-card>
+	    </div>
+	</loading>
+    </modal>
+
+</page-view>

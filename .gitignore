@@ -1,5 +1,6 @@
 node_modules
-dist
+static/dist
+static/dependencies
 *.log
 tests/AGENT*
 tests/*_HASH
@@ -7,6 +8,8 @@ dnas/*.dna
 zome_wasm/*.wasm
 holochain
 tests/demo_bundles
+tests/components/dist
 web_assets.zip
 bundled/DevHub.happ
 bundled/*.webhapp
+scratch

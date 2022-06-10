@@ -8,9 +8,12 @@ const Copy			= require('copy-webpack-plugin');
 const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH",	"utf8").trim();
 const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH",		"utf8").trim();
 const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH",	"utf8").trim();
-const WEBPACK_MODE		= "production";
-// const WEBPACK_MODE		= "development";
-const DEVMODE			= WEBPACK_MODE === "development";
+const WEBPACK_MODE		= process.env.WEBPACK_MODE || "production";
+
+
+const MAX_SIZE_KB		= 200;
+const MAX_SIZE			= MAX_SIZE_KB * 1_000;
+
 
 module.exports = {
     target: "web",
@@ -20,8 +23,9 @@ module.exports = {
 	mainFields: ["browser", "main"],
     },
     output: {
-	publicPath: "/",
-	filename: "webpacked.app.js"
+	"publicPath": "/",
+	"path": path.resolve("static", "dist"),
+	"filename": "webpacked.app.js"
     },
     module: {
 	rules: [
@@ -43,48 +47,9 @@ module.exports = {
 		    }
 		}
 	    },
-	    {
-		test: /\.html$/,
-		exclude: /node_modules/,
-		use: {
-		    loader: "html-loader",
-		    options: {
-			sources: false, // prevents 'not found' errors for HTML references
-		    },
-		}
-	    },
 	],
     },
     plugins: [
-	new Copy({
-	    patterns: [
-		{
-		    from: "./src/static/",
-		    globOptions: {
-			gitignore: true,
-			ignore: ["**/*~"],
-		    },
-		},
-		{
-		    from: DEVMODE
-			? "./node_modules/vue/dist/vue.global.js"
-			: "./node_modules/vue/dist/vue.global.prod.js",
-		    to: "vue.js"
-		},
-		{
-		    from: DEVMODE
-			? "./node_modules/vuex/dist/vuex.global.js"
-			: "./node_modules/vuex/dist/vuex.global.prod.js",
-		    to: "vuex.js"
-		},
-		{
-		    from: DEVMODE
-			? "./node_modules/vue-router/dist/vue-router.global.js"
-			: "./node_modules/vue-router/dist/vue-router.global.prod.js",
-		    to: "vue-router.js"
-		},
-	    ],
-	}),
 	new webpack.DefinePlugin({
 	    // Vue says to do this - https://github.com/vuejs/vue-next/tree/master/packages/vue#bundler-build-feature-flags
 	    "WEBPACK_MODE":		JSON.stringify( WEBPACK_MODE ),
@@ -95,6 +60,12 @@ module.exports = {
 		"HAPPS_HASH":		JSON.stringify( HAPPS_HASH ),
 		"WEBASSETS_HASH":	JSON.stringify( WEBASSETS_HASH ),
 	    },
+	}),
+	new Copy({
+	    patterns: [{
+		"from":		"src/components/*.html",
+		"to":		"components/[name].html",
+	    }],
 	}),
     ],
     stats: {
@@ -112,7 +83,7 @@ module.exports = {
 	],
     },
     performance: {
-	maxEntrypointSize:	400_000, // 400kb
-	maxAssetSize:		400_000, // 400kb
+	maxEntrypointSize:	MAX_SIZE,
+	maxAssetSize:		MAX_SIZE,
     },
 };
