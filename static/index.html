@@ -1,0 +1,126 @@
+<!doctype html>
+<html >
+    <head>
+	<title>DevHub</title>
+
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+	<!-- Application -->
+	<script src="/dependencies/vue.js"></script>
+	<script src="/dependencies/vuex.js"></script>
+	<script src="/dependencies/vue-router.js"></script>
+
+	<script src="/dependencies/crux-payload-parser.js"></script>
+	<script src="/dependencies/holochain-client.js"></script>
+	<script src="/dependencies/holo-hash.js"></script>
+	<script src="/dependencies/showdown.js"></script>
+	<script src="/dependencies/msgpack.js"></script>
+	<script src="/dependencies/sha256.js"></script>
+	<script src="/dependencies/gzip.js"></script>
+
+	<!-- Responsive mobile-first framework -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
+	      integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+
+	<!-- Manual Overrides -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap">
+
+	<link rel="stylesheet" href="/css/bootstrap-holochain-theme.css">
+    </head>
+    <body>
+	<div id="app" v-cloak class="row">
+	    <div class="col-auto">
+		<div class="d-flex flex-column flex-shrink-0 bg-light"
+		     style="width: 12rem; height: 100vh;">
+		    <ul class="list-group list-group-flush">
+			<li class="list-group-item list-group-item-action text-center">
+			    <a href="/" class="nav-link" title="Home">
+				<img src="/holochain-home.png">
+			    </a>
+			</li>
+			<li class="list-group-item">
+			    <router-link to="/happs" class="nav-link">
+				hApps
+			    </router-link>
+			    <router-link to="/happs?agent=me" class="nav-link">
+				&mdash; My hApps
+			    </router-link>
+			</li>
+			<li class="list-group-item">
+			    <router-link to="/dnas" class="nav-link">
+				DNAs
+			    </router-link>
+			    <router-link to="/dnas?agent=me" class="nav-link">
+				&mdash; My DNAs
+			    </router-link>
+			</li>
+			<li class="list-group-item">
+			    <router-link to="/zomes" class="nav-link">
+				Zomes
+			    </router-link>
+			    <router-link to="/zomes?agent=me" class="nav-link">
+				&mdash; My Zomes
+			    </router-link>
+			</li>
+		    </ul>
+
+		    <div class="px-3 mt-3">
+			<label>My Agent ID</label>
+			<div class="input-group">
+			    <input type="text" class="form-control is-valid no-validate" v-model="agent_id" readonly>
+			    <div v-if="show_copied_message" class="valid-tooltip">
+				Copied Agent ID
+			    </div>
+			    <span class="input-group-text cursor-pointer" @click="copyAgentId()">
+				<i class="bi-clipboard"></i>
+			    </span>
+			</div>
+		    </div>
+		</div>
+	    </div>
+
+	    <div class="col vh-100" style="overflow-y: scroll;">
+		<page-view v-if="status_view_html" id="tatus-page">
+		    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+
+		    <hr>
+
+		    <div v-if="status_view_data">
+			<h1>{{ status_view_data.title }}</h1>
+
+			<h4 class="fw-2 text-danger">{{ status_view_data.code }} status - <span v-html="status_view_data.message"></span></h4>
+
+			<div v-if="status_view_data.details">
+			    <strong>Details</strong>
+			    <ul>
+				<li v-for="msg in status_view_data.details" v-html="msg"></li>
+			    </ul>
+			</div>
+		    </div>
+		    <div v-else v-html="status_view_html"></div>
+		</page-view>
+		<main v-else class="h-100 d-flex flex-column">
+		    <router-view :key="$route.fullPath"></router-view>
+		</main>
+	    </div>
+	</div>
+
+	<script src="/dist/webpacked.app.js" async></script>
+
+	<!-- Bootstrap Components -->
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+		integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
+		integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"
+		integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
+    </body>
+</html>

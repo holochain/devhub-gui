@@ -1,0 +1,5 @@
+<div ref="container" :class="{ 'was-validated': show_validation_feedback }" class="d-inline-block w-100">
+    <slot></slot>
+    <div v-if="validMessage" class="valid-feedback text-start" v-html="validMessage"></div>
+    <div v-if="input" class="invalid-feedback text-start" v-html="invalidMessage"></div>
+</div>

@@ -1,6 +1,6 @@
 const { EntryHash,
-	AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+	AgentPubKey }			= holohash;
+
 
 module.exports = {
     "profile": {
@@ -9,7 +9,6 @@ module.exports = {
     // hApps
     "happ": {
 	"*": function ( content ) {
-	    console.log( content );
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
 	    content.designer		= new AgentPubKey( content.designer );
@@ -60,6 +59,8 @@ module.exports = {
 	    content.for_dna		= this.deconstruct( "entity", content.for_dna );
 
 	    Object.entries( content.zomes ).forEach( ([name, zome_version_summary]) => {
+		if ( zome_version_summary === null )
+		    return;
 		content.zomes[name]	= this.deconstruct( "entity", zome_version_summary );
 	    });
 	    return content;

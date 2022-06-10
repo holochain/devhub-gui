@@ -1,14 +1,14 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dnas");
 
-const { AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+const { AgentPubKey }			= holohash;
+const { load_html }			= require('./common.js');
 
 
 module.exports = async function ( client ) {
     async function list () {
 	return {
-	    "template": (await import("./templates/dnas/list.html")).default,
+	    "template": await load_html("/templates/dnas/list.html"),
 	    "data": function() {
 		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
 		let agent_input		= input_cache;
@@ -40,11 +40,12 @@ module.exports = async function ( client ) {
 		agent () {
 		    return this.agent_input.length ? this.agent_input : "me";
 		},
+
 		dnas () {
 		    return (
 			this.agent_input.length
-			    ? this.$store.getters.dnas( this.agent ).collection
-			    : this.$store.getters.dnas( "all" ).collection
+			    ? this.$store.getters.dnas( this.agent )
+			    : this.$store.getters.dnas( "all" )
 		    ).filter( entity => {
 			const filter	= this.list_filter.trim();
 
@@ -67,8 +68,8 @@ module.exports = async function ( client ) {
 		},
 		$dnas () {
 		    return this.agent_input.length
-			? this.$store.getters.dnas( this.agent ).metadata
-			: this.$store.getters.dnas( "all" ).metadata;
+			? this.$store.getters.$dnas( this.agent )
+			: this.$store.getters.$dnas( "all" );
 		},
 	    },
 	    "methods": {
@@ -114,7 +115,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/dnas/create.html")).default,
+	    "template": await load_html("/templates/dnas/create.html"),
 	    "data": function() {
 		return {
 		    "error": null,
@@ -171,7 +172,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/dnas/update.html")).default,
+	    "template": await load_html("/templates/dnas/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -182,15 +183,17 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		dna () {
-		    return this.$store.getters.dna( this.id ).entity;
-		},
-		$dna () {
-		    return this.$store.getters.dna( this.id ).metadata;
-		},
 		form () {
 		    return this.$refs["form"];
 		},
+
+		dna () {
+		    return this.$store.getters.dna( this.id );
+		},
+		$dna () {
+		    return this.$store.getters.$dna( this.id );
+		},
+
 		tags () {
 		    return this.input.tags || this.dna.tags;
 		},
@@ -233,7 +236,9 @@ module.exports = async function ( client ) {
 			return;
 
 		    const input				= Object.assign({}, this.input );
-		    input.tags				= [ ...input.tags ];
+
+		    if ( input.tags )
+			input.tags			= [ ...input.tags ];
 
 		    try {
 			await this.$store.dispatch("updateDna", [ this.id, input ] );
@@ -250,7 +255,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/dnas/single.html")).default,
+	    "template": await load_html("/templates/dnas/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -268,21 +273,38 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
-		dna () {
-		    return this.$store.getters.dna( this.id ).entity;
-		},
-		$dna () {
-		    return this.$store.getters.dna( this.id ).metadata;
-		},
-		versions () {
-		    return this.$store.getters.dna_versions( this.id ).collection;
-		},
-		$versions () {
-		    return this.$store.getters.dna_versions( this.id ).metadata;
-		},
 		form () {
 		    return this.$refs["form"];
 		},
+
+		dna () {
+		    return this.$store.getters.dna( this.id );
+		},
+		$dna () {
+		    return this.$store.getters.$dna( this.id );
+		},
+
+		versions () {
+		    const versions	= this.$store.getters.dna_versions( this.id );
+		    versions.sort( (a,b) => {
+			if( a.version > b.version )
+			    return -1;
+			if( a.version < b.version )
+			    return 1;
+
+			if( a.published_at > b.published_at )
+			    return -1;
+			if( a.published_at < b.published_at )
+			    return 1;
+
+			return 0;
+		    });
+		    return versions;
+		},
+		$versions () {
+		    return this.$store.getters.$dna_versions( this.id );
+		},
+
 		modal () {
 		    return this.$refs["modal"].modal;
 		},
@@ -331,6 +353,7 @@ module.exports = async function ( client ) {
 
 		    this.modal.hide();
 
+		    this.$store.dispatch("fetchAllDnas");
 		    this.$store.dispatch("fetchDnas", { "agent": "me" });
 		},
 		promptUnpublish ( version ) {

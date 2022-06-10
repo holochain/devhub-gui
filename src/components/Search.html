@@ -1,0 +1,4 @@
+<div class="form-input-search">
+    <input :value="modelValue" @input="$emit('update:modelValue', $event.target.value)"
+           v-bind="$attrs" type="text" class="form-control">
+</div>

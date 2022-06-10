@@ -1,7 +1,7 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zome versions");
 
-const showdown				= require('showdown');
+const { load_html }			= require('./common.js');
 const md_converter			= new showdown.Converter({
     "headerLevelStart": 3,
 });
@@ -11,7 +11,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": (await import("./templates/zomes/versions/create.html")).default,
+	    "template": await load_html("/templates/zomes/versions/create.html"),
 	    "data": function() {
 		return {
 		    "zome_id": null,
@@ -40,10 +40,10 @@ module.exports = async function ( client ) {
 		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
 		},
 		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.collection;
+		    return this.$store.getters.hdk_versions;
 		},
 		$previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions.metadata;
+		    return this.$store.getters.$hdk_versions;
 		},
 	    },
 	    async created () {
@@ -96,7 +96,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": (await import("./templates/zomes/versions/update.html")).default,
+	    "template": await load_html("/templates/zomes/versions/update.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -111,13 +111,13 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		version () {
-		    if ( this.$store.getters.zome_version( this.id ).entity )
-			this._version	= this.copy( this.$store.getters.zome_version( this.id ).entity );
+		    if ( this.$store.getters.zome_version( this.id ) )
+			this._version	= this.copy( this.$store.getters.zome_version( this.id ) );
 
 		    return this._version;
 		},
 		$version () {
-		    return this.$store.getters.zome_version( this.id ).metadata;
+		    return this.$store.getters.$zome_version( this.id );
 		},
 		zome () {
 		    return this.version ? this.version.for_zome : null;
@@ -177,7 +177,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": (await import("./templates/zomes/versions/single.html")).default,
+	    "template": await load_html("/templates/zomes/versions/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -193,19 +193,19 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		version () {
-		    return this.$store.getters.zome_version( this.id ).entity;
+		    return this.$store.getters.zome_version( this.id );
 		},
 		$version () {
-		    return this.$store.getters.zome_version( this.id ).metadata;
+		    return this.$store.getters.$zome_version( this.id );
 		},
 		zome () {
-		    return this.version ? this.version.for_zome : null;
+		    return this.$store.getters.zome( this.version ? this.version.for_zome.$id || this.version.for_zome : null );
 		},
 		$zome () {
 		    return this.$version;
 		},
 		$wasmBytes () {
-		    return this.$store.getters.zome_version_wasm( this.version ? this.version.mere_memory_addr : null ).metadata;
+		    return this.$store.getters.$zome_version_wasm( this.version ? this.version.mere_memory_addr : null );
 		},
 		modal () {
 		    return this.$refs["modal"].modal;

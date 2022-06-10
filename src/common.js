@@ -1,8 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("common");
 
-const { AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+const { HoloHash,
+	AgentPubKey }			= holohash;
 
 
 const _debounce_timers			= {};
@@ -27,7 +27,7 @@ function fallbackCopyTextToClipboard ( text ) {
     }
 }
 
-module.exports = {
+const common				= {
     sort_by_object_key ( list_of_objects, key ) {
 	return list_of_objects.sort( (a,b) => {
 	    if ( a[key] === undefined )
@@ -70,6 +70,10 @@ module.exports = {
 	    return fallbackCopyTextToClipboard( text );
 
 	await navigator.clipboard.writeText( text );
+    },
+
+    async load_html ( src ) {
+	return await (await fetch( src )).text();
     },
 
     load_file ( file ) {
@@ -156,8 +160,42 @@ module.exports = {
 	return new Promise( f => setTimeout(f,ms) );
     },
 
+    later ( fn, ms = 0 ) {
+	return new Promise( (f,r) => {
+	    setTimeout( async () => {
+		try {
+		    return f( await fn() );
+		}
+		catch (err) {
+		    r( err );
+		}
+	    }, ms );
+	});
+    },
+
+    once ( fn ) {
+	let P;
+
+	return async () => {
+	    if ( P === undefined ) {
+		P = new Promise( async (f,r) => {
+		    try {
+			f( await fn() );
+		    } catch (err) {
+			r( err );
+		    }
+		});
+	    }
+
+	    return await P;
+	};
+    },
+
     snip ( str, length = 4 ) {
-	return str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
+	const snipped			= str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
+
+	log.trace("Snipping string:", str, length, snipped );
+	return snipped;
     },
 
     compareText ( text1, text2, case_sensitive = false ) {
@@ -174,4 +212,46 @@ module.exports = {
 
 	return text2.includes( text1 ) ? 1 : 0;
     },
+
+    toKebabCase ( str ) {
+	return str.split('').map( (letter, i) => {
+	    return letter.toUpperCase() === letter
+		? `${ i !== 0 ? '-' : '' }${ letter.toLowerCase() }`
+		: letter;
+	}).join('');
+    },
+
+    digest ( ...chunks ) {
+	const hash			= sha256.create();
+	chunks.forEach( bytes => hash.update( bytes ) );
+	return new Uint8Array( hash.digest() );
+    },
+
+    array_move ( arr, from_index, to_index ) {
+	if ( arr[from_index] === undefined )
+	    throw new Error(`Cannot move undefined index (${from_index}); array has ${arr.length} items`);
+
+	if ( arr[to_index-1] === undefined )
+	    throw new Error(`Cannot move to destination index (${from_index}) because array length is ${arr.length}`);
+
+	return arr.splice( to_index, 0, arr.splice( from_index, 1 )[0] );
+    },
+
+    array_compare ( a, b ) {
+	let i = 0;
+	while ( a[i] == b[i] ) {
+	    if ( a[i] === undefined || b[i] === undefined )
+		break;
+
+	    i++;
+	}
+
+	if ( a[i] == b[i] )
+	    return 0;
+
+	return a[i] > b[i] ? 1 : -1;
+    },
 };
+
+
+module.exports = common;

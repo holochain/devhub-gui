@@ -1,22 +1,19 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("main");
 
-const { CruxConfig,
-	...crux }			= require('@whi/crux-payload-parser');
-const { AgentClient,
-	TimeoutError }			= require('@whi/holochain-client');
-const { DnaHash,
-	AgentPubKey,
-	...HoloHashTypes }		= require('@whi/holo-hash');
+const json				= require('@whi/json');
+const { EntityArchitect,
+	...crux }			= CruxPayloadParser;
+const { TimeoutError }			= HolochainClient;
+const { AgentPubKey }			= holohash;
 
 
 log.level.trace && crux.log.setLevel("trace");
 
+const client_init			= require('./client.js');
 const store_init			= require('./store.js');
 const common				= require('./common.js');
 const filters				= require('./filters.js');
-const components			= require('./components.js');
-const entity_types			= require('./entity_architecture.js');
 
 const zomes_init			= require('./zome_controllers.js');
 const zome_versions_init		= require('./zome_version_controllers.js');
@@ -27,19 +24,6 @@ const happ_releases_init		= require('./happ_release_controllers.js');
 
 
 const HISTORY_PUSH_STATE		= window.localStorage.getItem("PUSH_STATE");
-const AGENT_HASH			= window.localStorage.getItem("AGENT_PUBKEY");
-const HOST_VALUE			= window.localStorage.getItem("APP_HOST");
-const PORT_VALUE			= window.localStorage.getItem("APP_PORT");
-const APP_PORT				= parseInt( PORT_VALUE ) || 44001;
-const APP_HOST				= HOST_VALUE || "localhost";
-const CONDUCTOR_URI			= `${APP_HOST}:${APP_PORT}`;
-
-if ( isNaN( APP_PORT ) )
-    throw new Error(`Invalid 'APP_PORT' (${PORT_VALUE}); run 'localStorage.setItem( "APP_PORT", "<port number>" );`);
-
-const DNAREPO_HASH			= new DnaHash( process.env.DNAREPO_HASH );
-const HAPPS_HASH			= new DnaHash( process.env.HAPPS_HASH );
-const WEBASSETS_HASH			= new DnaHash( process.env.WEBASSETS_HASH );
 
 
 
@@ -82,65 +66,10 @@ window.PersistentStorage		= {
     //   agent			- Local storage
     //   connection		- Local storage
     //
-    const crux_config			= new CruxConfig( entity_types, [] );
-
-    let  client;
-    try {
-	const resp			= await fetch("./.launcher-env.json");
-	const launcher_config		= await resp.json();
-
-	client				= await AgentClient.createFromAppInfo(
-	    launcher_config.INSTALLED_APP_ID,
-	    launcher_config.APP_INTERFACE_PORT
-	);
-    } catch (err) {
-	log.warn("Using hard-coded configuration because launcher config produced error: %s", err.toString() );
-    }
-
-    if ( !client ) {
-	if ( typeof AGENT_HASH !== "string" )
-	    throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
-
-	log.warn("Using Agent hash: %s", AGENT_HASH );
-	const AGENT_PUBKEY		= new AgentPubKey( AGENT_HASH );
-
-	client				=  new AgentClient( AGENT_PUBKEY, {
-	    "dnarepo":         DNAREPO_HASH,
-	    "happs":           HAPPS_HASH,
-	    "webassets":       WEBASSETS_HASH,
-	}, CONDUCTOR_URI );
-    }
-
-    log.normal("App schema");
-    log.level.normal && Object.entries( client._app_schema._dnas ).forEach( ([nick, schema]) => {
-	log.normal("  %s : %s", nick.padStart( 10 ), String( schema._hash ), schema );
-
-	log.level.info && Object.entries( schema._zomes ).forEach( ([name, zome_api]) => {
-	    log.info("  %s : %s", name.padStart( 10 ), zome_api._name, zome_api );
-	});
-    });
-
-    client.addProcessor("input", async function (input) {
-	let keys			= input ? ` ${Object.keys( input ).join(", ")} ` : "";
-	log.trace("Calling %s::%s->%s(%s)", this.dna, this.zome, this.func, keys );
-	return input;
-    });
-    client.addProcessor("output", async function (output) {
-	log.trace("Response for %s::%s->%s(%s)", this.dna, this.zome, this.func, this.input ? " ... " : "", output );
-	return output;
-    });
-
-    if ( WEBPACK_MODE === "development" ) {
-	client.addProcessor("input", async function (input) {
-	    await new Promise( f => setTimeout(f, (Math.random() * 1_000) + 500) ); // range 500ms to 1500ms
-	    return input;
-	});
-    }
-    crux_config.upgrade( client );
-
+    const client			= await client_init();
     log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(client._agent), client._conn._uri, WEBPACK_MODE );
 
-    const store				= await store_init( client, Vue );
+    const store				= await store_init( client );
     const zome_controllers		= await zomes_init( client );
     const zome_version_controllers	= await zome_versions_init( client );
     const dna_controllers		= await dnas_init( client );
@@ -164,6 +93,7 @@ window.PersistentStorage		= {
 	[ "/dnas/new",				dna_controllers.create,			"Add DNA" ],
 	[ "/dnas/:id",				dna_controllers.single,			"DNA Info" ],
 	[ "/dnas/:id/update",			dna_controllers.update,			"Edit DNA" ],
+	[ "/dnas/:id/upload",			dna_version_controllers.upload,		"Upload Bundle" ],
 	[ "/dnas/:dna/versions/new",		dna_version_controllers.create,		"Add DNA Version" ],
 	[ "/dnas/:dna/versions/:id",		dna_version_controllers.single,		"DNA Version Info" ],
 	[ "/dnas/:dna/versions/:id/update",	dna_version_controllers.update,		"Edit Version" ],
@@ -216,10 +146,10 @@ window.PersistentStorage		= {
 	},
 	"computed": {
 	    agent () {
-		return this.$store.getters.agent.entity;
+		return this.$store.getters.agent;
 	    },
 	    $agent () {
-		return this.$store.getters.agent.metadata;
+		return this.$store.getters.$agent;
 	    },
 	},
 	async created () {
@@ -238,7 +168,7 @@ window.PersistentStorage		= {
 	    try {
 		let agent_info		= await this.$store.dispatch("fetchAgent");
 
-		this.agent_id		= agent_info.pubkey.initial;
+		this.agent_id		= agent_info.pubkey.current;
 	    } catch (err) {
 		if ( err instanceof TimeoutError )
 		    return this.showStatusView( 408, {
@@ -249,7 +179,7 @@ window.PersistentStorage		= {
 			],
 		    });
 		else
-		    console.log( err );
+		    console.error( err );
 	    }
 
 	},
@@ -266,7 +196,21 @@ window.PersistentStorage		= {
     });
 
     app.mixin({
+	data () {
+	    return {
+		"json":			json,
+		"Entity":		EntityArchitect.Entity,
+		"Collection":		EntityArchitect.Collection,
+
+		console,
+	    };
+	},
 	"methods": {
+	    $debug ( value ) {
+		log.trace("JSON debug for value:", value );
+		return json.debug( value );
+	    },
+
 	    async catchStatusCodes ( status_codes, err ) {
 		if ( !Array.isArray(status_codes) )
 		    status_codes	= [ status_codes ];
@@ -300,10 +244,10 @@ window.PersistentStorage		= {
 		}
 
 		try {
-		    this.$root.status_view_html = (await import(`./templates/${status}.html`)).default;
+		    this.$root.status_view_html = await common.load_html(`/templates/${status}.html`);
 		} catch (err) {
 		    log.error("%s", err.message, err );
-		    this.$root.status_view_html = (await import(`./templates/500.html`)).default;
+		    this.$root.status_view_html = await common.load_html(`/templates/500.html`);
 		}
 	    },
 
@@ -311,9 +255,9 @@ window.PersistentStorage		= {
 		const path_id		= this.$route.params[key];
 
 		try {
-		    return new HoloHashTypes.EntryHash( path_id );
+		    return new holohash.EntryHash( path_id );
 		} catch (err) {
-		    if ( err instanceof HoloHashTypes.HoloHashError ) {
+		    if ( err instanceof holohash.HoloHashError ) {
 			this.showStatusView( 400, {
 			    "title": "Invalid Identifier",
 			    "message": `Invalid Holo Hash in URL path`,
@@ -332,16 +276,56 @@ window.PersistentStorage		= {
 	},
     });
 
-    app.config.globalProperties.$client			= client;
-    app.config.globalProperties.$filters		= filters;
-    app.config.globalProperties.breadcrumb_mapping	= breadcrumb_mapping;
+    Object.assign( app.config.globalProperties, {
+	"$client":		client,
+	"$filters":		filters,
+	breadcrumb_mapping,
+    });
+
     app.config.errorHandler		= function (err, vm, info) {
 	log.error("Vue App Error (%s):", info, err, vm );
     };
 
-    for ( let tag in components ) {
-	app.component( tag, components[tag] );
-    }
+    const components			= [
+	"Breadcrumbs",
+	"DeprecationAlert",
+	"DisplayError",
+	"HoloHash",
+	"InputFeedback",
+	"ListGroup",
+	"ListGroupItem",
+	"Loading",
+	"Modal",
+	"PageHeader",
+	"PageView",
+	"Placeholder",
+	"Search",
+
+	"ZomeCard",
+	"ZomeVersionCard",
+	"DnaCard",
+	"DnaVersionCard",
+	"HappCard",
+	"HappReleaseCard",
+    ];
+    await Promise.all(
+	components.map( async name => {
+	    const start			= Date.now();
+
+	    const tag			= common.toKebabCase( name );
+	    const component		= require(`./components/${name}.js`)( tag, name );
+	    component.template		= await common.load_html(`/dist/components/${name}.html`);
+	    component.errorCaptured	= function (err, vm, info) {
+		console.error("Error in %s <%s>:", name, tag, err, vm, info, err.data );
+		this.error = `${err.stack}\n\nfound in ${info} of component`
+		return false
+	    };
+	    app.component( tag, component );
+
+	    log.info("Loaded and/or added component: %s (%sms)", tag, Date.now() - start );
+	})
+    );
+    log.normal("Configured %s components for App", components.length );
 
     app.use( router );
     app.use( store );

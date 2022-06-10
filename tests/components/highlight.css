@@ -1,0 +1,22 @@
+
+.hljs {
+  font-size: 1.2em;
+  color: #00c100 !important;
+  background: #000 !important;
+}
+span.hljs-string {
+  color: #e1e1e1 !important;
+  font-weight: 600;
+}
+span.hljs-tag {
+  color: #00c100 !important;
+  font-weight: 600;
+}
+span.hljs-name {
+  color: #b88df9 !important;
+  font-weight: 600;
+}
+span.hljs-attr {
+  color: #d8d82d !important;
+  font-weight: 600;
+}

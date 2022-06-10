@@ -1,0 +1,9 @@
+<div v-if="error" class="alert alert-danger d-flex align-items-center" role="alert">
+    <i class="bi-exclamation-triangle-fill me-3"></i>
+    <div>
+        <strong>{{ error.name }}</strong>
+        <br>
+        <p class="m-0"><em>{{ error.message }}</em></p>
+        <pre v-if="debug && error.data" class="mt-3 mb-0"><code>{{ JSON.stringify(error.data, null, 4) }}</code></pre>
+    </div>
+</div>
