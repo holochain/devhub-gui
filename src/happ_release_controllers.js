@@ -253,6 +253,9 @@ module.exports = async function ( client ) {
 		    "_release": null,
 		    "input": {},
 		    "validated": false,
+		    "gui_file": null,
+		    "gui_bytes": null,
+		    "saving_gui": false,
 		};
 	    },
 	    "computed": {
@@ -276,7 +279,15 @@ module.exports = async function ( client ) {
 		},
 		preview_toggle_text () {
 		    return this.show_changelog_preview ? "editor" : "preview";
-		}
+		},
+		file_valid_feedback () {
+		    const file		= this.gui_file;
+
+		    if ( !file )
+			return "";
+
+		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
+		},
 	    },
 	    async created () {
 		this.id			= this.getPathId("id");
@@ -309,6 +320,20 @@ module.exports = async function ( client ) {
 			return;
 
 		    try {
+			if ( this.gui_bytes ) {
+			    this.saving_gui			= true;
+			    const web_asset			= await this.$store.dispatch("createWebAsset", this.gui_bytes );
+
+			    this.input.gui	= {
+				"asset_group_id": web_asset.$id,
+				"holo_hosting_settings": {
+				    "uses_web_sdk": false,
+				},
+			    };
+			    this.saving_gui			= false;
+			}
+
+			console.log( this.input );
 			await this.$store.dispatch("updateHappRelease", [ this.id, this.input ] );
 
 			this.$router.push( `/happs/${this.happ_id}/releases/${this.id}` );
@@ -316,6 +341,19 @@ module.exports = async function ( client ) {
 			log.error("Failed to update hApp Release (%s):", String(this.id), err );
 			this.error	= err;
 		    }
+		},
+		async file_selected ( event ) {
+		    const files			= event.target.files;
+		    const file			= files[0];
+
+		    if ( file === undefined ) {
+			this.gui_bytes		= null;
+			this.gui_file		= null;
+			return;
+		    }
+
+		    this.gui_file		= file;
+		    this.gui_bytes		= await this.load_file( file );
 		},
 	    },
 	};

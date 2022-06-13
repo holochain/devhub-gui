@@ -7,7 +7,11 @@ const { load_html }			= require('./common.js');
 
 function unpack_bundle ( zipped_bytes ) {
     let msgpack_bytes			= gzip.unzip( zipped_bytes );
-    let bundle				= msgpack.decode( msgpack_bytes );
+    let bundle				= MessagePack.decode( msgpack_bytes );
+
+    for ( let key in bundle.resources ) {
+	bundle.resources[key]		= new Uint8Array( bundle.resources[key] );
+    }
 
     return bundle;
 }
@@ -389,6 +393,8 @@ module.exports = async function ( client ) {
 		    "validated": false,
 		    "saving": false,
 		    "saving_release": false,
+		    "gui_file": null,
+		    "gui_bytes": null,
 		};
 	    },
 	    "computed": {
@@ -452,6 +458,14 @@ module.exports = async function ( client ) {
 
 		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
 		},
+		gui_valid_feedback () {
+		    const file		= this.gui_file;
+
+		    if ( !file )
+			return "";
+
+		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
+		},
 	    },
 	    async created () {
 		this.id			= this.getPathId("id");
@@ -494,21 +508,21 @@ module.exports = async function ( client ) {
 			};
 			dna_sources.last.dna_version = await this.$store.dispatch("fetchDnaVersion", dna.version );
 
-			dna_sources.last.dna_version.zomes.map( zome => {
-			    if ( dna_sources.zomes[ zome.name ] === undefined ) {
-				dna_sources.zomes[ zome.name ] = {
+			Object.entries( dna_sources.last.dna_version.zomes ).map( ([name, zome]) => {
+			    if ( dna_sources.zomes[ name ] === undefined ) {
+				dna_sources.zomes[ name ] = {
 				    "last": null,
 				    "upload": null,
 				};
 			    }
-			    const zome_sources	= dna_sources.zomes[ zome.name ];
+			    const zome_sources	= dna_sources.zomes[ name ];
 
 			    zome_sources.last	= {
-				"zome_id": zome.zome,
-				"zome_version_id": zome.version,
-				"zome_version": zome,
-				"resource": zome.resource,
-				"wasm_resource_hash": zome.resource_hash,
+				"zome_id": zome.for_zome,
+				"zome_version_id": zome.$id,
+				"zome_version": zome.version,
+				"resource": zome.mere_memory_addr,
+				"wasm_resource_hash": zome.mere_memory_hash,
 			    };
 			});
 		    }) );
@@ -951,6 +965,15 @@ module.exports = async function ( client ) {
 		    this.saving_release		= true;
 		    this.saving			= true;
 		    try {
+			if ( this.gui_bytes ) {
+			    const web_asset			= await this.$store.dispatch("createWebAsset", this.gui_bytes );
+
+			    this.input.gui	= {
+				"asset_group_id": web_asset.$id,
+				"uses_web_sdk": false,
+			    };
+			}
+
 			Object.entries(this.dnas).map(async ([hash, dna_sources]) => {
 			    const dna		= dna_sources.upload;
 			    this.input.dnas.push({
@@ -974,6 +997,20 @@ module.exports = async function ( client ) {
 			this.saving		= false;
 			this.saving_release	= false;
 		    }
+		},
+
+		async gui_selected ( event ) {
+		    const files			= event.target.files;
+		    const file			= files[0];
+
+		    if ( file === undefined ) {
+			this.gui_bytes		= null;
+			this.gui_file		= null;
+			return;
+		    }
+
+		    this.gui_file		= file;
+		    this.gui_bytes		= await this.load_file( file );
 		},
 	    },
 	};
