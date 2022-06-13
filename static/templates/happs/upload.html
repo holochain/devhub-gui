@@ -231,10 +231,11 @@
 			      :disabled="saving_release" required></textarea>
 		</input-feedback>
 
-		    <!-- <dl class="row"> -->
-		    <!-- 	<dt class="col-sm-3">DNA(s) Hash</dt> -->
-		    <!-- 	<dd class="col-sm-9"><code>{{ bundle.manifest.dna_hash }}</code></dd> -->
-		    <!-- </dl> -->
+		<label class="form-label fw-6">Drag and drop zipped GUI</label>
+		<input-feedback style="height: 10rem;" :valid-message="gui_valid_feedback">
+		    <input type="file" @change="gui_selected"
+			   class="form-control form-input-file" :disabled="saving">
+		</input-feedback>
 	    </div>
 	</div>
 
