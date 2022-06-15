@@ -182,7 +182,6 @@ module.exports = async function ( client ) {
 
 		    this.lock_hdk_version_input		= true;
 
-		    log.info("Fetch Zome versions for:", zome.$id );
 		    this.added_zomes.push( zome );
 		    this.input.zomes.push({
 			"name":		zome.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
@@ -398,6 +397,7 @@ module.exports = async function ( client ) {
 			"version": 1,
 			"changelog": "",
 			"hdk_version": null,
+			"properties": null,
 		    },
 		    "initial_step": this.$route.params.step,
 		    "validated": false,
@@ -613,15 +613,18 @@ module.exports = async function ( client ) {
 		},
 
 		reset_file () {
-		    for ( let zome of this.bundle.zomes ) {
-			zome.saving			= false;
-			zome.validated			= false;
-			zome.selected_zome		= null;
-			zome.selected_zome_version	= null;
+		    if ( this.bundle.zomes ) {
+			for ( let zome of this.bundle.zomes ) {
+			    zome.saving			= false;
+			    zome.validated		= false;
+			    zome.selected_zome		= null;
+			    zome.selected_zome_version	= null;
+			}
 		    }
 
 		    this.input.changelog		= "";
 		    this.input.hdk_version		= null;
+		    this.input.properties		= null;
 
 		    this.validated			= false;
 		    this.lock_hdk_version_input		= false;
@@ -630,6 +633,7 @@ module.exports = async function ( client ) {
 		    this.select_version_context		= null;
 		    this.select_zome_context		= null;
 
+		    this.$store.dispatch("removeValue", [ "file", this.uploaded_file.hash ] );
 		    this.$store.dispatch("removeValue", [ "file", this.file_id ] );
 		},
 		missing_zome_version ( dna ) {
@@ -653,8 +657,11 @@ module.exports = async function ( client ) {
 
 		    if ( this.bundle.type !== "dna" ) {
 			alert(`Uploaded bundle is not a DNA bundle. found bundle type '${this.bundle.type}'`);
-			this.reset_file();
+			return this.reset_file();
 		    }
+
+		    if ( this.bundle.properties )
+			this.input.properties	= Object.assign( {}, this.bundle.properties );
 
 		    this.bundle.zomes.forEach( async zome => {
 			zome.version		= 1;
@@ -805,6 +812,7 @@ module.exports = async function ( client ) {
 			const input			= {
 			    "version": this.input.version,
 			    "hdk_version": this.input.hdk_version,
+			    "properties": this.input.properties,
 			    "changelog": this.input.changelog,
 			    "zomes": this.bundle.zomes.map( info => {
 				const zome		= info.selected_zome;

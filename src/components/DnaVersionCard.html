@@ -7,6 +7,17 @@
     </div>
     <loading v-else :when="!$version.current">
 	<div class="entity-card-header">{{ header_prefix }}: <strong>{{ version.version }}</strong></div>
+	<div v-if="actions.length" class="entity-card-actions">
+	    <template v-for="action in actions">
+		<a v-if="!action.hide"
+		   class="float-start"
+		   :title="action.title"
+		   :alt="action.alt"
+		   @click="action.method()">
+		    <i :class="'bi-' + action.icon"></i>
+		</a>
+	    </template>
+	</div>
 	<div class="card-body">
 	    <div class="row mb-2">
 		<div class="col-auto">

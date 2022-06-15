@@ -59,8 +59,10 @@ const dataTypePath			= {
     zomeVersion:	( id )		=> store_path( "zome", "version", id ),
 
     dnas:		( agent )	=> store_path( "dnas", agent ),
+    dnasByName:		( name )	=> store_path( "dnas", name ),
     dna:		( id )		=> store_path( "dna", id ),
     dnaVersions:	( id )		=> store_path( "dna", id, "versions" ),
+    dnaVersionsByHash:	( hash )	=> store_path( "dna", "versions", hash ),
     dnaVersion:		( id )		=> store_path( "dna", "version", id ),
 
     happs:		( agent )	=> store_path( "happs", agent ),
@@ -102,6 +104,8 @@ function hashesAreEqual ( hash1, hash2 ) {
 function fmt_client_args ( dna, zome, func, args ) {
     if ( String(args) === "[object Object]" && Object.keys(args).length )
 	return `${dna}::${zome}->${func}( ${Object.keys(args).join(", ")} )`;
+    else if ( String(args) !== "[object Object]" )
+	return `${dna}::${zome}->${func}( ${String(args)} )`;
     else
 	return `${dna}::${zome}->${func}()`;
 }
@@ -245,6 +249,15 @@ module.exports = async function ( client ) {
 		return getters.metadata( path );
 	    },
 
+	    dnas_by_name: ( _, getters ) => ( name ) => {
+		const path		= dataTypePath.dnasByName( name );
+		return getters.collection( path );
+	    },
+	    $dnas_by_name: ( _, getters ) => ( name ) => {
+		const path		= dataTypePath.dnasByName( name );
+		return getters.metadata( path );
+	    },
+
 	    dna: ( _, getters ) => ( id ) => {
 		const path		= dataTypePath.dna( id );
 		return getters.entity( path );
@@ -260,6 +273,15 @@ module.exports = async function ( client ) {
 	    },
 	    $dna_versions: ( _, getters ) => ( dna_id ) =>  {
 		const path		= dataTypePath.dnaVersions( dna_id );
+		return getters.metadata( path );
+	    },
+
+	    dna_versions_by_hash: ( _, getters ) => ( hash ) => {
+		const path		= dataTypePath.dnaVersionsByHash( hash );
+		return getters.collection( path );
+	    },
+	    $dna_versions_by_hash: ( _, getters ) => ( hash ) => {
+		const path		= dataTypePath.dnaVersionsByHash( hash );
 		return getters.metadata( path );
 	    },
 
@@ -438,7 +460,7 @@ module.exports = async function ( client ) {
 	"actions": {
 	    async callClient ( ctx, [ dna, zome, func, args, timeout ]) {
 		log.debug("Getting dna %s", () => [
-		    fmt_client_args( dna, zome, func, args ) ]);
+		    fmt_client_args( dna, zome, func, args ), args ]);
 		try {
 		    const resp		= await client.call( dna, zome, func, args, timeout );
 		    log.trace("Received response:", resp );
@@ -642,6 +664,24 @@ module.exports = async function ( client ) {
 		const dnas		= await dispatch("fetchCollection", [
 		    path, ...args
 		]);
+
+		return dnas;
+	    },
+
+	    async fetchDnasByName ({ dispatch, commit }, name ) {
+		const path		= dataTypePath.dnasByName( name );
+		const dnas		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "dna_library", "get_dnas_by_filter", {
+			"filter": "name",
+			"keyword": name.toLowerCase(),
+		    },
+		]);
+
+		for ( let dna of dnas ) {
+		    commit("cacheEntity", [
+			dataTypePath.dna( dna.$id ), dna
+		    ] );
+		}
 
 		return dnas;
 	    },
@@ -882,12 +922,19 @@ module.exports = async function ( client ) {
 		return dna;
 	    },
 
-	    async fetchVersionsForDna ({ dispatch }, dna_id ) {
+	    async fetchVersionsForDna ({ dispatch, commit }, dna_id ) {
 		const path		= dataTypePath.dnaVersions( dna_id );
-
-		return await dispatch("fetchCollection", [
+		const versions		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_dna_versions", { "for_dna": dna_id }
 		]);
+
+		for ( let version of versions ) {
+		    commit("cacheEntity", [
+			dataTypePath.dnaVersion( version.$id ), version
+		    ] );
+		}
+
+		return versions;
 	    },
 
 	    async getLatestVersionForDna ({ dispatch, getters }, [ dna_id, hdk_version ] ) {
@@ -953,6 +1000,21 @@ module.exports = async function ( client ) {
 		]);
 	    },
 
+	    async fetchDnasWithHDKVersion ({ dispatch, commit }, hdk_version ) {
+		const path		= dataTypePath.dnas( hdk_version );
+		const dnas		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "dna_library", "get_dnas_with_an_hdk_version", hdk_version
+		]);
+
+		for ( let dna of dnas ) {
+		    commit("cacheEntity", [
+			dataTypePath.dna( dna.$id ), dna
+		    ] );
+		}
+
+		return dnas;
+	    },
+
 
 	    //
 	    // DNA Version
@@ -975,6 +1037,24 @@ module.exports = async function ( client ) {
 		}] );
 
 		return version;
+	    },
+
+	    async fetchDnaVersionsByHash ({ dispatch, commit }, hash ) {
+		const path		= dataTypePath.dnaVersionsByHash( hash );
+		const versions		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "dna_library", "get_dna_versions_by_filter", {
+			"filter": "uniqueness_hash",
+			"keyword": hash,
+		    },
+		]);
+
+		for ( let version of versions ) {
+		    commit("cacheEntity", [
+			dataTypePath.dnaVersion( version.$id ), version
+		    ] );
+		}
+
+		return versions;
 	    },
 
 	    async fetchDnaVersionPackage ({ dispatch, commit }, id ) {

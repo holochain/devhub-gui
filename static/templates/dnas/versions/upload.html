@@ -249,6 +249,29 @@
 			<input-feedback>
 			    <input v-model="input.hdk_version" class="form-control" readonly required>
 			</input-feedback>
+
+			<label class="form-label fw-6">Properties</label>
+			<div class="px-3">
+			    <table v-if="input.properties" class="table">
+				<thead>
+				    <tr>
+					<th class="text-end">Name</th>
+					<th>Default value</th>
+				    </tr>
+				</thead>
+				<tbody>
+				    <tr v-for="(value, name) in input.properties">
+					<th class="text-end"><code>{{ name }}</code></th>
+					<td><pre class="mb-0 pt-1">{{ $debug(value) }}</pre></td>
+				    </tr>
+				</tbody>
+			    </table>
+			    <div v-else class="card">
+				<div class="card-body text-center">
+				    No properties
+				</div>
+			    </div>
+			</div>
 		    </div>
 		</div>
 	    </div>
@@ -295,7 +318,7 @@
 			    <dl class="row mb-0">
 				<dt class="col-3">Resource Hash</dt>
 				<dd class="col-9 mb-1">
-				    <code>{{ bundle.wasm_hash }}</code>
+				    <code>{{ bundle.dna_hash }}</code>
 				</dd>
 
 				<dt class="col-3">Created</dt>
@@ -304,6 +327,24 @@
 				<dt class="col-3">Last Updated</dt>
 				<dd class="col-9 mb-1">TBD</dd>
 			    </dl>
+
+			    <div v-if="input.properties">
+				<h4 class="fs-6 mt-2">Properties</h4>
+				<table class="table mx-3">
+				    <thead>
+					<tr>
+					    <th class="text-end">Name</th>
+					    <th>Default value</th>
+					</tr>
+				    </thead>
+				    <tbody>
+					<tr v-for="(value, name) in input.properties">
+					    <th class="text-end"><code>{{ name }}</code></th>
+					    <td><pre class="mb-0 pt-1">{{ $debug(value) }}</pre></td>
+					</tr>
+				    </tbody>
+				</table>
+			    </div>
 
 			    <div class="row gy-3" style="margin: 1rem 0 2.5rem 0;">
 				<div v-for="zome in bundle.zomes"
@@ -315,9 +356,6 @@
 			</div>
 		    </div>
 		</div>
-
-		<!-- <pre>{{ $debug( bundle ) }}</pre> -->
-		<!-- <pre>{{ $debug( input ) }}</pre> -->
 	    </div>
 
 	    <div class="row mt-3">
@@ -343,6 +381,9 @@
 	    </div>
 	</div>
     </form>
+
+    <!-- <pre>{{ $debug( bundle ) }}</pre> -->
+    <!-- <pre>{{ $debug( input ) }}</pre> -->
 
     <modal ref="selectZomeVersion"
 	   title="Select Existing Version">

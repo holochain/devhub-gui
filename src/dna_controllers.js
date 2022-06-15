@@ -286,19 +286,7 @@ module.exports = async function ( client ) {
 
 		versions () {
 		    const versions	= this.$store.getters.dna_versions( this.id );
-		    versions.sort( (a,b) => {
-			if( a.version > b.version )
-			    return -1;
-			if( a.version < b.version )
-			    return 1;
-
-			if( a.published_at > b.published_at )
-			    return -1;
-			if( a.published_at < b.published_at )
-			    return 1;
-
-			return 0;
-		    });
+		    versions.sort( this.sort_version( true ) );
 		    return versions;
 		},
 		$versions () {

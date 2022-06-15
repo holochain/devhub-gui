@@ -70,10 +70,24 @@
 			<dd class="col-sm-12"><placeholder :when="!$version.current"><code>{{ version.wasm_hash }}</code></placeholder></dd>
 		    </dl>
 
+		    <h4 class="fs-6">Properties</h4>
+		    <dl v-if="version.properties" class="row">
+			<template v-for="(value, name) in version.properties">
+			    <dt class="col-sm-12">{{ name }}</dt>
+			    <dd class="col-sm-12">{{ $debug( value ) }}</dd>
+			</template>
+		    </dl>
+		    <div v-else class="card">
+			<div class="card-body text-center">
+			    No properties
+			</div>
+		    </div>
+
 		    <list-group v-if="version" :list="Object.values(version.zomes)" no-result-text="No Zomes" class="my-5" :loading="!$version.current">
 			<template v-for="(zome_version, name) in version.zomes">
 			    <zome-version-card v-if="zome_version" class="my-2"
-					       :id="zome_version.$id"></zome-version-card>
+					       :title="zome_version.name || name"
+					       :id="zome_version.$id || zome_version.version"></zome-version-card>
 			    <div v-else class="card my-2">
 				<div class="card-body text-center">
 				    <p><i>This version of <strong>{{ name }}</strong> has been unpublished</i></p>

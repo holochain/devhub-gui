@@ -291,7 +291,9 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.$happ( this.id );
 		},
 		releases () {
-		    return this.$store.getters.happ_releases( this.id );
+		    const releases	= this.$store.getters.happ_releases( this.id );
+		    releases.sort( this.sort_published_at( true ) );
+		    return releases;
 		},
 		$releases () {
 		    return this.$store.getters.$happ_releases( this.id );

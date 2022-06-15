@@ -276,7 +276,9 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.$zome( this.id );
 		},
 		versions () {
-		    return this.$store.getters.zome_versions( this.id );
+		    const versions	= this.$store.getters.zome_versions( this.id );
+		    versions.sort( this.sort_version( true ) );
+		    return versions;
 		},
 		$versions () {
 		    return this.$store.getters.$zome_versions( this.id );
