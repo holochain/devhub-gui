@@ -5,17 +5,6 @@ const { AgentPubKey }			= holohash;
 const { load_html }			= require('./common.js');
 
 
-function unpack_bundle ( zipped_bytes ) {
-    let msgpack_bytes			= gzip.unzip( zipped_bytes );
-    let bundle				= MessagePack.decode( msgpack_bytes );
-
-    for ( let key in bundle.resources ) {
-	bundle.resources[key]		= new Uint8Array( bundle.resources[key] );
-    }
-
-    return bundle;
-}
-
 
 module.exports = async function ( client ) {
 
@@ -35,7 +24,8 @@ module.exports = async function ( client ) {
 		    "agent_input_cache": input_cache,
 		    "agent_input": this.$route.query.agent || input_cache || "",
 		    "agent_hash": null,
-		    "order_by": "published_at",
+		    "order_by": "last_updated",
+		    "reverse_order": true,
 		    "list_filter": "",
 		};
 	    },
@@ -54,7 +44,7 @@ module.exports = async function ( client ) {
 		    return this.agent_input.length ? this.agent_input : "me";
 		},
 		happs () {
-		    return (
+		    const happs		= (
 			this.agent_input.length
 			    ? this.$store.getters.happs( this.agent )
 			    : this.$store.getters.happs( "all" )
@@ -78,6 +68,10 @@ module.exports = async function ( client ) {
 
 			return 0;
 		    });
+
+		    happs.sort( this.sort_by_key( this.order_by, this.reverse_order ) );
+
+		    return happs;
 		},
 		$happs () {
 		    return this.agent_input.length
@@ -249,7 +243,9 @@ module.exports = async function ( client ) {
 			return;
 
 		    const input				= Object.assign({}, this.input );
-		    input.tags				= [ ...input.tags ];
+
+		    if ( input.tags )
+			input.tags			= [ ...input.tags ];
 
 		    try {
 			await this.$store.dispatch("updateHapp", [ this.id, input ] );
@@ -378,12 +374,7 @@ module.exports = async function ( client ) {
 			"description": "",
 			"manifest": null,
 			"hdk_version": null,
-			"dnas": [
-			    // dnas[].role_id	String
-			    // dnas[].dna	EntryHash
-			    // dnas[].version	EntryHash
-			    // dnas[].wasm_hash	String
-			],
+			"dnas": [],
 		    },
 		    "bundle": null,
 		    "bundle_file": null,
@@ -530,6 +521,7 @@ module.exports = async function ( client ) {
 		    }) );
 
 		    const roles			= this.happ_release.manifest.roles;
+		    console.log( this.dnas );
 		    for ( let role of roles ) {
 			// We should be able to assume the ID exists from the previous loop
 			this.dnas[ role.id ].last.uid		= role.dna.uid;
@@ -586,8 +578,7 @@ module.exports = async function ( client ) {
 		    this.bundle			= null;
 		    this.bundle_file		= null;
 		    this.release_exists		= null;
-		    this.dnas			= {};
-		    this.input.dnas		= {};
+		    this.input.dnas		= [];
 
 		    for ( let sources of Object.values(this.dnas) ) {
 			sources.upload		= null;
@@ -621,6 +612,28 @@ module.exports = async function ( client ) {
 		    zome_sources.zome		= zome;
 		},
 
+		unpack_bundle ( zipped_bytes ) {
+		    let msgpack_bytes			= gzip.unzip( zipped_bytes );
+		    let bundle				= MessagePack.decode( msgpack_bytes );
+		    console.log("Bundle:", bundle );
+
+		    for ( let key in bundle.resources ) {
+			bundle.resources[key]		= new Uint8Array( bundle.resources[key] );
+		    }
+
+		    if ( bundle.manifest.ui ) {
+			const ui_bytes			= bundle.resources[ bundle.manifest.ui.bundled ];
+			this.set_gui({
+			    "name": bundle.manifest.ui.bundled,
+			    "size": ui_bytes.length,
+			}, ui_bytes );
+
+			return this.unpack_bundle( bundle.resources[ bundle.manifest.happ_manifest.bundled ] );
+		    }
+
+		    return bundle;
+		},
+
 		async file_selected ( event ) {
 		    const files			= event.target.files;
 		    const file			= files[0];
@@ -647,7 +660,7 @@ module.exports = async function ( client ) {
 		    this.bundle_file		= file;
 		    this.bundle_unpacking	= true;
 		    const zipped_bytes		= await this.load_file( file );
-		    const bundle		= unpack_bundle( zipped_bytes );
+		    const bundle		= this.unpack_bundle( zipped_bytes );
 		    const dna_hashes		= [];
 
 		    if ( !this.input.name )
@@ -671,7 +684,7 @@ module.exports = async function ( client ) {
 			}
 
 			const dna_sources	= this.dnas[ role.id ];
-			const dna_bundle	= unpack_bundle( bundle.resources[ role.dna.bundled ] );
+			const dna_bundle	= this.unpack_bundle( bundle.resources[ role.dna.bundled ] );
 			const wasm_hashes	= [];
 
 			for ( let zome of dna_bundle.manifest.zomes ) {
@@ -738,7 +751,7 @@ module.exports = async function ( client ) {
 				"wasm_hash": digest_hex,
 				"dna_id": null,
 				"dna_version_id": null,
-				"properties": null,
+				"properties": dna_bundle.manifest.properties,
 				"uid": null,
 				"bundle": dna_bundle,
 			    };
@@ -922,6 +935,7 @@ module.exports = async function ( client ) {
 			"for_dna": upload.dna_id,
 			"version": next_dna_version_number,
 			"hdk_version": this.input.hdk_version,
+			"properties": upload.properties,
 			"zomes": zome_list.map( ([zome_name, zome_sources]) => {
 			    return {
 				"name":			zome_name,
@@ -976,17 +990,16 @@ module.exports = async function ( client ) {
 			    };
 			}
 
-			Object.entries(this.dnas).map(async ([hash, dna_sources]) => {
+			Object.entries(this.dnas).map( ([role_id, dna_sources]) => {
 			    const dna		= dna_sources.upload;
 			    this.input.dnas.push({
-				"role_id":	dna.bundle.manifest.name,
+				"role_id":	role_id,
 				"dna":		dna.dna_id,
 				"version":	dna.dna_version_id,
 				"wasm_hash":	dna.wasm_hash,
 			    });
 			});
 
-			log.trace("Input for 'create_happ':", this.id, this.input );
 			const release		= await this.$store.dispatch("createHappRelease", [ this.id, this.input ] );
 
 			this.$store.dispatch("fetchReleasesForHapp", this.id );
@@ -1001,18 +1014,27 @@ module.exports = async function ( client ) {
 		    }
 		},
 
-		async gui_selected ( event ) {
-		    const files			= event.target.files;
-		    const file			= files[0];
-
-		    if ( file === undefined ) {
+		async set_gui ( file, bytes ) {
+		    if ( !file ) {
 			this.gui_bytes		= null;
 			this.gui_file		= null;
 			return;
 		    }
 
 		    this.gui_file		= file;
-		    this.gui_bytes		= await this.load_file( file );
+		    this.gui_bytes		= bytes;
+
+		    this.$refs.gui_input.showFeedback	= true;
+		    this.$refs.gui_input.blurred	= true;
+		},
+		async gui_selected ( event ) {
+		    const files			= event.target.files;
+		    const file			= files[0];
+
+		    if ( file === undefined )
+			return this.set_gui( null );
+
+		    this.set_gui( file, await this.load_file( file ) );
 		},
 	    },
 	};

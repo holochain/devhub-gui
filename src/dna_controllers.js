@@ -22,7 +22,8 @@ module.exports = async function ( client ) {
 		    "agent_input_cache": input_cache,
 		    "agent_input": this.$route.query.agent || input_cache || "",
 		    "agent_hash": null,
-		    "order_by": "published_at",
+		    "order_by": "last_updated",
+		    "reverse_order": true,
 		    "list_filter": "",
 		};
 	    },
@@ -42,7 +43,7 @@ module.exports = async function ( client ) {
 		},
 
 		dnas () {
-		    return (
+		    const dnas		= (
 			this.agent_input.length
 			    ? this.$store.getters.dnas( this.agent )
 			    : this.$store.getters.dnas( "all" )
@@ -65,6 +66,10 @@ module.exports = async function ( client ) {
 
 			return 0;
 		    });
+
+		    dnas.sort( this.sort_by_key( this.order_by, this.reverse_order ) );
+
+		    return dnas;
 		},
 		$dnas () {
 		    return this.agent_input.length

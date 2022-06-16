@@ -23,7 +23,8 @@ module.exports = async function ( client ) {
 		    "agent_input_cache": input_cache,
 		    "agent_input": this.$route.query.agent || input_cache || "",
 		    "agent_hash": null,
-		    "order_by": "published_at",
+		    "order_by": "last_updated",
+		    "reverse_order": true,
 		    "list_filter": "",
 		};
 	    },
@@ -42,7 +43,7 @@ module.exports = async function ( client ) {
 		    return this.agent_input.length ? this.agent_input : "me";
 		},
 		zomes () {
-		    return (
+		    const zomes		= (
 			this.agent_input.length
 			    ? this.$store.getters.zomes( this.agent )
 			    : this.$store.getters.zomes( "all" )
@@ -65,6 +66,10 @@ module.exports = async function ( client ) {
 
 			return 0;
 		    });
+
+		    zomes.sort( this.sort_by_key( this.order_by, this.reverse_order ) );
+
+		    return zomes;
 		},
 		$zomes () {
 		    return this.agent_input.length
@@ -234,7 +239,9 @@ module.exports = async function ( client ) {
 			return;
 
 		    const input				= Object.assign({}, this.input );
-		    input.tags				= [ ...input.tags ];
+
+		    if ( input.tags )
+			input.tags			= [ ...input.tags ];
 
 		    try {
 			await this.$store.dispatch("updateZome", [ this.id, input ] );

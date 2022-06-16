@@ -1228,7 +1228,7 @@ module.exports = async function ( client ) {
 
 		log.debug("Getting hApp package %s", String(id) );
 		const result		= await dispatch("callClient", [
-		    "happs", "happ_library", "get_release_package", { id }, 30_000
+		    "happs", "happ_library", "get_release_package", { id }, 300_000
 		]);
 
 		const wasm_bytes	= new Uint8Array( result );
@@ -1246,7 +1246,7 @@ module.exports = async function ( client ) {
 
 		log.debug("Getting hApp package %s", String(id) );
 		const result			= await dispatch("callClient", [
-		    "happs", "happ_library", "get_webhapp_package", { name, id }, 30_000
+		    "happs", "happ_library", "get_webhapp_package", { name, id }, 300_000
 		]);
 
 		const wasm_bytes	= new Uint8Array( result );
@@ -1284,7 +1284,7 @@ module.exports = async function ( client ) {
 
 		log.normal("Deleting Happ Release (%s)", String(id) );
 		return await dispatch("unpublishEntity", [
-		    path, "dnarepo", "dna_library", "delete_happ_release", { id }
+		    path, "happs", "happ_library", "delete_happ_release", { id }
 		]);
 	    },
 

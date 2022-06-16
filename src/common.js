@@ -278,6 +278,17 @@ const common				= {
 	    return 0;
 	};
     },
+
+    sort_by_key ( key, reverse = false ) {
+	return (a,b) => {
+	    if( a[key] > b[key] )
+		return reverse ? -1 : 1;
+	    if( a[key] < b[key] )
+		return reverse ? 1 : -1;
+
+	    return 0;
+	};
+    },
 };
 
 

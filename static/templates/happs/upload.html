@@ -141,7 +141,15 @@
 			<code>{{ sources.upload.wasm_hash }}</code>
 		    </p>
 
-		    <h5>Zomes</h5>
+		    <h5>Properties</h5>
+		    <pre v-if="sources.upload.properties">{{ $debug(sources.upload.properties) }}</pre>
+		    <div v-else class="card">
+			<div class="card-body text-center">
+			    No Properties
+			</div>
+		    </div>
+
+		    <h5 class="mt-3">Zomes</h5>
 		    <div class="mt-2" v-for="(zome_sources, zome_name) in sources.zomes">
 			<div v-if="zome_sources.changed && zome_sources.upload.zome_version_id" class="card">
 			    <div class="card-body">
@@ -233,7 +241,7 @@
 		</input-feedback>
 
 		<label class="form-label fw-6">Drag and drop zipped GUI</label>
-		<input-feedback style="height: 10rem;" :valid-message="gui_valid_feedback">
+		<input-feedback ref="gui_input" style="height: 10rem;" :valid-message="gui_valid_feedback">
 		    <input type="file" @change="gui_selected"
 			   class="form-control form-input-file" :disabled="saving">
 		</input-feedback>

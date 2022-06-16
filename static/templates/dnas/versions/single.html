@@ -74,7 +74,9 @@
 		    <dl v-if="version.properties" class="row">
 			<template v-for="(value, name) in version.properties">
 			    <dt class="col-sm-12">{{ name }}</dt>
-			    <dd class="col-sm-12">{{ $debug( value ) }}</dd>
+			    <dd class="col-sm-12">
+				<pre class="text-secondary mb-0">{{ $debug( value ) }}</pre>
+			    </dd>
 			</template>
 		    </dl>
 		    <div v-else class="card">
