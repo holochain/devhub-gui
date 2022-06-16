@@ -155,7 +155,7 @@ module.exports = async function ( client ) {
 			    input.manifest.roles.push({
 				"id":		dna.role_id,
 				"dna": {
-				    "path":	`./${dna.name}.dna`,
+				    "bundled":	`./${dna.role_id}.dna`,
 				    "clone_limit": 0,
 				},
 				"provisioning": {

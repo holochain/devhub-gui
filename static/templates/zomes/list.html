@@ -15,17 +15,21 @@
 	</template>
 
 	<template #controls>
-            <div class="row">
-		<div class="col-6">
-                    <div class="row align-items-center">
-			<label class="col-sm-3 text-end">Sort by</label>
-			<div class="col-sm-9">
-                            <select class="form-select" v-model="order_by">
-				<option value="published_at">Date created</option>
-				<option value="name">Zome name</option>
-                            </select>
-			</div>
-                    </div>
+            <div class="row row-cols g-3 align-items-center justify-content-end">
+		<div class="col-4">
+		    <select class="form-select" v-model="order_by" placeholder="Sort by">
+			<optgroup label="Sort by">
+			    <option value="name">Zome name</option>
+			    <option value="published_at">Date created</option>
+			    <option value="last_updated">Last updated</option>
+			</optgroup>
+		    </select>
+		</div>
+		<div class="col-2">
+		    <div class="form-check form-check-inline">
+			<input class="form-check-input" id="reverseOrder" type="checkbox" v-model="reverse_order">
+			<label class="form-check-label" for="reverseOrder">Reverse</label>
+		    </div>
 		</div>
 		<div class="col-6">
 		    <search v-model="list_filter" placeholder="Search list..."></search>

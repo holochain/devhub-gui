@@ -251,6 +251,44 @@ const common				= {
 
 	return a[i] > b[i] ? 1 : -1;
     },
+
+    sort_version ( reverse = false ) {
+	return (a,b) => {
+	    if( a.version > b.version )
+		return reverse ? -1 : 1;
+	    if( a.version < b.version )
+		return reverse ? 1 : -1;
+
+	    if( a.published_at > b.published_at )
+		return reverse ? -1 : 1;
+	    if( a.published_at < b.published_at )
+		return reverse ? 1 : -1;
+
+	    return 0;
+	};
+    },
+
+    sort_published_at ( reverse = false ) {
+	return (a,b) => {
+	    if( a.published_at > b.published_at )
+		return reverse ? -1 : 1;
+	    if( a.published_at < b.published_at )
+		return reverse ? 1 : -1;
+
+	    return 0;
+	};
+    },
+
+    sort_by_key ( key, reverse = false ) {
+	return (a,b) => {
+	    if( a[key] > b[key] )
+		return reverse ? -1 : 1;
+	    if( a[key] < b[key] )
+		return reverse ? 1 : -1;
+
+	    return 0;
+	};
+    },
 };
 
 

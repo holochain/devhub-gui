@@ -1,6 +1,17 @@
 <div class="card entity-card dna-card">
     <loading :when="!$dna.current">
 	<div class="entity-card-header">DNA: <placeholder :when="!$dna.current"><strong>{{ dna.name }}</strong></placeholder></div>
+	<div v-if="actions.length" class="entity-card-actions">
+	    <template v-for="action in actions">
+		<a v-if="!action.hide"
+		   class="float-start"
+		   :title="action.title"
+		   :alt="action.alt"
+		   @click="action.method()">
+		    <i :class="'bi-' + action.icon"></i>
+		</a>
+	    </template>
+	</div>
 	<div class="card-body">
 	    <div class="row mb-2">
 		<div class="col-auto">
