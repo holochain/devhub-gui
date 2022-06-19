@@ -827,7 +827,6 @@ module.exports = async function ( client ) {
 			    }),
 			};
 
-			log.trace("Create input for 'create_dna_version':", input );
 			const version		= await this.$store.dispatch("createDnaVersion", [ this.id, input ] );
 
 			this.reset_file();

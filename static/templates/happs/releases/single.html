@@ -44,7 +44,7 @@
 		</div>
 		<div class="card-body">
 		    <placeholder :when="!$release.current">
-			<div>{{ release.description }}</div>
+			<div v-html="mdHTML( release.description )"></div>
 		    </placeholder>
 		</div>
 	    </div>

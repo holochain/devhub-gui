@@ -350,7 +350,8 @@
 				<div v-for="zome in bundle.zomes"
 				     class="col-12 px-0">
 				    <zome-version-card :id="zome.selected_zome_version.$id"
-						       :title="zome.name"></zome-version-card>
+						       :title="zome.name"
+						       :link="false"></zome-version-card>
 				</div>
 			    </div>
 			</div>
@@ -364,7 +365,7 @@
 
 		    <div class="row">
 			<div class="col-6">
-			    <a @click="ready_for_review = false" class="btn btn-outline-secondary">
+			    <a @click="ready_for_review = false" class="btn btn-outline-secondary" :class="{ 'disabled': saving }">
 				<i class="bi-chevron-left"></i>
 				Back
 			    </a>

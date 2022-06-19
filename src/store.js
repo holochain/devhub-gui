@@ -119,7 +119,7 @@ function fmt_client_args ( dna, zome, func, args ) {
 // Perhaps we want to completely ignore summary models and only car about full info models?
 
 
-module.exports = async function ( client ) {
+module.exports = async function ( client, app ) {
     return new Vuex.Store({
 	state () {
 	    return {
@@ -706,6 +706,13 @@ module.exports = async function ( client ) {
 	    //
 	    // Zome
 	    //
+	    async getZome ({ dispatch, getters }, id ) {
+		if ( getters.zome( id ) )
+		    return getters.zome( id );
+		else
+		    return await dispatch("fetchZome", id );
+	    },
+
 	    async fetchZome ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.zome( id );
 		const zome		= await dispatch("fetchEntity", [
@@ -818,6 +825,13 @@ module.exports = async function ( client ) {
 	    //
 	    // Zome Version
 	    //
+	    async getZomeVersion ({ dispatch, getters }, id ) {
+		if ( getters.zome_version( id ) )
+		    return getters.zome_version( id );
+		else
+		    return await dispatch("fetchZomeVersion", id );
+	    },
+
 	    async fetchZomeVersion ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.zomeVersion( id );
 		const version		= await dispatch("fetchEntity", [
@@ -907,6 +921,13 @@ module.exports = async function ( client ) {
 	    //
 	    // DNA
 	    //
+	    async getDna ({ dispatch, getters }, id ) {
+		if ( getters.dna( id ) )
+		    return getters.dna( id );
+		else
+		    return await dispatch("fetchDna", id );
+	    },
+
 	    async fetchDna ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.dna( id );
 		const dna		= await dispatch("fetchEntity", [
@@ -1019,6 +1040,13 @@ module.exports = async function ( client ) {
 	    //
 	    // DNA Version
 	    //
+	    async getDnaVersion ({ dispatch, getters }, id ) {
+		if ( getters.dna_version( id ) )
+		    return getters.dna_version( id );
+		else
+		    return await dispatch("fetchDnaVersion", id );
+	    },
+
 	    async fetchDnaVersion ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.dnaVersion( id );
 
@@ -1322,6 +1350,7 @@ module.exports = async function ( client ) {
 		    hash,
 		};
 
+		console.log("Caching file with hash '%s': %s", hash, path );
 		commit("cacheValue", [ path, file ] );
 
 		return file;
@@ -1391,6 +1420,9 @@ module.exports = async function ( client ) {
 		const manifest		= bundle.manifest;
 		const resources		= bundle.resources;
 
+		// Copy the original manifest values
+		manifest.manifest	= JSON.parse( JSON.stringify( bundle.manifest ) );
+
 		log.debug("Decoded manifest has keys: %s", () => [ Object.keys(manifest).join(", ") ]);
 		const resource_keys	= Object.keys( resources );
 
@@ -1459,13 +1491,18 @@ module.exports = async function ( client ) {
 		    const ui			= resources[ manifest.ui.bundled ];
 		    const bytes			= resources[ manifest.happ_manifest.bundled ];
 
-		    manifest.ui			= common.once( () => dispatch("saveFile", ui ) );
+		    manifest.ui			= {
+			"name":		manifest.ui.bundled,
+			"source":	common.once( () => dispatch("saveFile", ui ) ),
+		    };
 		    manifest.happ		= {
 			"source":	common.once( () => dispatch("saveFile", bytes ) ),
 			"bundle":	common.once( async () => dispatch("unpackBundle", (await manifest.happ.source()).hash ) ),
 		    };
+		    delete manifest.happ_manifest;
 		}
 
+		console.log("Caching bundle: %s", path );
 		commit("cacheValue", [ path, manifest ] );
 		commit("recordLoaded", path );
 

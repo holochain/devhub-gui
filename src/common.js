@@ -4,6 +4,9 @@ const log				= new Logger("common");
 const { HoloHash,
 	AgentPubKey }			= holohash;
 
+const md_converter			= new showdown.Converter({
+    "headerLevelStart": 3,
+});
 
 const _debounce_timers			= {};
 
@@ -288,6 +291,10 @@ const common				= {
 
 	    return 0;
 	};
+    },
+
+    mdHTML ( md_text ) {
+	return md_converter.makeHtml( md_text );
     },
 };
 

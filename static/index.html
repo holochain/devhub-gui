@@ -87,7 +87,7 @@
 		</div>
 	    </div>
 
-	    <div class="col vh-100" style="overflow-y: scroll;">
+	    <div class="col vh-100" style="overflow-y: scroll; padding-right: 0;">
 		<page-view v-if="status_view_html" id="tatus-page">
 		    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
 
@@ -108,7 +108,7 @@
 		    <div v-else v-html="status_view_html"></div>
 		</page-view>
 		<main v-else class="h-100 d-flex flex-column">
-		    <router-view :key="$route.fullPath"></router-view>
+		    <router-view :key="$route.fullPath" style="overflow-x: hidden;" class="pe-3"></router-view>
 		</main>
 	    </div>
 	</div>
