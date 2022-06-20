@@ -12,7 +12,7 @@
 		       title="The parent hApp has been deprecated"></deprecation-alert>
 
     <div class="mb-4">
-	<h1 class="fs-2"><placeholder :when="!$release.current" size="25%">{{ happ.title }}</placeholder></h1>
+	<h1 class="fs-2"><placeholder :when="!$happ.current" size="25%">{{ happ.title }}</placeholder></h1>
     </div>
 
     <page-header class="mb-2 p-3">
@@ -44,7 +44,7 @@
 		</div>
 		<div class="card-body">
 		    <placeholder :when="!$release.current">
-			<div>{{ release.description }}</div>
+			<div v-html="mdHTML( release.description )"></div>
 		    </placeholder>
 		</div>
 	    </div>

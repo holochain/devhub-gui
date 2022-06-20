@@ -12,6 +12,7 @@ global.Vuex				= require('vuex');
 global.fetch				= require('node-fetch');
 global.HolochainClient			= require('@whi/holochain-client');
 global.CruxPayloadParser		= require('@whi/crux-payload-parser');
+global.showdown				= require('showdown');
 
 global.holohash				= HoloHashes
 global.localStorage			= new LocalStorage("./scratch");

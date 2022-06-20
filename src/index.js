@@ -69,7 +69,6 @@ window.PersistentStorage		= {
     const client			= await client_init();
     log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(client._agent), client._conn._uri, WEBPACK_MODE );
 
-    const store				= await store_init( client );
     const zome_controllers		= await zomes_init( client );
     const zome_version_controllers	= await zome_versions_init( client );
     const dna_controllers		= await dnas_init( client );
@@ -84,7 +83,7 @@ window.PersistentStorage		= {
 	[ "/happs/new",				happ_controllers.create,		"Add hApp" ],
 	[ "/happs/:id",				happ_controllers.single,		"hApp Info" ],
 	[ "/happs/:id/update",			happ_controllers.update,		"Edit hApp" ],
-	[ "/happs/:id/upload",			happ_controllers.upload,		"Upload Bundle" ],
+	[ "/happs/:id/upload",			happ_release_controllers.upload,	"Upload Bundle" ],
 	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add hApp Release" ],
 	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"hApp Release Info" ],
 	[ "/happs/:happ/releases/:id/update",	happ_release_controllers.update,	"Edit Release" ],
@@ -194,6 +193,8 @@ window.PersistentStorage		= {
 	    },
 	},
     });
+
+    const store				= await store_init( client );
 
     app.mixin({
 	data () {
