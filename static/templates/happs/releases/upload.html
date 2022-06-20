@@ -26,26 +26,20 @@
 	</div>
     </div>
 
-    <div v-if="step === 0">
-	<h3>Upload</h3>
-	<div class="row">
-	    <div class="col-6">
-		<loading :when="$uploaded_file.loading">
-		    <label class="form-label fw-6">Drag and drop hApp bundle here</label>
-		    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-			<input type="file" @change="file_selected" class="form-control form-input-file" required>
-		    </input-feedback>
-		</loading>
+    <div v-if="input.hdk_version" class="row mb-4">
+	<div class="col-6">
+	    <div class="input-group mb-3">
+		<input v-model="input.hdk_version" class="form-control" disabled required>
+		<a class="btn btn-outline-secondary"
+		   @click="reset_hdk_version()">
+		    Change HDK Version
+		</a>
 	    </div>
 	</div>
     </div>
 
-    <div v-if="step === 1">
-	<h3>DNAs
-	    <a class="btn btn-outline-warning btn-sm" @click="reset_file()">Reset</a>
-	</h3>
-
-	<form ref="form_extras"
+    <div v-if="step === 0">
+	<form v-if="!input.hdk_version"
 	      class="row mb-5"
 	      :class="{ 'was-validated': validated }">
 	    <div class="col-6">
@@ -55,16 +49,16 @@
 			<input-feedback>
 			    <div class="input-group mb-3">
 				<span class="input-group-text" id="basic-addon1">v</span>
-				<input v-model="input.hdk_version" class="form-control" required
-				       :disabled="lock_hdk_version_input">
+				<input class="form-control" required
+				       @change="input.hdk_version = $event.target.value">
 			    </div>
 			</input-feedback>
 		    </div>
-		    <div v-if="$previous_hdk_versions.loaded" class="col-6">
+		    <div class="col-6">
 			<loading :when="!$previous_hdk_versions.current">
 			    <label class="form-label">Versions on DevHub</label>
 			    <select class="form-select"
-				    :disabled="previous_hdk_versions.length === 0 || lock_hdk_version_input"
+				    :disabled="previous_hdk_versions.length === 0"
 				    @change="selectHDKVersion( $event.target.value )">
 				<option selected value="">Choose an HDK version</option>
 				<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
@@ -74,8 +68,27 @@
 		</div>
 	    </div>
 	</form>
+	<template v-else>
+	    <h3>Upload</h3>
+	    <div class="row">
+		<div class="col-6">
+		    <loading :when="$uploaded_file.loading">
+			<label class="form-label fw-6">Drag and drop hApp bundle here</label>
+			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
+			    <input type="file" @change="file_selected" class="form-control form-input-file" required>
+			</input-feedback>
+		    </loading>
+		</div>
+	    </div>
+	</template>
+    </div>
 
-	<div v-for="role in bundle.roles" class="row mb-5">
+    <div v-if="step === 1">
+	<h3>DNAs
+	    <a class="btn btn-outline-warning btn-sm" @click="reset_file()">Reset</a>
+	</h3>
+
+	<div v-for="role in bundle.roles" class="row mt-4 mb-4">
 	    <div class="col-6">
 		<dna-version-card v-if="role.selected_dna_version"
 				  class="mb-3"

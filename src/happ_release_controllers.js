@@ -519,7 +519,6 @@ module.exports = async function ( client ) {
 			"Review",
 		    ],
 		    "file_id": "uploaded_happ_bundle",
-		    "lock_hdk_version_input": false,
 		    "ready_for_review": false,
 
 		    "dna_selection_confirmed": false,
@@ -791,7 +790,6 @@ module.exports = async function ( client ) {
 		    this.input.hdk_version		= null;
 
 		    this.validated			= false;
-		    this.lock_hdk_version_input		= false;
 		    this.zome_selection_confirmed	= false;
 		    this.ready_for_review		= false;
 		    this.select_dna_version_context	= null;
@@ -805,6 +803,11 @@ module.exports = async function ( client ) {
 		    this.$store.dispatch("removeValue", [ "file", this.uploaded_file.hash ] );
 		    this.$store.dispatch("removeValue", [ "file", this.file_id ] );
 		},
+		reset_hdk_version () {
+		    this.input.hdk_version		= null;
+		    this.reset_file();
+		},
+
 		missing_zome_version ( dna ) {
 		    for ( let zome_sources of Object.values( dna.zomes ) ) {
 			if ( !zome_sources.upload.zome_version_id )
@@ -872,7 +875,8 @@ module.exports = async function ( client ) {
 				// Auto-select the previous role DNA Version
 				this.$store.dispatch("getDnaVersion", prev_dna_ref.version )
 				    .then( version => {
-					this.select_dna_version( role, version );
+					if ( version.hdk_version === this.input.hdk_version )
+					    this.select_dna_version( role, version );
 				    });
 			    }
 			    else {
@@ -902,7 +906,8 @@ module.exports = async function ( client ) {
 				const prev_zome		= this.previous_dnas[ role.id ].zomes[ zome_ref.name ];
 
 				log.normal("Previous zome match (%s) in role '%s':", zome_ref.name, role.id, prev_zome );
-				if ( prev_zome.mere_memory_hash === zome_ref.hash ) {
+				if ( prev_zome.mere_memory_hash === zome_ref.hash
+				     && prev_zome.hdk_version === this.input.hdk_version) {
 				    // Auto-select the previous role->zome Version
 				    this.select_zome_version( zome_ref, prev_zome );
 				}
@@ -963,7 +968,6 @@ module.exports = async function ( client ) {
 			this.input.hdk_version		= version.hdk_version;
 		    }
 
-		    this.lock_hdk_version_input		= true;
 		    this.select_dna_version_context	= null;
 		    this.select_dna_version_modal.hide();
 		},
@@ -977,8 +981,6 @@ module.exports = async function ( client ) {
 			if ( role.selected_dna_version )
 			    empty			= false;
 		    }
-		    if ( empty )
-			this.lock_hdk_version_input	= false;
 
 		    if ( upload.selected_dna ) {
 			const version		= await this.$store.dispatch("getLatestVersionForDna", [ upload.selected_dna.$id, null ]  );
@@ -1037,7 +1039,6 @@ module.exports = async function ( client ) {
 			this.input.hdk_version		= version.hdk_version;
 		    }
 
-		    this.lock_hdk_version_input		= true;
 		    this.select_zome_version_context	= null;
 		    this.select_zome_version_modal.hide();
 		},
@@ -1051,8 +1052,6 @@ module.exports = async function ( client ) {
 			if ( zome.selected_zome_version )
 			    empty			= false;
 		    }
-		    if ( empty )
-			this.lock_hdk_version_input	= false;
 
 		    if ( upload.selected_zome ) {
 			const version		= await this.$store.dispatch("getLatestVersionForZome", [ upload.selected_zome.$id, null ]  );
@@ -1095,9 +1094,6 @@ module.exports = async function ( client ) {
 		    this.validated		= true;
 		    zome_info.validated		= true;
 
-		    if ( this.$refs.form_extras.checkValidity() === false )
-			return;
-
 		    const form			= this.zome_form( zome_info.name );
 
 		    if ( !form || form.checkValidity() === false )
@@ -1117,7 +1113,6 @@ module.exports = async function ( client ) {
 			    this.$store.dispatch("fetchZomesByName", zome_info.name );
 			}
 
-			this.lock_hdk_version_input	= true;
 			// Create the new version
 			const version			= await this.$client.call(
 			    "dnarepo", "dna_library", "create_zome_version", {
@@ -1135,7 +1130,6 @@ module.exports = async function ( client ) {
 
 			zome_info.selected_zome_version = version;
 		    } catch (err) {
-			this.lock_hdk_version_input	= false;
 			throw err;
 		    } finally {
 			zome_info.saving		= false;
@@ -1145,9 +1139,6 @@ module.exports = async function ( client ) {
 		async create_dna_version ( role ) {
 		    this.validated		= true;
 		    role.validated		= true;
-
-		    if ( this.$refs.form_extras.checkValidity() === false )
-			return;
 
 		    const form			= this.dna_form( role.id );
 
@@ -1171,7 +1162,6 @@ module.exports = async function ( client ) {
 			    this.$store.dispatch("fetchDnasByName", role.id );
 			}
 
-			this.lock_hdk_version_input	= true;
 			// Create the new version
 			const version			= await this.$client.call(
 			    "dnarepo", "dna_library", "create_dna_version", {
