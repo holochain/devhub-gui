@@ -292,7 +292,10 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.$happ_release( this.id );
 		},
 		happ () {
-		    return this.release ? this.release.for_happ : null;
+		    if ( !this.release )
+			return null;
+
+		    return this.$store.getters.happ( this.release.for_happ.$id || this.release.for_happ );
 		},
 		$happ () {
 		    return this.$release;
@@ -403,10 +406,13 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.$happ_release( this.id );
 		},
 		happ () {
-		    return this.release ? this.release.for_happ : null;
+		    if ( !this.release )
+			return null;
+
+		    return this.$store.getters.happ( this.release.for_happ.$id || this.release.for_happ );
 		},
 		$happ () {
-		    return this.$release;
+		    return this.$store.getters.$happ( this.release ? this.release.for_happ.$id || this.release.for_happ : null );
 		},
 		$packageBytes () {
 		    return this.$store.getters.$happ_release_package( this.release ? this.release.$id : null );
@@ -533,10 +539,7 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		form () {
-		    return this.$refs["form"];
-		},
-		form_extras () {
-		    return this.$refs["form_extras"];
+		    return this.$refs.form;
 		},
 		dna_form () {
 		    return ( name ) => {
@@ -952,7 +955,7 @@ module.exports = async function ( client ) {
 		    };
 		},
 		async select_dna_version ( upload, version ) {
-		    log.normal("Select DNA version for '%s':", upload.name, version );
+		    log.normal("Select DNA version for '%s':", upload.id, version );
 
 		    upload.selected_dna_version = version;
 
@@ -965,7 +968,7 @@ module.exports = async function ( client ) {
 		    this.select_dna_version_modal.hide();
 		},
 		async unselect_dna_version ( upload ) {
-		    log.normal("Unselect DNA version for '%s'", upload.name );
+		    log.normal("Unselect DNA version for '%s'", upload.id );
 
 		    delete upload.selected_dna_version;
 
@@ -1092,7 +1095,7 @@ module.exports = async function ( client ) {
 		    this.validated		= true;
 		    zome_info.validated		= true;
 
-		    if ( this.form_extras.checkValidity() === false )
+		    if ( this.$refs.form_extras.checkValidity() === false )
 			return;
 
 		    const form			= this.zome_form( zome_info.name );
@@ -1143,7 +1146,7 @@ module.exports = async function ( client ) {
 		    this.validated		= true;
 		    role.validated		= true;
 
-		    if ( this.form_extras.checkValidity() === false )
+		    if ( this.$refs.form_extras.checkValidity() === false )
 			return;
 
 		    const form			= this.dna_form( role.id );
@@ -1172,10 +1175,11 @@ module.exports = async function ( client ) {
 			// Create the new version
 			const version			= await this.$client.call(
 			    "dnarepo", "dna_library", "create_dna_version", {
-				"for_dna": role.selected_dna.$id,
-				"version": role.version,
-				"hdk_version": this.input.hdk_version,
-				"zomes": role.bundle.zomes.map( zome_info => {
+				"for_dna":	role.selected_dna.$id,
+				"version":	role.version,
+				"hdk_version":	this.input.hdk_version,
+				"properties":	role.bundle.properties,
+				"zomes":	role.bundle.zomes.map( zome_info => {
 				    return {
 					"name":			zome_info.name,
 					"zome":			zome_info.selected_zome_version.for_zome.$id || zome_info.selected_zome_version.for_zome,

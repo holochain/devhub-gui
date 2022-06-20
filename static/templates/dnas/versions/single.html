@@ -71,7 +71,7 @@
 		    </dl>
 
 		    <h4 class="fs-6">Properties</h4>
-		    <dl v-if="version.properties" class="row">
+		    <dl v-if="version && version.properties" class="row">
 			<template v-for="(value, name) in version.properties">
 			    <dt class="col-sm-12">{{ name }}</dt>
 			    <dd class="col-sm-12">

@@ -235,7 +235,7 @@ module.exports = async function ( client ) {
 		},
 
 		dna () {
-		    return this.version ? this.version.for_dna : null;
+		    return this.$store.getters.dna( this.version.for_dna.$id || this.version.for_dna );
 		},
 		$dna () {
 		    return this.$version;
@@ -755,7 +755,6 @@ module.exports = async function ( client ) {
 		    this.validated		= true;
 		    zome_info.validated		= true;
 
-		    console.log( this.form_extras.checkValidity(), this.form );
 		    if ( this.form_extras.checkValidity() === false )
 			return;
 
