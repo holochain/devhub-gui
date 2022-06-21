@@ -1,5 +1,5 @@
 <page-view id="upload-dna-bundle-page">
-    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.name">
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.display_name || dna.name">
 	<a v-if="$dna.loaded" @click="fetchDna()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.loading }"></i>
 	</a>
@@ -10,7 +10,7 @@
     <page-header class="mb-3">
 	<template #default>
 	    <div v-if="dna">
-		<h1 class="fs-2">{{ dna.name }}</h1>
+		<h1 class="fs-2">{{ dna.display_name || dna.name }}</h1>
 	    </div>
 	</template>
     </page-header>
@@ -128,7 +128,7 @@
 			    <dl class="row mb-0">
 				<dt class="col-3">Author ID</dt>
 				<dd class="col-9 mb-1" style="margin-left: -0.5em;">
-				    <holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.developer.pubkey" class="agent-badge"></holo-hash>
+				    <holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.developer" class="agent-badge"></holo-hash>
 				    <input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
 				</dd>
 			    </dl>

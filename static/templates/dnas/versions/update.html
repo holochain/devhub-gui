@@ -1,6 +1,6 @@
 <page-view id="update-dna version-page" class="d-flex flex-column">
     <breadcrumbs v-if="version && dna" :skip-base="true" :path-mapping="breadcrumb_mapping"
-		 :sub-1="dna.name" :sub-3="'v' + version.version"></breadcrumbs>
+		 :sub-1="dna.display_name || dna.name" :sub-3="'v' + version.version"></breadcrumbs>
 
     <hr>
 
@@ -9,7 +9,7 @@
     <form ref="form" :class="{ 'was-validated': validated }"
 	  class="flex-grow-1 d-flex flex-column">
 	<div class="mb-4">
-	    <h1 class="fs-2"><placeholder :when="!$dna.current" size="fill">{{ dna.name }}</placeholder></h1>
+	    <h1 class="fs-2"><placeholder :when="!$dna.current" size="fill">{{ dna.display_name || dna.name }}</placeholder></h1>
 	</div>
 
 	<page-header class="mb-2 py-3">
@@ -17,10 +17,13 @@
 		<h2 class="fs-5 text-nowrap">
 		    <placeholder :when="!$version.current" size="fill">
 			<input-feedback class="w-auto">
-			    <input type="number" v-model.number="version.version"
-				   class="form-control d-inline-block" style="width: 6em;"
-				   @change="copy(version, input, 'version')"
-				   :disabled="$version.updating" required readonly>
+			    <div class="input-group">
+				<span class="input-group-text">v</span>
+				<input type="number" v-model.number="version.version"
+				       class="form-control d-inline-block" style="width: 6em;"
+				       @change="copy(version, input, 'version')"
+				       :disabled="$version.updating" required readonly>
+			    </div>
 			</input-feedback>
 			<span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
 		    </placeholder>
@@ -68,10 +71,18 @@
 		    <div class="card-body">
 			<dl class="row">
 			    <dt class="col-sm-12">Created</dt>
-			    <dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
+			    <dd class="col-sm-12">
+				<placeholder :when="!$version.current">
+				    <datetime :datetime="version.published_at" format="weekday+date+time"></datetime>
+				</placeholder>
+			    </dd>
 
 			    <dt class="col-sm-12">Last Updated</dt>
-			    <dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
+			    <dd class="col-sm-12">
+				<placeholder :when="!$version.current">
+				    <datetime :datetime="version.last_updated" format="weekday+date+time"></datetime>
+				</placeholder>
+			    </dd>
 			</dl>
 		    </div>
 		</div>

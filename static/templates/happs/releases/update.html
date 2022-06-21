@@ -68,10 +68,18 @@
 		    <div class="card-body">
 			<dl class="row">
 			    <dt class="col-sm-12">Created</dt>
-			    <dd class="col-sm-12"><placeholder :when="!$release.current">{{ $filters.time( release.published_at, "weekday+date" ) }}</placeholder></dd>
+			    <dd class="col-sm-12">
+				<placeholder :when="!$release.current">
+				    <datetime :datetime="release.published_at" format="weekday+date+time"></datetime>
+				</placeholder>
+			    </dd>
 
 			    <dt class="col-sm-12">Last Updated</dt>
-			    <dd class="col-sm-12"><placeholder :when="!$release.current">{{ $filters.time( release.last_updated, "weekday+date" ) }}</placeholder></dd>
+			    <dd class="col-sm-12">
+				<placeholder :when="!$release.current">
+				    <datetime :datetime="release.last_updated" format="weekday+date+time"></datetime>
+				</placeholder>
+			    </dd>
 			</dl>
 
 			<label class="form-label fw-6">Drag and drop zipped GUI</label>

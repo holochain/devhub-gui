@@ -1,6 +1,6 @@
 <page-view id="single-dna version-page">
     <breadcrumbs v-if="version && dna" :skip-base="true" :path-mapping="breadcrumb_mapping"
-		 :sub-1="dna.name" :sub-3="'Version #' + version.version">
+		 :sub-1="dna.display_name || dna.name" :sub-3="'v' + version.version">
 	<a v-if="$version.loaded" @click="fetchVersion()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $version.loading }"></i>
 	</a>
@@ -12,13 +12,13 @@
 		       title="The parent DNA has been deprecated"></deprecation-alert>
 
     <div class="mb-4">
-	<h1 class="fs-2"><placeholder :when="!$version.current || !dna" size="25%">{{ dna.name }}</placeholder></h1>
+	<h1 class="fs-2"><placeholder :when="!$dna.current" size="25%">{{ dna.display_name || dna.name }}</placeholder></h1>
     </div>
 
     <page-header class="mb-2 p-3">
 	<template #default>
             <h2 class="fs-5 text-nowrap">
-		<placeholder :when="!$version.current" size="fill">{{ version.version }}
+		<placeholder :when="!$version.current" size="fill">v{{ version.version }}
 		    <span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
 		</placeholder>
 	    </h2>
@@ -58,10 +58,18 @@
 		<div class="card-body">
 		    <dl class="row">
 			<dt class="col-sm-12">Created</dt>
-			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.current">
+				<datetime :datetime="version.published_at" format="weekday+date+time"></datetime>
+			    </placeholder>
+			</dd>
 
 			<dt class="col-sm-12">Last Updated</dt>
-			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.current">
+				<datetime :datetime="version.last_updated" format="weekday+date+time"></datetime>
+			    </placeholder>
+			</dd>
 
 			<dt class="col-sm-12">HDK Version</dt>
 			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ version.hdk_version }}</placeholder></dd>

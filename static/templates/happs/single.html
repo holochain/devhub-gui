@@ -63,10 +63,14 @@
 			</dd>
 
 			<dt class="col-sm-4">Created</dt>
-			<dd class="col-sm-8"><placeholder :when="!$happ.current">{{ $filters.time( happ.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$happ.current"><datetime :datetime="happ.published_at" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 
 			<dt class="col-sm-4">Last Updated</dt>
-			<dd class="col-sm-8"><placeholder :when="!$happ.current">{{ $filters.time( happ.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$happ.current"><datetime :datetime="happ.last_updated" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 		    </dl>
 		</div>
 	    </div>
@@ -87,12 +91,14 @@
 				<holo-hash :hash="happ.designer"></holo-hash>
 			    </placeholder>
 			</dd>
-			<dt class="col-sm-12">
-			    External Links
-			</dt>
-			<dd class="col-sm-12">
-			    None
-			</dd>
+			<!-- <dt class="col-sm-12"> -->
+			<!--     External Links -->
+			<!-- </dt> -->
+			<!-- <dd class="col-sm-12"> -->
+			<!--     <placeholder :when="!$happ.current"> -->
+			<!-- 	None -->
+			<!--     </placeholder> -->
+			<!-- </dd> -->
 		    </dl>
 		</div>
 	    </div>
@@ -128,10 +134,13 @@
 		<div class="col-2 fw-7">
 		    Release #
 		</div>
-		<div class="col-4 fw-7">
+		<div class="col-3 fw-7">
 		    Created
 		</div>
 		<div class="col-2 fw-7">
+		    Last Updated
+		</div>
+		<div class="col-1 fw-7">
 		    HDK Version
 		</div>
 		<div class="col"></div>
@@ -144,10 +153,13 @@
 		    <div class="col-2">
 			<h3 class="fs-6 m-0">{{ release.name }}</h3>
 		    </div>
-		    <div class="col-4">
-			Created on {{ $filters.time( release.published_at, "weekday+date" ) }}
+		    <div class="col-3">
+			<datetime :datetime="release.published_at" format="weekday+date+time"></datetime>
 		    </div>
 		    <div class="col-2">
+			<datetime :datetime="release.last_updated"></datetime>
+		    </div>
+		    <div class="col-1">
 			<div class="badge bg-light text-dark font-monospace">v{{ release.hdk_version }}</div>
 		    </div>
 		    <div class="col text-end text-nowrap">

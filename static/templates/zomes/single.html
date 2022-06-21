@@ -1,5 +1,5 @@
 <page-view id="single-zome-page">
-    <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.name">
+    <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.display_name || zome.name">
 	<a v-if="$zome.loaded" @click="fetchZome()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $zome.loading }"></i>
 	</a>
@@ -13,7 +13,13 @@
 
     <page-header class="mb-3">
 	<template #default>
-	    <h1 class="fs-2"><placeholder :when="!$zome.current" size="fill">{{ zome.name }}</placeholder></h1>
+	    <h1 class="fs-2">
+		<placeholder :when="!$zome.current" size="fill">
+		    {{ zome.display_name || zome.name }}
+		    <small v-if="zome.display_name"
+			   class="fw-2 text-monospace">"{{ zome.name }}"</small>
+		</placeholder>
+	    </h1>
 	</template>
 
 	<template #title-extras v-if="!deprecated && $zome.writable">
@@ -52,13 +58,14 @@
 			</dd>
 
 			<dt class="col-sm-4">Created</dt>
-			<dd class="col-sm-8"><placeholder :when="!$zome.current">{{ $filters.time( zome.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$zome.current"><datetime :datetime="zome.published_at" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 
 			<dt class="col-sm-4">Last Updated</dt>
-			<dd class="col-sm-8"><placeholder :when="!$zome.current">{{ $filters.time( zome.last_updated, "weekday+date" ) }}</placeholder></dd>
-
-			<dt class="col-sm-4">Authors</dt>
-			<dd class="col-sm-8"><placeholder :when="!$zome.current">N/A</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$zome.current"><datetime :datetime="zome.last_updated" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 		    </dl>
 		</div>
 	    </div>
@@ -76,20 +83,17 @@
 			</dt>
 			<dd class="col-sm-12">
 			    <placeholder :when="!$zome.current">
-				<holo-hash :hash="zome.developer.pubkey"></holo-hash>
+				<holo-hash :hash="zome.developer"></holo-hash>
 			    </placeholder>
 			</dd>
-			<dt class="col-sm-12">
-			    External Links
-			</dt>
-			<dd class="col-sm-12">
-			    <placeholder :when="!$zome.current">
-				<span v-if="zome.developer.website">
-				    <a href="#" target="_blank">website</a>
-				</span>
-				<span v-else>None</span>
-			    </placeholder>
-			</dd>
+			<!-- <dt class="col-sm-12"> -->
+			<!--     External Links -->
+			<!-- </dt> -->
+			<!-- <dd class="col-sm-12"> -->
+			<!--     <placeholder :when="!$zome.current"> -->
+			<!-- 	None -->
+			<!--     </placeholder> -->
+			<!-- </dd> -->
 		    </dl>
 		</div>
 	    </div>
@@ -118,10 +122,13 @@
 		<div class="col-2 fw-7">
 		    Version #
 		</div>
-		<div class="col-4 fw-7">
+		<div class="col-3 fw-7">
 		    Created
 		</div>
 		<div class="col-2 fw-7">
+		    Last Updated
+		</div>
+		<div class="col-1 fw-7">
 		    HDK Version
 		</div>
 		<div class="col"></div>
@@ -134,10 +141,13 @@
 		    <div class="col-2">
 			<h3 class="fs-6 m-0">{{ version.version }}</h3>
 		    </div>
-		    <div class="col-4">
-			Created on {{ $filters.time( version.published_at, "weekday+date" ) }}
+		    <div class="col-3">
+			<datetime :datetime="version.published_at" format="weekday+date+time"></datetime>
 		    </div>
 		    <div class="col-2">
+			<datetime :datetime="version.last_updated"></datetime>
+		    </div>
+		    <div class="col-1">
 			<div class="badge bg-light text-dark font-monospace">v{{ version.hdk_version }}</div>
 		    </div>
 		    <div class="col text-end text-nowrap">

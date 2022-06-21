@@ -1,5 +1,5 @@
 <page-view id="update-zome-page">
-    <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.name"></breadcrumbs>
+    <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.display_name || zome.name"></breadcrumbs>
 
     <hr>
 
@@ -9,6 +9,12 @@
 		<label class="form-label fw-6">Zome Name</label>
 		<input-feedback>
 		    <input type="text" @change="copy(zome, input, 'name')" v-model="zome.name"
+			   class="form-control" :disabled="$zome.updating" required>
+		</input-feedback>
+
+		<label class="form-label fw-6">Display Name</label>
+		<input-feedback>
+		    <input type="text" @change="copy(zome, input, 'display_name')" v-model="zome.display_name"
 			   class="form-control" :disabled="$zome.updating" required>
 		</input-feedback>
 

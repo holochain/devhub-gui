@@ -1,5 +1,6 @@
 <page-view id="create-dna-version-page">
-    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping"
+		 :sub-1="dna.display_name || dna.name"></breadcrumbs>
 
     <hr>
 
@@ -29,7 +30,10 @@
 	    <div class="col-6">
 		<label class="form-label fw-6">Version Number</label>
 		<input-feedback>
-		    <input type="number" v-model.number="input.version" class="form-control" :disabled="saving" required>
+		    <div class="input-group">
+			<span class="input-group-text">v</span>
+			<input type="number" v-model.number="input.version" class="form-control" :disabled="saving" required>
+		    </div>
 		</input-feedback>
 
 		<label class="form-label fw-6">Changelog</label>

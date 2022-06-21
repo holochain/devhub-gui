@@ -44,11 +44,18 @@
 	<list-group-item v-for="zome in zomes">
 	    <div class="row align-items-center">
 		<div class="col pt-3">
-		    <h3 class="fs-6">{{ zome.name }}</h3>
+		    <h3 class="fs-6">{{ zome.display_name || zome.name }}</h3>
 		    <p>{{ zome.description }}</p>
 		</div>
-		<div class="col-4">
-		    <span class="badge badge-md bg-secondary">Created {{ $filters.time( zome.published_at ) }}</span>
+		<div class="col-2 text-center">
+		    <template v-if="zome.tags && zome.tags.length">
+			<span v-for="tag in zome.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
+		    </template>
+		    <span v-else>No tags</span>
+		</div>
+		<div class="col-2 text-center">
+		    <span class="fw-lighter">Last updated</span>
+		    <br><datetime :datetime="zome.last_updated"></datetime>
 		</div>
 		<div class="col-auto">
 		    <router-link :to="'/zomes/' + zome.$id" class="btn btn-light">

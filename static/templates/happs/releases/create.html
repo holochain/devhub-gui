@@ -1,5 +1,6 @@
 <page-view id="create-happ-release-page">
-    <breadcrumbs :skip-base="true" :path-mapping="breadcrumb_mapping"></breadcrumbs>
+    <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping"
+		 :sub-1="happ.title"></breadcrumbs>
 
     <hr>
 

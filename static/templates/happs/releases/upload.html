@@ -1,5 +1,5 @@
 <page-view id="upload-happ-bundle-page">
-    <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="happ.name">
+    <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="happ.title">
 	<a v-if="$happ.loaded" @click="fetchHapp()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $happ.loading }"></i>
 	</a>
@@ -112,10 +112,22 @@
 				<div class="col-6">
 				    <p v-if="role.selected_dna" class="card-text text-truncate mb-1">{{ role.selected_dna.description || "No description" }}</p>
 				    <template v-else>
-					<label class="form-label fw-6">Description</label>
-					<input-feedback>
-					    <textarea v-model="role.description" class="form-control" rows="4" :disabled="role.saving" required></textarea>
-					</input-feedback>
+					<loading :when="!role.bundle">
+					    <label class="form-label fw-6">Name <small class="text-secondary">(from Manifest)</small></label>
+					    <input-feedback>
+						<input type="text" v-model="role.bundle.name" class="form-control" required readonly>
+					    </input-feedback>
+
+					    <label class="form-label fw-6">Display Name <small class="text-secondary">(optional)</small></label>
+					    <input-feedback>
+						<input type="text" v-model="role.display_name" class="form-control" :disabled="role.saving">
+					    </input-feedback>
+
+					    <label class="form-label fw-6">Description</label>
+					    <input-feedback>
+						<textarea v-model="role.description" class="form-control" rows="4" :disabled="role.saving" required></textarea>
+					    </input-feedback>
+					</loading>
 				    </template>
 				</div>
 				<div class="col text-end">
@@ -141,7 +153,7 @@
 			    <dl class="row mb-0">
 				<dt class="col-3">Author ID</dt>
 				<dd class="col-9 mb-1" style="margin-left: -0.5em;">
-				    <holo-hash v-if="role.selected_dna" :hash="role.selected_dna.developer.pubkey" class="agent-badge"></holo-hash>
+				    <holo-hash v-if="role.selected_dna" :hash="role.selected_dna.developer" class="agent-badge"></holo-hash>
 				    <input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
 				</dd>
 			    </dl>
@@ -264,6 +276,16 @@
 								    <div class="col-6">
 									<p v-if="zome.selected_zome" class="card-text text-truncate mb-1">{{ zome.selected_zome.description || "No description" }}</p>
 									<template v-else>
+									    <label class="form-label fw-6">Name <small>(from Manifest)</small></label>
+									    <input-feedback>
+										<input type="text" v-model="zome.name" class="form-control" required readonly>
+									    </input-feedback>
+
+									    <label class="form-label fw-6">Display Name (optional)</label>
+									    <input-feedback>
+										<input type="text" v-model="zome.display_name" class="form-control" :disabled="zome.saving">
+									    </input-feedback>
+
 									    <label class="form-label fw-6">Description</label>
 									    <input-feedback>
 										<textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving" required></textarea>
@@ -293,7 +315,7 @@
 								<dl class="row mb-0">
 								    <dt class="col-3">Author ID</dt>
 								    <dd class="col-9 mb-1" style="margin-left: -0.5em;">
-									<holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.developer.pubkey" class="agent-badge"></holo-hash>
+									<holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.developer" class="agent-badge"></holo-hash>
 									<input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
 								    </dd>
 								</dl>

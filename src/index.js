@@ -301,6 +301,7 @@ window.PersistentStorage		= {
 	"PageView",
 	"Placeholder",
 	"Search",
+	"Datetime",
 
 	"ZomeCard",
 	"ZomeVersionCard",
