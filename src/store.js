@@ -119,7 +119,7 @@ function fmt_client_args ( dna, zome, func, args ) {
 // Perhaps we want to completely ignore summary models and only car about full info models?
 
 
-module.exports = async function ( client ) {
+module.exports = async function ( client, app ) {
     return new Vuex.Store({
 	state () {
 	    return {
@@ -530,6 +530,92 @@ module.exports = async function ( client ) {
 		commit("removeValue", path );
 	    },
 
+	    // Caching entities with special computations
+	    async cacheHapp ({ dispatch, commit }, happ ) {
+		const path		= dataTypePath.happ( happ.$id );
+
+		commit("cacheEntity", [ path, happ ] );
+		commit("recordLoaded", path );
+
+		let agent_info		= await dispatch("getAgent");
+
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
+		}] );
+	    },
+	    async cacheHappRelease ({ dispatch, commit }, happ_release ) {
+		const path		= dataTypePath.happRelease( happ_release.$id );
+
+		commit("cacheEntity", [ path, happ_release ] );
+		commit("recordLoaded", path );
+
+		if ( happ_release.for_happ.$id )
+		    await dispatch("cacheHapp", happ_release.for_happ );
+
+		const agent_info	= await dispatch("getAgent");
+		const happ		= await dispatch("getHapp", happ_release.for_happ.$id || happ_release.for_happ );
+
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
+		}] );
+	    },
+	    async cacheDna ({ dispatch, commit }, dna ) {
+		const path		= dataTypePath.dna( dna.$id );
+
+		commit("cacheEntity", [ path, dna ] );
+		commit("recordLoaded", path );
+
+		let agent_info		= await dispatch("getAgent");
+
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( dna.developer.pubkey, agent_info.pubkey.initial ),
+		}] );
+	    },
+	    async cacheDnaVersion ({ dispatch, commit }, dna_version ) {
+		const path		= dataTypePath.dnaVersion( dna_version.$id );
+
+		commit("cacheEntity", [ path, dna_version ] );
+		commit("recordLoaded", path );
+
+		if ( dna_version.for_dna.$id )
+		    await dispatch("cacheDna", dna_version.for_dna );
+
+		const agent_info	= await dispatch("getAgent");
+		const dna		= await dispatch("getDna", dna_version.for_dna.$id || dna_version.for_dna );
+
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( dna.developer.pubkey, agent_info.pubkey.initial ),
+		}] );
+	    },
+	    async cacheZome ({ dispatch, commit }, zome ) {
+		const path		= dataTypePath.zome( zome.$id );
+
+		commit("cacheEntity", [ path, zome ] );
+		commit("recordLoaded", path );
+
+		let agent_info		= await dispatch("getAgent");
+
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( zome.developer.pubkey, agent_info.pubkey.initial ),
+		}] );
+	    },
+	    async cacheZomeVersion ({ dispatch, commit }, zome_version ) {
+		const path		= dataTypePath.zomeVersion( zome_version.$id );
+
+		commit("cacheEntity", [ path, zome_version ] );
+		commit("recordLoaded", path );
+
+		if ( zome_version.for_zome.$id )
+		    await dispatch("cacheZome", zome_version.for_zome );
+
+		const agent_info	= await dispatch("getAgent");
+		const zome		= await dispatch("getZome", zome_version.for_zome.$id || zome_version.for_zome );
+
+		commit("metadata", [ path, {
+		    "writable": hashesAreEqual( zome.developer.pubkey, agent_info.pubkey.initial ),
+		}] );
+	    },
+
 	    // Create
 	    async createEntity ({ dispatch, commit }, [ path_fn, dna, zome, func, args, timeout ]) {
 		const entity		= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
@@ -643,11 +729,8 @@ module.exports = async function ( client ) {
 		    },
 		]);
 
-		for ( let zome of zomes ) {
-		    commit("cacheEntity", [
-			dataTypePath.zome( zome.$id ), zome
-		    ] );
-		}
+		for ( let zome of zomes )
+		    await dispatch("cacheZome", zome );
 
 		return zomes;
 	    },
@@ -677,11 +760,8 @@ module.exports = async function ( client ) {
 		    },
 		]);
 
-		for ( let dna of dnas ) {
-		    commit("cacheEntity", [
-			dataTypePath.dna( dna.$id ), dna
-		    ] );
-		}
+		for ( let dna of dnas )
+		    await dispatch("cacheDna", dna );
 
 		return dnas;
 	    },
@@ -699,6 +779,9 @@ module.exports = async function ( client ) {
 		    path, ...args
 		]);
 
+		for ( let happ of happs )
+		    await dispatch("cacheHapp", happ );
+
 		return happs;
 	    },
 
@@ -706,17 +789,20 @@ module.exports = async function ( client ) {
 	    //
 	    // Zome
 	    //
+	    async getZome ({ dispatch, getters }, id ) {
+		if ( getters.zome( id ) )
+		    return getters.zome( id );
+		else
+		    return await dispatch("fetchZome", id );
+	    },
+
 	    async fetchZome ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.zome( id );
 		const zome		= await dispatch("fetchEntity", [
 		    path, "dnarepo", "dna_library", "get_zome", { id }
 		]);
 
-		let agent_info		= await dispatch("getAgent");
-
-		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( zome.developer.pubkey, agent_info.pubkey.initial ),
-		}] );
+		await dispatch("cacheZome", zome );
 
 		return zome;
 	    },
@@ -727,11 +813,8 @@ module.exports = async function ( client ) {
 		    path, "dnarepo", "dna_library", "get_zome_versions", { "for_zome": zome_id }
 		]);
 
-		for ( let version of versions ) {
-		    commit("cacheEntity", [
-			dataTypePath.zomeVersion( version.$id ), version
-		    ] );
-		}
+		for ( let version of versions )
+		    await dispatch("cacheZomeVersion", version );
 
 		return versions;
 	    },
@@ -793,10 +876,14 @@ module.exports = async function ( client ) {
 
 	    async fetchAllZomes ({ dispatch }) {
 		const path		= dataTypePath.zomes( "all" );
-
-		return await dispatch("fetchCollection", [
+		const zomes		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_all_zomes"
 		]);
+
+		for ( let zome of zomes )
+		    await dispatch("cacheZome", zome );
+
+		return zomes;
 	    },
 
 	    async fetchZomesWithHDKVersion ({ dispatch, commit }, hdk_version ) {
@@ -805,11 +892,8 @@ module.exports = async function ( client ) {
 		    path, "dnarepo", "dna_library", "get_zomes_with_an_hdk_version", hdk_version
 		]);
 
-		for ( let zome of zomes ) {
-		    commit("cacheEntity", [
-			dataTypePath.zome( zome.$id ), zome
-		    ] );
-		}
+		for ( let zome of zomes )
+		    await dispatch("cacheZome", zome );
 
 		return zomes;
 	    },
@@ -818,21 +902,20 @@ module.exports = async function ( client ) {
 	    //
 	    // Zome Version
 	    //
+	    async getZomeVersion ({ dispatch, getters }, id ) {
+		if ( getters.zome_version( id ) )
+		    return getters.zome_version( id );
+		else
+		    return await dispatch("fetchZomeVersion", id );
+	    },
+
 	    async fetchZomeVersion ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.zomeVersion( id );
 		const version		= await dispatch("fetchEntity", [
 		    path, "dnarepo", "dna_library", "get_zome_version", { id }
 		]);
 
-		commit("cacheEntity", [
-		    dataTypePath.zome( version.for_zome.$id ), version.for_zome
-		] );
-
-		let agent_info		= await dispatch("getAgent");
-
-		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( version.for_zome.developer.pubkey, agent_info.pubkey.initial ),
-		}] );
+		await dispatch("cacheZomeVersion", version );
 
 		return version;
 	    },
@@ -846,11 +929,8 @@ module.exports = async function ( client ) {
 		    },
 		]);
 
-		for ( let version of versions ) {
-		    commit("cacheEntity", [
-			dataTypePath.zomeVersion( version.$id ), version
-		    ] );
-		}
+		for ( let version of versions )
+		    await dispatch("cacheZomeVersion", version );
 
 		return versions;
 	    },
@@ -907,17 +987,20 @@ module.exports = async function ( client ) {
 	    //
 	    // DNA
 	    //
+	    async getDna ({ dispatch, getters }, id ) {
+		if ( getters.dna( id ) )
+		    return getters.dna( id );
+		else
+		    return await dispatch("fetchDna", id );
+	    },
+
 	    async fetchDna ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.dna( id );
 		const dna		= await dispatch("fetchEntity", [
 		    path, "dnarepo", "dna_library", "get_dna", { id }
 		]);
 
-		let agent_info		= await dispatch("getAgent");
-
-		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( dna.developer.pubkey, agent_info.pubkey.initial ),
-		}] );
+		await dispatch("cacheDna", dna );
 
 		return dna;
 	    },
@@ -928,11 +1011,8 @@ module.exports = async function ( client ) {
 		    path, "dnarepo", "dna_library", "get_dna_versions", { "for_dna": dna_id }
 		]);
 
-		for ( let version of versions ) {
-		    commit("cacheEntity", [
-			dataTypePath.dnaVersion( version.$id ), version
-		    ] );
-		}
+		for ( let version of versions )
+		    await dispatch("cacheDnaVersion", version );
 
 		return versions;
 	    },
@@ -994,10 +1074,14 @@ module.exports = async function ( client ) {
 
 	    async fetchAllDnas ({ dispatch }) {
 		const path		= dataTypePath.dnas( "all" );
-
-		return await dispatch("fetchCollection", [
+		const dnas		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_all_dnas"
 		]);
+
+		for ( let dna of dnas )
+		    await dispatch("cacheDna", dna );
+
+		return dnas;
 	    },
 
 	    async fetchDnasWithHDKVersion ({ dispatch, commit }, hdk_version ) {
@@ -1006,11 +1090,8 @@ module.exports = async function ( client ) {
 		    path, "dnarepo", "dna_library", "get_dnas_with_an_hdk_version", hdk_version
 		]);
 
-		for ( let dna of dnas ) {
-		    commit("cacheEntity", [
-			dataTypePath.dna( dna.$id ), dna
-		    ] );
-		}
+		for ( let dna of dnas )
+		    await dispatch("cacheDna", dna );
 
 		return dnas;
 	    },
@@ -1019,6 +1100,13 @@ module.exports = async function ( client ) {
 	    //
 	    // DNA Version
 	    //
+	    async getDnaVersion ({ dispatch, getters }, id ) {
+		if ( getters.dna_version( id ) )
+		    return getters.dna_version( id );
+		else
+		    return await dispatch("fetchDnaVersion", id );
+	    },
+
 	    async fetchDnaVersion ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.dnaVersion( id );
 
@@ -1026,15 +1114,7 @@ module.exports = async function ( client ) {
 		    path, "dnarepo", "dna_library", "get_dna_version", { id }
 		]);
 
-		commit("cacheEntity", [
-		    dataTypePath.dna( version.for_dna.$id ), version.for_dna
-		] );
-
-		let agent_info		= await dispatch("getAgent");
-
-		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( version.for_dna.developer.pubkey, agent_info.pubkey.initial ),
-		}] );
+		await dispatch("cacheDnaVersion", version );
 
 		return version;
 	    },
@@ -1048,11 +1128,8 @@ module.exports = async function ( client ) {
 		    },
 		]);
 
-		for ( let version of versions ) {
-		    commit("cacheEntity", [
-			dataTypePath.dnaVersion( version.$id ), version
-		    ] );
-		}
+		for ( let version of versions )
+		    await dispatch("cacheDnaVersion", version );
 
 		return versions;
 	    },
@@ -1110,6 +1187,13 @@ module.exports = async function ( client ) {
 	    //
 	    // Happ
 	    //
+	    async getHapp ({ dispatch, getters }, id ) {
+		if ( getters.happ( id ) )
+		    return getters.happ( id );
+		else
+		    return await dispatch("fetchHapp", id );
+	    },
+
 	    async fetchHapp ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.happ( id );
 
@@ -1118,21 +1202,21 @@ module.exports = async function ( client ) {
 		    path, "happs", "happ_library", "get_happ", { id }
 		]);
 
-		let agent_info		= await dispatch("getAgent");
-
-		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
-		}] );
+		await dispatch("cacheHapp", happ );
 
 		return happ;
 	    },
 
 	    async fetchReleasesForHapp ({ dispatch }, happ_id ) {
 		const path		= dataTypePath.happReleases( happ_id );
-
-		return await dispatch("fetchCollection", [
+		const releases		= await dispatch("fetchCollection", [
 		    path, "happs", "happ_library", "get_happ_releases", { "for_happ": happ_id }
 		]);
+
+		for ( let release of releases )
+		    await dispatch("cacheHappRelease", release );
+
+		return releases;
 	    },
 
 	    async getLatestReleaseForHapp ({ dispatch, getters }, [ happ_id, hdk_version ] ) {
@@ -1194,16 +1278,27 @@ module.exports = async function ( client ) {
 
 	    async fetchAllHapps ({ dispatch }) {
 		const path		= dataTypePath.happs( "all" );
-
-		return await dispatch("fetchCollection", [
+		const happs		= await dispatch("fetchCollection", [
 		    path, "happs", "happ_library", "get_all_happs"
 		]);
+
+		for ( let happ of happs )
+		    await dispatch("cacheHapp", happ );
+
+		return happs;
 	    },
 
 
 	    //
 	    // Happ Release
 	    //
+	    async getHappRelease ({ dispatch, getters }, id ) {
+		if ( getters.happRelease( id ) )
+		    return getters.happRelease( id );
+		else
+		    return await dispatch("fetchHappRelease", id );
+	    },
+
 	    async fetchHappRelease ({ dispatch, commit }, id ) {
 		const path		= dataTypePath.happRelease( id );
 
@@ -1212,11 +1307,7 @@ module.exports = async function ( client ) {
 		    path, "happs", "happ_library", "get_happ_release", { id }
 		]);
 
-		let agent_info		= await dispatch("getAgent");
-
-		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( release.for_happ.designer, agent_info.pubkey.initial ),
-		}] );
+		await dispatch("cacheHappRelease", release );
 
 		return release;
 	    },
@@ -1391,6 +1482,9 @@ module.exports = async function ( client ) {
 		const manifest		= bundle.manifest;
 		const resources		= bundle.resources;
 
+		// Copy the original manifest values
+		manifest.manifest	= JSON.parse( JSON.stringify( bundle.manifest ) );
+
 		log.debug("Decoded manifest has keys: %s", () => [ Object.keys(manifest).join(", ") ]);
 		const resource_keys	= Object.keys( resources );
 
@@ -1459,11 +1553,15 @@ module.exports = async function ( client ) {
 		    const ui			= resources[ manifest.ui.bundled ];
 		    const bytes			= resources[ manifest.happ_manifest.bundled ];
 
-		    manifest.ui			= common.once( () => dispatch("saveFile", ui ) );
+		    manifest.ui			= {
+			"name":		manifest.ui.bundled,
+			"source":	common.once( () => dispatch("saveFile", ui ) ),
+		    };
 		    manifest.happ		= {
 			"source":	common.once( () => dispatch("saveFile", bytes ) ),
 			"bundle":	common.once( async () => dispatch("unpackBundle", (await manifest.happ.source()).hash ) ),
 		    };
+		    delete manifest.happ_manifest;
 		}
 
 		commit("cacheValue", [ path, manifest ] );

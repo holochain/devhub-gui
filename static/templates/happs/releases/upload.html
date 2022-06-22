@@ -1,0 +1,601 @@
+<page-view id="upload-happ-bundle-page">
+    <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="happ.name">
+	<a v-if="$happ.loaded" @click="fetchHapp()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $happ.loading }"></i>
+	</a>
+    </breadcrumbs>
+
+    <hr>
+
+    <page-header class="mb-3">
+	<template #default>
+	    <div v-if="happ">
+		<h1 class="fs-2">{{ happ.name }}</h1>
+	    </div>
+	</template>
+    </page-header>
+
+    <div class="row mb-4">
+	<div class="col-6">
+	    <ul class="step-progress-bar my-5">
+		<li v-for="(title, i) in steps" :class="{ 'spb-step-active': step >= i }">
+		    <div style="width: 1em; height: 1em;"></div>
+		    <label v-if="step === i">{{ title }}</label>
+		</li>
+	    </ul>
+	</div>
+    </div>
+
+    <div v-if="input.hdk_version" class="row mb-4">
+	<div class="col-6">
+	    <div class="input-group mb-3">
+		<input v-model="input.hdk_version" class="form-control" disabled required>
+		<a class="btn btn-outline-secondary"
+		   @click="reset_hdk_version()">
+		    Change HDK Version
+		</a>
+	    </div>
+	</div>
+    </div>
+
+    <div v-if="step === 0">
+	<form v-if="!input.hdk_version"
+	      class="row mb-5"
+	      :class="{ 'was-validated': validated }">
+	    <div class="col-6">
+		<div class="row">
+		    <div class="col-6">
+			<label class="form-label fw-6">HDK Version</label>
+			<input-feedback>
+			    <div class="input-group mb-3">
+				<span class="input-group-text" id="basic-addon1">v</span>
+				<input class="form-control" required
+				       @change="input.hdk_version = $event.target.value">
+			    </div>
+			</input-feedback>
+		    </div>
+		    <div class="col-6">
+			<loading :when="!$previous_hdk_versions.current">
+			    <label class="form-label">Versions on DevHub</label>
+			    <select class="form-select"
+				    :disabled="previous_hdk_versions.length === 0"
+				    @change="selectHDKVersion( $event.target.value )">
+				<option selected value="">Choose an HDK version</option>
+				<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
+			    </select>
+			</loading>
+		    </div>
+		</div>
+	    </div>
+	</form>
+	<template v-else>
+	    <h3>Upload</h3>
+	    <div class="row">
+		<div class="col-6">
+		    <loading :when="$uploaded_file.loading">
+			<label class="form-label fw-6">Drag and drop hApp bundle here</label>
+			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
+			    <input type="file" @change="file_selected" class="form-control form-input-file" required>
+			</input-feedback>
+		    </loading>
+		</div>
+	    </div>
+	</template>
+    </div>
+
+    <div v-if="step === 1">
+	<h3>DNAs
+	    <a class="btn btn-outline-warning btn-sm" @click="reset_file()">Reset</a>
+	</h3>
+
+	<div v-for="role in bundle.roles" class="row mt-4 mb-4">
+	    <div class="col-6">
+		<dna-version-card v-if="role.selected_dna_version"
+				  class="mb-3"
+				  :id="role.selected_dna_version.$id"
+				  :link="false"
+				  :actions="[ unselectAction( role ) ]"></dna-version-card>
+		<form v-else
+		      :ref="'form_' + role.id"
+		      :class="{ 'was-validated': role.validated }">
+		    <div class="card entity-card dna-card">
+			<div class="entity-card-header"><strong>{{ role.id }}</strong></div>
+			<div v-if="role.selected_dna" class="entity-card-actions">
+			    <a class="float-start"
+			       title="Change parent DNA"
+			       @click="unassign_parent_dna_for( role )">
+				<i class="bi-x-lg"></i>
+			    </a>
+			</div>
+			<div class="card-body">
+			    <div class="row mb-2">
+				<div class="col-6">
+				    <p v-if="role.selected_dna" class="card-text text-truncate mb-1">{{ role.selected_dna.description || "No description" }}</p>
+				    <template v-else>
+					<label class="form-label fw-6">Description</label>
+					<input-feedback>
+					    <textarea v-model="role.description" class="form-control" rows="4" :disabled="role.saving" required></textarea>
+					</input-feedback>
+				    </template>
+				</div>
+				<div class="col text-end">
+				    <holo-hash v-if="role.selected_dna" :hash="role.selected_dna.$id" class="float-end ms-3"></holo-hash>
+				    <template v-else-if="role.file">
+					<div v-if="!$dnas(role.bundle.name).current || dnas(role.bundle.name).length > 0">
+					    <a class="btn btn-outline-secondary btn-sm position-relative"
+					       @click="prompt_select_dna( role )">
+						<span v-if="$dna_versions(role.hash).loading"
+						      class="spinner-border spinner-border-sm"></span>
+						<template v-else>
+						    Existing parent DNA?
+						    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
+							{{ dnas(role.bundle.name).length }}
+						    </span>
+						</template>
+					    </a>
+					</div>
+				    </template>
+				</div>
+			    </div>
+
+			    <dl class="row mb-0">
+				<dt class="col-3">Author ID</dt>
+				<dd class="col-9 mb-1" style="margin-left: -0.5em;">
+				    <holo-hash v-if="role.selected_dna" :hash="role.selected_dna.developer.pubkey" class="agent-badge"></holo-hash>
+				    <input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
+				</dd>
+			    </dl>
+			    <div style="margin: 1rem 0 2.5rem 0;">
+				<template v-if="role.selected_dna && versions_for_dna(role.selected_dna.$id).length">
+				    <div v-if="versions_for_dna(role.selected_dna.$id).length > 4"
+					 class="card entity-card entity-card-layered dna-card">
+					<div class="entity-card-header">... {{ versions_for_dna(role.selected_dna.$id).length - 4 }} more versions</div>
+				    </div>
+				    <div v-for="dna_version in versions_for_dna(role.selected_dna.$id).items(-4)"
+					 class="card entity-card entity-card-layered dna-card">
+					<div class="entity-card-header">Version: <strong>{{ dna_version.version }}</strong></div>
+				    </div>
+				</template>
+
+				<div class="card entity-card dna-version-card">
+				    <div class="entity-card-header">New version</div>
+				    <div class="card-body">
+					<loading :when="!role.file">
+					    <div class="row mb-3">
+						<div class="col-auto">
+						    <div class="row">
+							<div class="col-12">
+							    <label class="form-label fw-6">DNA Version</label>
+							    <input-feedback>
+								<div class="input-group mb-3">
+								    <span class="input-group-text">v</span>
+								    <input type="number" v-model.number="role.version" class="form-control"
+									   :disabled="role.saving" required>
+								</div>
+							    </input-feedback>
+							</div>
+						    </div>
+						</div>
+						<div class="col text-end">
+						    <div class="row g-2">
+							<div class="col-12">
+							    <span v-if="role.saving"
+								  class="spinner-border spinner-border-sm me-3"></span>
+							    <a @click="create_dna_version( role )"
+							       title="Create new DNA Version">
+								<i class="bi-plus-lg"></i>
+							    </a>
+							</div>
+							<template v-if="!role.selected_dna">
+							    <div v-if="!$dna_versions(role.hash).current || dna_versions(role.hash).length > 0" class="col-12">
+								<a class="btn btn-outline-secondary btn-sm position-relative"
+								   @click="prompt_select_dna_version( role )">
+								    <span v-if="$dna_versions(role.hash).loading"
+									  class="spinner-border spinner-border-sm"></span>
+								    <template v-else>
+									Use existing version
+									<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
+									    {{ dna_versions(role.hash).length }}
+									</span>
+								    </template>
+								</a>
+							    </div>
+							</template>
+						    </div>
+						</div>
+					    </div>
+
+					    <div v-if="role.bundle.properties">
+						<h4 class="fs-6">Properties</h4>
+						<dl class="row mb-3">
+						    <template v-for="(value, key) in role.bundle.properties">
+							<dt class="col-3 text-end text-monospace">{{ key }}</dt>
+							<dd class="col-9 mb-1">
+							    <pre class="mb-0">{{ $debug( value ) }}</pre>
+							</dd>
+						    </template>
+						</dl>
+					    </div>
+
+					    <div v-if="role.file" style="margin: 1rem 0 2.5rem 0;">
+						<div v-for="zome in role.bundle.zomes" class="mb-3">
+						    <zome-version-card v-if="zome.selected_zome_version"
+								       :title="zome.name"
+								       :id="zome.selected_zome_version.$id"
+								       :link="false"
+								       :actions="[ unselectZomeAction( role, zome ) ]"></zome-version-card>
+						    <div v-else-if="!zome.create_zome" class="card entity-card"
+							 :class="{ 'border-danger': role.validated && missingZomes( role ) }">
+							<div class="entity-card-header"><strong>{{ zome.name }}</strong></div>
+							<div class="card-body text-center p-4">
+							    <a class="btn btn-outline-secondary"
+							       @click="zome.create_zome = true">
+								Create new
+							    </a>
+							    <a v-if="!$zome_versions(zome.hash).current || zome_versions(zome.hash).length > 0"
+							       class="btn btn-outline-secondary position-relative ms-3"
+							       @click="prompt_select_zome_version( zome )">
+								<span v-if="$zome_versions(zome.hash).loading"
+								      class="spinner-border spinner-border-sm"></span>
+								<template v-else>
+								    Use existing version
+								    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
+									{{ zome_versions(zome.hash).length }}
+								    </span>
+								</template>
+							    </a>
+							</div>
+						    </div>
+						    <form v-else
+							  :ref="'form_zome_' + zome.name"
+							  :class="{ 'was-validated': zome.validated }">
+							<div class="card entity-card zome-card"
+							     :class="{ 'border-danger': role.validated && missingZomes( role ) && !zome.selected_zome }">
+							    <div class="entity-card-header"><strong>{{ zome.name }}</strong></div>
+							    <div v-if="zome.selected_zome" class="entity-card-actions">
+								<a class="float-start"
+								   title="Change parent Zome"
+								   @click="unassign_parent_zome_for( zome )">
+								    <i class="bi-x-lg"></i>
+								</a>
+							    </div>
+							    <div class="card-body">
+								<div class="row mb-2">
+								    <div class="col-6">
+									<p v-if="zome.selected_zome" class="card-text text-truncate mb-1">{{ zome.selected_zome.description || "No description" }}</p>
+									<template v-else>
+									    <label class="form-label fw-6">Description</label>
+									    <input-feedback>
+										<textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving" required></textarea>
+									    </input-feedback>
+									</template>
+								    </div>
+								    <div class="col text-end">
+									<holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.$id" class="float-end ms-3"></holo-hash>
+									<template v-else>
+									    <div v-if="!$zomes(zome.name).current || zomes(zome.name).length > 0">
+										<a class="btn btn-outline-secondary btn-sm position-relative"
+										   @click="prompt_select_zome( zome )">
+										    <span v-if="$zome_versions(zome.hash).loading"
+											  class="spinner-border spinner-border-sm"></span>
+										    <template v-else>
+											Existing parent Zome?
+											<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
+											    {{ zomes(zome.name).length }}
+											</span>
+										    </template>
+										</a>
+									    </div>
+									</template>
+								    </div>
+								</div>
+
+								<dl class="row mb-0">
+								    <dt class="col-3">Author ID</dt>
+								    <dd class="col-9 mb-1" style="margin-left: -0.5em;">
+									<holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.developer.pubkey" class="agent-badge"></holo-hash>
+									<input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
+								    </dd>
+								</dl>
+								<div style="margin: 1rem 0 1.5rem 0;">
+								    <template v-if="zome.selected_zome && versions_for_zome(zome.selected_zome.$id).length">
+									<div v-if="versions_for_zome(zome.selected_zome.$id).length > 4"
+									     class="card entity-card entity-card-layered zome-card">
+									    <div class="entity-card-header">... {{ versions_for_zome(zome.selected_zome.$id).length - 4 }} more versions</div>
+									</div>
+									<div v-for="zome_version in versions_for_zome(zome.selected_zome.$id).items(-4)"
+									     class="card entity-card entity-card-layered zome-card">
+									    <div class="entity-card-header">Version: <strong>{{ zome_version.version }}</strong></div>
+									</div>
+								    </template>
+
+								    <div class="card entity-card zome-version-card"
+									 :class="{ 'border-danger': role.validated && missingZomes( role ) }">
+									<div class="entity-card-header">New version</div>
+									<div class="card-body">
+									    <div class="row mb-2">
+										<div class="col-auto">
+										    <div class="row">
+											<div class="col-12">
+											    <label class="form-label fw-6">Zome Version</label>
+											    <input-feedback>
+												<div class="input-group mb-3">
+												    <span class="input-group-text">v</span>
+												    <input type="number" v-model.number="zome.version" class="form-control"
+													   :disabled="zome.saving" required>
+												</div>
+											    </input-feedback>
+											</div>
+										    </div>
+										</div>
+										<div class="col text-end">
+										    <div class="row g-2">
+											<div class="col-12">
+											    <span v-if="zome.saving"
+												  class="spinner-border spinner-border-sm me-3"></span>
+											    <a @click="create_zome_version( zome )"
+											       title="Upload new Zome Version">
+												<i class="bi-upload"></i>
+											    </a>
+											</div>
+										    </div>
+										</div>
+									    </div>
+
+									    <dl class="row mb-0">
+										<dt class="col-3">Resource Size</dt>
+										<dd class="col-9 mb-1 text-truncate">
+										    {{ $filters.number( zome.bytes.length ) }} bytes
+										</dd>
+
+										<dt class="col-3">Resource Hash</dt>
+										<dd class="col-9 mb-1 text-truncate">
+										    <code>{{ zome.hash }}</code>
+										</dd>
+									    </dl>
+									</div>
+								    </div>
+								</div>
+
+								<div class="text-end mb-3">
+								    <a class="btn btn-outline-secondary" @click="zome.create_zome = null">
+									Cancel
+								    </a>
+								</div>
+							    </div>
+							</div>
+						    </form>
+						</div>
+					    </div>
+
+					    <!-- <pre>{{ $debug( role.bundle ) }}</pre> -->
+
+					    <dl class="row mb-0">
+						<dt class="col-3">Resource Size</dt>
+						<dd class="col-9 mb-1 text-truncate">
+						    {{ $filters.number( role.file.bytes.length ) }} bytes
+						</dd>
+
+						<dt class="col-3">Resource Hash</dt>
+						<dd class="col-9 mb-1 text-truncate">
+						    <code>{{ role.hash }}</code>
+						</dd>
+					    </dl>
+					</loading>
+				    </div>
+				</div>
+			    </div>
+			</div>
+		    </div>
+		</form>
+	    </div>
+	    <div class="col-6">
+	    </div>
+	</div>
+
+	<div class="row mb-5">
+	    <div class="col-6">
+		<label class="form-label fw-6">Drag and drop zipped GUI</label>
+		<input-feedback ref="gui_input" style="height: 10rem;" :valid-message="gui_valid_feedback">
+		    <input type="file" @change="gui_selected" class="form-control form-input-file">
+		</input-feedback>
+	    </div>
+	</div>
+
+	<div class="row">
+	    <div class="col-6">
+		<div class="row">
+		    <div class="col-6">
+		    </div>
+		    <div class="col-6 text-end">
+			<a @click="zome_selection_confirmed = true"
+			   class="btn btn-outline-primary" :class="{ 'disabled': missingDnas() }">
+			    Continue
+			    <i class="bi-chevron-right"></i>
+			</a>
+		    </div>
+		</div>
+	    </div>
+	</div>
+
+	<!-- <pre>{{ $debug( bundle ) }}</pre> -->
+	<!-- <pre>{{ $debug( input ) }}</pre> -->
+    </div>
+
+    <form ref="form" :class="{ 'was-validated': validated }">
+	<div v-if="step === 2">
+	    <div class="row">
+		<div class="col-6">
+		    <h2 class="mt-4">hApp Version Details</h2>
+
+		    <label class="form-label fw-6">Name</label>
+		    <input-feedback>
+			<input type="text" v-model="input.name" class="form-control" required>
+		    </input-feedback>
+
+		    <label class="form-label fw-6">HDK Version</label>
+		    <input-feedback>
+			<input v-model="input.hdk_version" class="form-control" readonly required>
+		    </input-feedback>
+		</div>
+	    </div>
+	    <div class="row mb-5">
+		<div class="col-6">
+		    <label class="form-label fw-6">Description</label>
+		    <input-feedback>
+			<textarea v-model="input.description" class="form-control" rows="10" required></textarea>
+		    </input-feedback>
+		</div>
+		<div class="col-6">
+		    <label class="form-label fw-6">Preview</label>
+		    <div v-html="mdHTML( input.description )"></div>
+		</div>
+	    </div>
+
+	    <div class="row mt-3">
+		<div class="col-6">
+		    <div class="row">
+			<div class="col-6">
+			    <a @click="zome_selection_confirmed = false" class="btn btn-outline-secondary">
+				<i class="bi-chevron-left"></i>
+				Back
+			    </a>
+			</div>
+			<div class="col-6 text-end">
+			    <a @click="readyForReview()" class="btn btn-outline-primary" :class="{ 'disabled': !(input.name && input.description) }">
+				Review
+				<i class="bi-chevron-right"></i>
+			    </a>
+			</div>
+		    </div>
+		</div>
+	    </div>
+	</div>
+
+	<div v-if="step === 3">
+	    <div class="row mb-5">
+		<div class="col-6">
+		    <h2 class="mb-4">Final Review</h2>
+
+		    <div class="card entity-card happ-release-card">
+			<div class="entity-card-header">{{ happ.title }}: <strong>{{ input.name }}</strong></div>
+			<div class="card-body">
+			    <div class="row mb-2">
+				<div class="col-auto">
+				    <p class="card-text text-truncate mb-1">HDK {{ input.hdk_version }}</p>
+				</div>
+			    </div>
+
+			    <h4 class="fs-6 mt-2">Description</h4>
+			    <div class="bg-light rounded-3 p-4 pb-3 mb-3" v-html="mdHTML( input.description )"></div>
+
+			    <dl class="row mb-0">
+				<dt class="col-3">Resource Hash</dt>
+				<dd class="col-9 mb-1">
+				    <code>{{ bundle.hash }}</code>
+				</dd>
+
+				<dt class="col-3">Created</dt>
+				<dd class="col-9 mb-1">TBD</dd>
+
+				<dt class="col-3">Last Updated</dt>
+				<dd class="col-9 mb-1">TBD</dd>
+			    </dl>
+
+			    <div class="row gy-3" style="margin: 1rem 0 1.5rem 0;">
+				<div v-for="role in bundle.roles"
+				     class="col-12 px-0">
+				    <dna-version-card :id="role.selected_dna_version.$id"
+						      :title="role.id"
+						      :link="false"></dna-version-card>
+				</div>
+			    </div>
+
+			    <div v-if="gui_file" class="row mb-4">
+				<div class="col-12">
+				    <div class="card">
+					<div class="card-body text-center p-4">
+					    Zipped GUI <strong>{{ gui_file.name }}</strong> <i>({{ $filters.number( gui_file.size ) }} bytes)</i>
+					</div>
+				    </div>
+				</div>
+			    </div>
+			</div>
+		    </div>
+		</div>
+	    </div>
+
+	    <div class="row">
+		<div class="col-6">
+		    <display-error class="mb-5" :error="error"></display-error>
+
+		    <div class="row">
+			<div class="col-6">
+			    <a @click="ready_for_review = false" class="btn btn-outline-secondary" :class="{ 'disabled': saving }">
+				<i class="bi-chevron-left"></i>
+				Back
+			    </a>
+			</div>
+			<div class="col-6 text-end">
+			    <a @click="create()" class="btn btn-primary" :class="{ 'disabled': saving }">
+				<span v-if="saving"
+				      class="spinner-border spinner-border-sm me-3"></span>
+				Save
+			    </a>
+			</div>
+		    </div>
+		</div>
+	    </div>
+	</div>
+    </form>
+
+    <modal ref="selectDnaVersion"
+	   title="Select Existing DNA Version">
+	<loading v-if="select_dna_version_context"
+		 :when="!$dna_versions(select_dna_version_context.hash).current">
+	    <template v-for="entity in dna_versions(select_dna_version_context.hash)">
+		<dna-version-card v-if="hdkVersionMatches( entity )"
+				   class="mb-3" style="cursor: pointer;"
+				   @click="select_dna_version( select_dna_version_context, entity )"
+				   :id="entity.$id" :link="false"></dna-version-card>
+	    </template>
+	</loading>
+    </modal>
+
+    <modal ref="selectDna"
+	   title="Select Existing DNA">
+	<loading v-if="select_dna_context"
+		 :when="!$dnas(select_dna_context.bundle.name).current">
+	    <template v-for="entity in dnas(select_dna_context.bundle.name)">
+		<dna-card class="mb-3" style="cursor: pointer;"
+			   @click="assign_parent_dna_for( select_dna_context, entity )"
+			   :id="entity.$id" :link="false"></dna-card>
+	    </template>
+	</loading>
+    </modal>
+
+    <modal ref="selectZomeVersion"
+	   title="Select Existing Zome Version">
+	<loading v-if="select_zome_version_context"
+		 :when="!$zome_versions(select_zome_version_context.hash).current">
+	    <template v-for="entity in zome_versions(select_zome_version_context.hash)">
+		<zome-version-card v-if="hdkVersionMatches( entity )"
+				   class="mb-3" style="cursor: pointer;"
+				   @click="select_zome_version( select_zome_version_context, entity )"
+				   :id="entity.$id" :link="false"></zome-version-card>
+	    </template>
+	</loading>
+    </modal>
+
+    <modal ref="selectZome"
+	   title="Select Existing Zome">
+	<loading v-if="select_zome_context"
+		 :when="!$zomes(select_zome_context.name).current">
+	    <template v-for="entity in zomes(select_zome_context.name)">
+		<zome-card class="mb-3" style="cursor: pointer;"
+			   @click="assign_parent_zome_for( select_zome_context, entity )"
+			   :id="entity.$id" :link="false"></zome-card>
+	    </template>
+	</loading>
+    </modal>
+</page-view>
