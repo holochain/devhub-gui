@@ -174,7 +174,8 @@ clean-files-all:	clean-remove-chaff
 	git clean -ndx
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
-web_assets.zip:		static/dist/webpacked.app.js Makefile
+web_assets.zip:		Makefile
+	npm run build
 	cp node_modules/@whi/holochain-client/dist/holochain-client.prod.js		static/dependencies/holochain-client.js
 	cp node_modules/@whi/holochain-client/dist/holochain-client.prod.js.map		static/dependencies/holochain-client.js.map
 	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.prod.js	static/dependencies/crux-payload-parser.js

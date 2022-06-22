@@ -11,7 +11,7 @@ const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH",	"utf8").trim()
 const WEBPACK_MODE		= process.env.WEBPACK_MODE || "production";
 
 
-const MAX_SIZE_KB		= 200;
+const MAX_SIZE_KB		= 250;
 const MAX_SIZE			= MAX_SIZE_KB * 1_000;
 
 
