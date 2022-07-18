@@ -17,6 +17,10 @@ module.exports = function ( element_local_name, component_name ) {
 		"type": String,
 		"default": "No Results",
 	    },
+	    "border": {
+		"type": Boolean,
+		"default": false,
+	    },
 	},
     };
 }

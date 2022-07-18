@@ -72,7 +72,7 @@
 	    <h3>Upload</h3>
 	    <div class="row">
 		<div class="col-6">
-		    <loading :when="$uploaded_file.loading">
+		    <loading :when="$uploaded_file.loading || $bundle.loading">
 			<label class="form-label fw-6">Drag and drop hApp bundle here</label>
 			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
 			    <input type="file" @change="file_selected" class="form-control form-input-file" required>
@@ -181,7 +181,7 @@
 							    <input-feedback>
 								<div class="input-group mb-3">
 								    <span class="input-group-text">v</span>
-								    <input type="number" v-model.number="role.version" class="form-control"
+								    <input v-model="role.version" class="form-control"
 									   :disabled="role.saving" required>
 								</div>
 							    </input-feedback>
@@ -343,7 +343,7 @@
 											    <input-feedback>
 												<div class="input-group mb-3">
 												    <span class="input-group-text">v</span>
-												    <input type="number" v-model.number="zome.version" class="form-control"
+												    <input v-model="zome.version" class="form-control"
 													   :disabled="zome.saving" required>
 												</div>
 											    </input-feedback>
@@ -453,6 +453,11 @@
 		    <label class="form-label fw-6">Name</label>
 		    <input-feedback>
 			<input type="text" v-model="input.name" class="form-control" required>
+		    </input-feedback>
+
+		    <label class="form-label fw-6">Ordering</label>
+		    <input-feedback>
+			<input type="number" v-model.number="input.ordering" class="form-control" :disabled="saving" required>
 		    </input-feedback>
 
 		    <label class="form-label fw-6">HDK Version</label>

@@ -20,6 +20,7 @@ module.exports = async function ( client ) {
 		    "error": null,
 		    "input": {
 			"gui": null,
+			"ordering": 1,
 			"manifest": {
 			    "manifest_version": "1",
 			    "roles": [],
@@ -105,7 +106,8 @@ module.exports = async function ( client ) {
 		this.$store.dispatch("fetchHDKVersions");
 		this.$store.dispatch("fetchHapp", this.happ_id );
 
-		const latest_happ_release	= await this.$store.dispatch("getLatestReleaseForHapp", [ this.happ_id, null ] );
+		const release		= await this.$store.dispatch("getLatestReleaseForHapp", [ this.happ_id, null ] );
+		this.input.ordering	= release ? release.ordering + 1 : 1;
 	    },
 	    "methods": {
 		async create () {
@@ -135,9 +137,9 @@ module.exports = async function ( client ) {
 
 			for ( let dna_ref of input.dnas ) {
 			    input.manifest.roles.push({
-				"id":		dna_ref.id,
+				"id":		dna_ref.role_id,
 				"dna": {
-				    "bundled":	`./${dna.role_id}.dna`,
+				    "bundled":	`./${dna_ref.role_id}.dna`,
 				    "clone_limit": 0,
 				},
 				"provisioning": {
@@ -504,6 +506,7 @@ module.exports = async function ( client ) {
 		    "input": {
 			"name": "",
 			"description": "",
+			"ordering": 1,
 			"manifest": null,
 			"hdk_version": null,
 			"dnas": [],
@@ -738,7 +741,8 @@ module.exports = async function ( client ) {
 		    log.info("Latest hApp release:", this.happ_release );
 
 		    // We will use the last release name as the default value for the next release.
-		    this.input.name		= this.happ_release.name;
+		    // this.input.name		= this.happ_release.name;
+		    this.input.ordering		= this.happ_release.ordering + 1;
 
 		    log.info("Make reverse-lookup for previous DNAs:", this.happ_release );
 		    this.happ_release.dnas.forEach( async dna_ref => {
@@ -787,6 +791,7 @@ module.exports = async function ( client ) {
 
 		    this.input.name			= "";
 		    this.input.description		= "";
+		    this.input.ordering			= 1;
 		    this.input.hdk_version		= null;
 
 		    this.validated			= false;
@@ -861,7 +866,8 @@ module.exports = async function ( client ) {
 			await this.delay();
 
 			log.debug("Setup for role:", role );
-			role.version			= 1;
+			role.version			= "";
+			role.ordering			= 1;
 			role.file			= null;
 			role.bundle			= await role.dna.manifest();
 			role.hash			= role.bundle.dna_hash;
@@ -901,7 +907,8 @@ module.exports = async function ( client ) {
 			role.bundle.zomes.forEach( async zome_ref => {
 			    await this.delay();
 
-			    zome_ref.version		= 1;
+			    zome_ref.version		= "";
+			    zome_ref.ordering		= 1;
 
 			    if ( this.previous_dnas[ role.id ] && this.previous_dnas[ role.id ].zomes[ zome_ref.name ] ) {
 				const prev_zome		= this.previous_dnas[ role.id ].zomes[ zome_ref.name ];
@@ -985,7 +992,7 @@ module.exports = async function ( client ) {
 
 		    if ( upload.selected_dna ) {
 			const version		= await this.$store.dispatch("getLatestVersionForDna", [ upload.selected_dna.$id, null ]  );
-			upload.version		= version ? version.version + 1 : 1;
+			upload.ordering		= version ? version.ordering + 1 : 1;
 		    }
 		},
 
@@ -997,12 +1004,12 @@ module.exports = async function ( client ) {
 		    this.select_dna_modal.hide();
 
 		    const version		= await this.$store.dispatch("getLatestVersionForDna", [ dna.$id, null ]  );
-		    role.version		= version ? version.version + 1 : 1;
+		    role.ordering		= version ? version.ordering + 1 : 1;
 		},
 		async unassign_parent_dna_for ( role ) {
 		    log.normal("Unassign parent DNA for '%s'", role.id );
 
-		    role.version		= 1;
+		    role.ordering		= 1;
 
 		    delete role.selected_dna;
 		},
@@ -1056,7 +1063,7 @@ module.exports = async function ( client ) {
 
 		    if ( upload.selected_zome ) {
 			const version		= await this.$store.dispatch("getLatestVersionForZome", [ upload.selected_zome.$id, null ]  );
-			upload.version		= version ? version.version + 1 : 1;
+			upload.ordering		= version ? version.ordering + 1 : 1;
 		    }
 		},
 
@@ -1068,12 +1075,12 @@ module.exports = async function ( client ) {
 		    this.select_zome_modal.hide();
 
 		    const version		= await this.$store.dispatch("getLatestVersionForZome", [ zome.$id, null ]  );
-		    upload.version		= version ? version.version + 1 : 1;
+		    upload.ordering		= version ? version.ordering + 1 : 1;
 		},
 		async unassign_parent_zome_for ( upload ) {
 		    log.normal("Unassign parent zome for '%s'", upload.name );
 
-		    upload.version		= 1;
+		    upload.ordering		= 1;
 
 		    delete upload.selected_zome;
 		},
@@ -1118,10 +1125,11 @@ module.exports = async function ( client ) {
 			// Create the new version
 			const version			= await this.$client.call(
 			    "dnarepo", "dna_library", "create_zome_version", {
-				"for_zome": zome_info.selected_zome.$id,
-				"version": zome_info.version,
-				"zome_bytes": zome_info.bytes,
-				"hdk_version": this.input.hdk_version,
+				"for_zome":	zome_info.selected_zome.$id,
+				"version":	zome_info.version,
+				"ordering":	zome_info.ordering,
+				"zome_bytes":	zome_info.bytes,
+				"hdk_version":	this.input.hdk_version,
 			    }
 			);
 			this.$store.dispatch("fetchZomeVersionsByHash", zome_info.hash );
@@ -1170,6 +1178,7 @@ module.exports = async function ( client ) {
 			    "dnarepo", "dna_library", "create_dna_version", {
 				"for_dna":	role.selected_dna.$id,
 				"version":	role.version,
+				"ordering":	role.ordering,
 				"hdk_version":	this.input.hdk_version,
 				"properties":	role.bundle.properties,
 				"zomes":	role.bundle.zomes.map( zome_info => {
@@ -1206,6 +1215,7 @@ module.exports = async function ( client ) {
 			    "name":		this.input.name,
 			    "description":	this.input.description,
 			    "hdk_version":	this.input.hdk_version,
+			    "ordering":		this.input.ordering,
 			    "manifest":		this.bundle.manifest,
 			    "dnas": this.bundle.roles.map( role => {
 				const version		= role.selected_dna_version;

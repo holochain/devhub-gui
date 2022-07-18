@@ -6,8 +6,13 @@
     <div class="row">
 	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
 	    <label class="form-label fw-6">Zome Name</label>
-	    <input-feedback valid-message="That's a great name!">
+	    <input-feedback>
 		<input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Display Name</label>
+	    <input-feedback>
+		<input type="text" v-model="input.display_name" class="form-control" :disabled="saving" required>
 	    </input-feedback>
 
 	    <label class="form-label fw-6">Zome Description</label>

@@ -92,10 +92,8 @@ module.exports = async function ( client ) {
 		this.$store.dispatch("fetchHDKVersions");
 		this.$store.dispatch("fetchDna", this.dna_id );
 
-		const latest_dna_version	= await this.$store.dispatch("getLatestVersionForDna", [ this.dna_id, null ] );
-
-		if ( !this.input.version )
-		    this.input.version		= latest_dna_version ? latest_dna_version.version + 1 : 1;
+		const version		= await this.$store.dispatch("getLatestVersionForDna", [ this.dna_id, null ] );
+		this.input.ordering	= version ? version.ordering + 1 : 1;
 	    },
 	    "methods": {
 		async create () {
@@ -289,6 +287,8 @@ module.exports = async function ( client ) {
 		    try {
 			await this.$store.dispatch("updateDnaVersion", [ this.id, this.input ] );
 
+			this.$store.dispatch("fetchVersionsForDna", this.dna_id );
+
 			this.$router.push( `/dnas/${this.dna_id}/versions/${this.id}` );
 		    } catch ( err ) {
 			log.error("Failed to update DNA Version (%s):", String(this.id), err );
@@ -402,7 +402,8 @@ module.exports = async function ( client ) {
 		    "id": null,
 		    "error": null,
 		    "input": {
-			"version": 1,
+			"version": "",
+			"ordering": 1,
 			"changelog": "",
 			"hdk_version": null,
 			"properties": null,
@@ -577,7 +578,7 @@ module.exports = async function ( client ) {
 		    log.info("Latest DNA version:", this.dna_version );
 
 		    // We will use the last version name as the default value for the next version.
-		    this.input.version		= this.dna_version.version + 1;
+		    this.input.ordering		= this.dna_version.ordering + 1;
 		},
 		async fetchDna () {
 		    log.normal("Fetching dna: %s", String(this.id) );
@@ -661,7 +662,9 @@ module.exports = async function ( client ) {
 		    }
 
 		    await this.$store.dispatch("uploadFile", [ this.file_id, file ] );
+		    await this.delay();
 		    await this.$store.dispatch("unpackBundle", this.uploaded_file.hash );
+		    await this.delay();
 
 		    if ( this.bundle.type !== "dna" ) {
 			alert(`Uploaded bundle is not a DNA bundle. found bundle type '${this.bundle.type}'`);
@@ -672,7 +675,7 @@ module.exports = async function ( client ) {
 			this.input.properties	= Object.assign( {}, this.bundle.properties );
 
 		    this.bundle.zomes.forEach( async zome => {
-			zome.version		= 1;
+			zome.ordering		= 1;
 
 			// Search for existing zomes with the same name
 			this.$store.dispatch("fetchZomesByName", zome.name );
@@ -728,7 +731,7 @@ module.exports = async function ( client ) {
 
 		    if ( upload.selected_zome ) {
 			const version		= await this.$store.dispatch("getLatestVersionForZome", [ upload.selected_zome.$id, null ]  );
-			upload.version		= version ? version.version + 1 : 1;
+			upload.ordering		= version ? version.ordering + 1 : 1;
 		    }
 		},
 
@@ -740,12 +743,12 @@ module.exports = async function ( client ) {
 		    this.select_zome_modal.hide();
 
 		    const version		= await this.$store.dispatch("getLatestVersionForZome", [ zome.$id, null ]  );
-		    upload.version		= version ? version.version + 1 : 1;
+		    upload.ordering		= version ? version.ordering + 1 : 1;
 		},
 		async unassign_parent_zome_for ( upload ) {
 		    log.normal("Unassign parent zome for '%s'", upload.name );
 
-		    upload.version		= 1;
+		    upload.ordering		= 1;
 
 		    delete upload.selected_zome;
 		},
@@ -789,10 +792,11 @@ module.exports = async function ( client ) {
 			// Create the new version
 			const version			= await this.$client.call(
 			    "dnarepo", "dna_library", "create_zome_version", {
-				"for_zome": zome_info.selected_zome.$id,
-				"version": zome_info.version,
-				"zome_bytes": zome_info.bytes,
-				"hdk_version": this.input.hdk_version,
+				"for_zome":	zome_info.selected_zome.$id,
+				"version":	zome_info.version,
+				"ordering":	zome_info.ordering,
+				"zome_bytes":	zome_info.bytes,
+				"hdk_version":	this.input.hdk_version,
 			    }
 			);
 			this.$store.dispatch("fetchZomeVersionsByHash", zome_info.hash );
@@ -818,6 +822,7 @@ module.exports = async function ( client ) {
 			log.debug("Create DNA version #%s: (%s zomes):", this.input.version, this.bundle.zomes.length, this.input );
 			const input			= {
 			    "version": this.input.version,
+			    "ordering":	this.input.ordering,
 			    "hdk_version": this.input.hdk_version,
 			    "properties": this.input.properties,
 			    "changelog": this.input.changelog,

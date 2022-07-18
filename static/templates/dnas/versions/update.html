@@ -84,6 +84,12 @@
 				</placeholder>
 			    </dd>
 			</dl>
+
+			<label class="form-label fw-6">Ordering</label>
+			<input-feedback>
+			    <input type="number" v-model.number="version.ordering" class="form-control"
+				   @change="copy(version, input, 'ordering')" required>
+			</input-feedback>
 		    </div>
 		</div>
 	    </div>

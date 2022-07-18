@@ -30,7 +30,7 @@
 	<h3>Upload</h3>
 	<div class="row">
 	    <div class="col-6">
-		<loading :when="$bundle.loading">
+		<loading :when="$uploaded_file.loading || $bundle.loading">
 		    <label class="form-label fw-6">Drag and drop DNA bundle here</label>
 		    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
 			<input type="file" @change="file_selected" class="form-control form-input-file" required>
@@ -99,6 +99,16 @@
 				<div class="col-6">
 				    <p v-if="zome.selected_zome" class="card-text text-truncate mb-1">{{ zome.selected_zome.description || "No description" }}</p>
 				    <template v-else>
+					<label class="form-label fw-6">Name <small>(from Manifest)</small></label>
+					<input-feedback>
+					    <input type="text" v-model="zome.name" class="form-control" required readonly>
+					</input-feedback>
+
+					<label class="form-label fw-6">Display Name (optional)</label>
+					<input-feedback>
+					    <input type="text" v-model="zome.display_name" class="form-control" :disabled="zome.saving">
+					</input-feedback>
+
 					<label class="form-label fw-6">Description</label>
 					<input-feedback>
 					    <textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving" required></textarea>
@@ -155,7 +165,7 @@
 							<input-feedback>
 							    <div class="input-group mb-3">
 								<span class="input-group-text">v</span>
-								<input type="number" v-model.number="zome.version" class="form-control"
+								<input v-model="zome.version" class="form-control"
 								       :disabled="zome.saving" required>
 							    </div>
 							</input-feedback>
@@ -238,7 +248,15 @@
 		    <div v-if="uploaded_file" class="row">
 			<label class="form-label fw-6">Version</label>
 			<input-feedback>
-			    <input type="text" v-model="input.version" class="form-control" required>
+			    <div class="input-group">
+				<span class="input-group-text">v</span>
+				<input type="text" v-model="input.version" class="form-control" required>
+			    </div>
+			</input-feedback>
+
+			<label class="form-label fw-6">Ordering</label>
+			<input-feedback>
+			    <input type="number" v-model.number="input.ordering" class="form-control" :disabled="saving" required>
 			</input-feedback>
 
 			<label class="form-label fw-6">Changelog</label>

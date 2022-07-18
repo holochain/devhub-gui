@@ -155,6 +155,26 @@ const common				= {
 	return true;
     },
 
+    hashesAreEqual ( hash1, hash2 ) {
+	if ( hash1 instanceof Uint8Array )
+	    hash1		= new HoloHash( hash1 )
+	if ( hash1 instanceof HoloHash )
+	    hash1		= hash1.toString();
+
+	if ( hash2 instanceof Uint8Array )
+	    hash2		= new HoloHash( hash2 )
+	if ( hash2 instanceof HoloHash )
+	    hash2		= hash2.toString();
+
+	if ( typeof hash1 !== "string" )
+	    throw new TypeError(`Invalid first argument; expected string or Uint8Array; not type of ${typeof hash1}`);
+
+	if ( typeof hash2 !== "string" )
+	    throw new TypeError(`Invalid second argument; expected string or Uint8Array; not type of ${typeof hash2}`);
+
+	return hash1 === hash2;
+    },
+
     toHex ( uint8_array ) {
 	return [].map.call( uint8_array, n => n.toString(16).padStart(2,"0") ).join("");
     },
@@ -257,9 +277,9 @@ const common				= {
 
     sort_version ( reverse = false ) {
 	return (a,b) => {
-	    if( a.version > b.version )
+	    if( a.ordering > b.ordering )
 		return reverse ? -1 : 1;
-	    if( a.version < b.version )
+	    if( a.ordering < b.ordering )
 		return reverse ? 1 : -1;
 
 	    if( a.published_at > b.published_at )
@@ -295,6 +315,72 @@ const common				= {
 
     mdHTML ( md_text ) {
 	return md_converter.makeHtml( md_text );
+    },
+
+    async http_info( url ) {
+	log.info("Fetching URL info for: {}", url );
+	const resp		= await fetch(`https://api.codetabs.com/v1/proxy/?quest=${url}`);
+
+	const parser		= new DOMParser();
+	const doc		= parser.parseFromString( await resp.text(), "text/html" );
+
+	const title		= doc.querySelector("title");
+	const favicon		= doc.querySelector("link[rel=icon]");
+	const metas		= doc.querySelectorAll("meta");
+
+	log.debug("URL info title: {}", title );
+
+	const metadata		= {};
+	const metaprop		= {};
+
+	for ( let el of metas ) {
+	    const attr		= el.attributes;
+
+	    if ( attr.name && attr.content ) {
+		const name	= attr.name.value;
+		const content	= attr.content.value;
+
+		metadata[name]	= content;
+	    }
+	    else if ( attr.property && attr.content ) {
+		const name	= attr.property.value;
+		const content	= attr.content.value;
+
+		metaprop[name]	= content;
+	    }
+	}
+
+	return {
+	    "title":		title.textContent,
+	    "description":	metadata.description,
+	    "favicon":		favicon ? favicon.href : null,
+	    "image":		metaprop["og:image"] || metadata["twitter:image"] || null,
+	    "meta":		metadata,
+	};
+    },
+
+    capitalize ( str ) {
+	return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+
+
+    //
+    // Math
+    //
+    average ( ...numbers ) {
+	return common.sum( ...numbers ) / numbers.length;
+    },
+
+    sum ( ...numbers ) {
+	return numbers.reduce( (a,v) => a + v, 0 );
+    },
+
+
+    //
+    // Date
+    //
+    pastTime ( hours_ago ) {
+	return Date.now() - (1000 * 60 * 60 * hours_ago);
     },
 };
 

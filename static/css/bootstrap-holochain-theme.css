@@ -14,6 +14,7 @@
 
 */
 
+
 body {
   margin: 0;
   font-family: 'Mulish', sans-serif;
@@ -73,6 +74,13 @@ a.text-primary:hover {
 }
 .bg-secondary {
    background-color: #5C5F6B !important;
+}
+
+.text-bigger {
+  font-size: 1.2em;
+}
+.text-smaller {
+  font-size: .8em;
 }
 
 .cursor-pointer {

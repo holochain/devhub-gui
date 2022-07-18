@@ -288,7 +288,7 @@ module.exports = async function ( client ) {
 		},
 		releases () {
 		    const releases	= this.$store.getters.happ_releases( this.id );
-		    releases.sort( this.sort_published_at( true ) );
+		    releases.sort( this.sort_version( true ) );
 		    return releases;
 		},
 		$releases () {

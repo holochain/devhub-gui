@@ -248,6 +248,9 @@ module.exports = async function ( client ) {
 		    try {
 			await this.$store.dispatch("updateDna", [ this.id, input ] );
 
+			this.$store.dispatch("fetchDnas", { "agent": "me" });
+			this.$store.dispatch("fetchAllDnas");
+
 			this.$router.push( "/dnas/" + this.id );
 		    } catch ( err ) {
 			log.error("Failed to update DNA (%s):", String(this.id), err );

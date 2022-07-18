@@ -72,13 +72,6 @@ module.exports = async function () {
 	return output;
     });
 
-    if ( WEBPACK_MODE === "development" ) {
-	client.addProcessor("input", async function (input) {
-	    await new Promise( f => setTimeout(f, (Math.random() * 1_000) + 500) ); // range 500ms to 1500ms
-	    return input;
-	});
-    }
-
     crux_config.upgrade( client );
 
     return client;
