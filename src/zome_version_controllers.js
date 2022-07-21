@@ -31,6 +31,12 @@ module.exports = async function ( client ) {
 		form () {
 		    return this.$refs["form"];
 		},
+		zome () {
+		    return this.$store.getters.zome( this.zome_id );
+		},
+		$zome () {
+		    return this.$store.getters.$zome( this.zome_id );
+		},
 		file_valid_feedback () {
 		    const file		= this.zome_file;
 
@@ -50,6 +56,7 @@ module.exports = async function ( client ) {
 		this.zome_id		= this.getPathId("zome");
 
 		this.fetchHDKVersions();
+		this.$store.dispatch("fetchZome", this.zome_id );
 	    },
 	    "methods": {
 		async file_selected ( event ) {
@@ -120,10 +127,10 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.$zome_version( this.id );
 		},
 		zome () {
-		    return this.$store.getters.zome( this.version.for_zome.$id || this.version.for_zome );
+		    return this.$store.getters.zome( this.version.for_zome );
 		},
 		$zome () {
-		    return this.$version;
+		    return this.$store.getters.$zome( this.version ? this.version.for_zome : null );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -199,10 +206,13 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.$zome_version( this.id );
 		},
 		zome () {
-		    return this.$store.getters.zome( this.version ? this.version.for_zome.$id || this.version.for_zome : null );
+		    if ( !this.version )
+			return null;
+
+		    return this.$store.getters.zome( this.version.for_zome );
 		},
 		$zome () {
-		    return this.$version;
+		    return this.$store.getters.$zome( this.version ? this.version.for_zome : null );
 		},
 		$wasmBytes () {
 		    return this.$store.getters.$zome_version_wasm( this.version ? this.version.mere_memory_addr : null );

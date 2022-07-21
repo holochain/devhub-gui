@@ -295,10 +295,10 @@ module.exports = async function ( client ) {
 		    if ( !this.release )
 			return null;
 
-		    return this.$store.getters.happ( this.release.for_happ.$id || this.release.for_happ );
+		    return this.$store.getters.happ( this.release.for_happ );
 		},
 		$happ () {
-		    return this.$release;
+		    return this.$store.getters.$happ( this.release ? this.release.for_happ : null );
 		},
 		form () {
 		    return this.$refs["form"];
@@ -409,10 +409,10 @@ module.exports = async function ( client ) {
 		    if ( !this.release )
 			return null;
 
-		    return this.$store.getters.happ( this.release.for_happ.$id || this.release.for_happ );
+		    return this.$store.getters.happ( this.release.for_happ );
 		},
 		$happ () {
-		    return this.$store.getters.$happ( this.release ? this.release.for_happ.$id || this.release.for_happ : null );
+		    return this.$store.getters.$happ( this.release ? this.release.for_happ : null );
 		},
 		$packageBytes () {
 		    return this.$store.getters.$happ_release_package( this.release ? this.release.$id : null );
@@ -748,8 +748,8 @@ module.exports = async function ( client ) {
 			this.$store.dispatch("getDnaVersion", dna_ref.version ).then( dna_version => {
 			    prev_dna_info.zomes			= {};
 
-			    for ( let [name, version] of Object.entries(dna_version.zomes) ) {
-				prev_dna_info.zomes[name]	= version;
+			    for ( let zome_ref of dna_version.zomes ) {
+				prev_dna_info.zomes[zome_ref.name]	= zome_ref;
 			    }
 			});
 		    });
@@ -880,10 +880,11 @@ module.exports = async function ( client ) {
 				    });
 			    }
 			    else {
-				const matches		= await this.$store.dispatch("fetchDnaVersionsByHash", role.hash );
+				await this.$store.dispatch("fetchDnaVersionsByHash", role.hash );
+
 				// If there are any matching versions, then we won't assume that a
 				// new DNA Version is being created.
-				if ( matches.length === 0 ) {
+				if ( this.dna_versions( role.hash ).length === 0 ) {
 				    // Auto-select the parent DNA of the previous role configuration
 				    this.$store.dispatch("getDna", prev_dna_ref.dna )
 					.then( dna => {
@@ -912,13 +913,13 @@ module.exports = async function ( client ) {
 				    this.select_zome_version( zome_ref, prev_zome );
 				}
 				else {
-				    const matches	= await this.$store.dispatch("fetchZomeVersionsByHash", zome_ref.hash );
+				    await this.$store.dispatch("fetchZomeVersionsByHash", zome_ref.hash );
 
 				    // If there are any matching versions, then we won't assume that
 				    // a new Zome Version is being created.
-				    if ( matches.length === 0 ) {
+				    if ( this.zome_versions( zome_ref.hash ).length === 0 ) {
 					// Auto-select the parent Zome of the previous role->zome configuration
-					this.$store.dispatch("getZome", prev_zome.for_zome )
+					this.$store.dispatch("getZome", prev_zome.zome )
 					    .then( zome => {
 						this.assign_parent_zome_for( zome_ref, zome );
 					    });
@@ -1107,6 +1108,7 @@ module.exports = async function ( client ) {
 			    zome_info.selected_zome	= await this.$client.call(
 				"dnarepo", "dna_library", "create_zome", {
 				    "name": zome_info.name,
+				    "display_name": zome_info.display_name,
 				    "description": zome_info.description,
 				}
 			    );
@@ -1155,7 +1157,8 @@ module.exports = async function ( client ) {
 			if ( !role.selected_dna ) {
 			    role.selected_dna	= await this.$client.call(
 				"dnarepo", "dna_library", "create_dna", {
-				    "name": role.id,
+				    "name": role.bundle.name,
+				    "display_name": role.display_name,
 				    "description": role.description,
 				}
 			    );
@@ -1172,7 +1175,7 @@ module.exports = async function ( client ) {
 				"zomes":	role.bundle.zomes.map( zome_info => {
 				    return {
 					"name":			zome_info.name,
-					"zome":			zome_info.selected_zome_version.for_zome.$id || zome_info.selected_zome_version.for_zome,
+					"zome":			zome_info.selected_zome_version.for_zome,
 					"version":		zome_info.selected_zome_version.$id,
 					"resource":		zome_info.selected_zome_version.mere_memory_addr,
 					"resource_hash":	zome_info.selected_zome_version.mere_memory_hash,
@@ -1208,7 +1211,7 @@ module.exports = async function ( client ) {
 				const version		= role.selected_dna_version;
 				return {
 				    "role_id":		role.id,
-				    "dna":		version.for_dna.$id || version.for_dna,
+				    "dna":		version.for_dna,
 				    "version":		version.$id,
 				    "wasm_hash":	version.wasm_hash,
 				};

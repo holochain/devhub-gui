@@ -1,5 +1,5 @@
 <page-view id="update-dna-page">
-    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.name"></breadcrumbs>
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.display_name || dna.name"></breadcrumbs>
 
     <hr>
 
@@ -9,6 +9,12 @@
 		<label class="form-label fw-6">DNA Name</label>
 		<input-feedback>
 		    <input type="text" @change="copy(dna, input, 'name')" v-model="dna.name"
+			   class="form-control" :disabled="$dna.updating" required>
+		</input-feedback>
+
+		<label class="form-label fw-6">Display Name</label>
+		<input-feedback>
+		    <input type="text" @change="copy(dna, input, 'display_name')" v-model="dna.display_name"
 			   class="form-control" :disabled="$dna.updating" required>
 		</input-feedback>
 

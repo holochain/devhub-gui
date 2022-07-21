@@ -78,9 +78,7 @@ module.exports = function ( element_local_name, component_name ) {
 		return this.title || "Version";
 	    },
 	    parent_id () {
-		return this.version.for_zome instanceof Uint8Array
-		    ? this.version.for_zome
-		    : this.version.for_zome.$id;
+		return this.version.for_zome;
 	    },
 	},
 	async created () {

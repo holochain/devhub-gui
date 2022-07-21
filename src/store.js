@@ -549,11 +549,8 @@ module.exports = async function ( client, app ) {
 		commit("cacheEntity", [ path, happ_release ] );
 		commit("recordLoaded", path );
 
-		if ( happ_release.for_happ.$id )
-		    await dispatch("cacheHapp", happ_release.for_happ );
-
 		const agent_info	= await dispatch("getAgent");
-		const happ		= await dispatch("getHapp", happ_release.for_happ.$id || happ_release.for_happ );
+		const happ		= await dispatch("getHapp", happ_release.for_happ );
 
 		commit("metadata", [ path, {
 		    "writable": hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
@@ -568,7 +565,7 @@ module.exports = async function ( client, app ) {
 		let agent_info		= await dispatch("getAgent");
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( dna.developer.pubkey, agent_info.pubkey.initial ),
+		    "writable": hashesAreEqual( dna.developer, agent_info.pubkey.initial ),
 		}] );
 	    },
 	    async cacheDnaVersion ({ dispatch, commit }, dna_version ) {
@@ -577,14 +574,11 @@ module.exports = async function ( client, app ) {
 		commit("cacheEntity", [ path, dna_version ] );
 		commit("recordLoaded", path );
 
-		if ( dna_version.for_dna.$id )
-		    await dispatch("cacheDna", dna_version.for_dna );
-
 		const agent_info	= await dispatch("getAgent");
-		const dna		= await dispatch("getDna", dna_version.for_dna.$id || dna_version.for_dna );
+		const dna		= await dispatch("getDna", dna_version.for_dna );
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( dna.developer.pubkey, agent_info.pubkey.initial ),
+		    "writable": hashesAreEqual( dna.developer, agent_info.pubkey.initial ),
 		}] );
 	    },
 	    async cacheZome ({ dispatch, commit }, zome ) {
@@ -596,7 +590,7 @@ module.exports = async function ( client, app ) {
 		let agent_info		= await dispatch("getAgent");
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( zome.developer.pubkey, agent_info.pubkey.initial ),
+		    "writable": hashesAreEqual( zome.developer, agent_info.pubkey.initial ),
 		}] );
 	    },
 	    async cacheZomeVersion ({ dispatch, commit }, zome_version ) {
@@ -605,14 +599,11 @@ module.exports = async function ( client, app ) {
 		commit("cacheEntity", [ path, zome_version ] );
 		commit("recordLoaded", path );
 
-		if ( zome_version.for_zome.$id )
-		    await dispatch("cacheZome", zome_version.for_zome );
-
 		const agent_info	= await dispatch("getAgent");
-		const zome		= await dispatch("getZome", zome_version.for_zome.$id || zome_version.for_zome );
+		const zome		= await dispatch("getZome", zome_version.for_zome );
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( zome.developer.pubkey, agent_info.pubkey.initial ),
+		    "writable": hashesAreEqual( zome.developer, agent_info.pubkey.initial ),
 		}] );
 	    },
 

@@ -40,6 +40,13 @@ module.exports = async function ( client ) {
 		    return this.$refs["changeVersion"].modal;
 		},
 
+		dna () {
+		    return this.$store.getters.dna( this.dna_id );
+		},
+		$dna () {
+		    return this.$store.getters.$dna( this.dna_id );
+		},
+
 		compatible_zomes () {
 		    return this.$store.getters.zomes( this.input.hdk_version || "all" );
 		},
@@ -83,6 +90,7 @@ module.exports = async function ( client ) {
 		this.dna_id		= this.getPathId("dna");
 
 		this.$store.dispatch("fetchHDKVersions");
+		this.$store.dispatch("fetchDna", this.dna_id );
 
 		const latest_dna_version	= await this.$store.dispatch("getLatestVersionForDna", [ this.dna_id, null ] );
 
@@ -235,10 +243,10 @@ module.exports = async function ( client ) {
 		},
 
 		dna () {
-		    return this.$store.getters.dna( this.version.for_dna.$id || this.version.for_dna );
+		    return this.$store.getters.dna( this.version.for_dna );
 		},
 		$dna () {
-		    return this.$version;
+		    return this.$store.getters.$dna( this.version ? this.version.for_dna : null );
 		},
 
 		form () {
@@ -320,10 +328,10 @@ module.exports = async function ( client ) {
 		    if ( !this.version )
 			return null;
 
-		    return this.$store.getters.dna( this.version.for_dna.$id || this.version.for_dna );
+		    return this.$store.getters.dna( this.version.for_dna );
 		},
 		$dna () {
-		    return this.$version;
+		    return this.$store.getters.$dna( this.version ? this.version.for_dna : null );
 		},
 
 		$packageBytes () {
@@ -818,7 +826,7 @@ module.exports = async function ( client ) {
 				const version		= info.selected_zome_version;
 				return {
 				    "name":		info.name,
-				    "zome":		version.for_zome.$id || version.for_zome,
+				    "zome":		version.for_zome,
 				    "version":		version.$id,
 				    "resource":		version.mere_memory_addr,
 				    "resource_hash":	version.mere_memory_hash,

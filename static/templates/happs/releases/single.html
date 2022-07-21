@@ -1,6 +1,6 @@
 <page-view id="single-happ release-page">
     <breadcrumbs v-if="release && happ" :skip-base="true" :path-mapping="breadcrumb_mapping"
-		 :sub-1="happ.title" :sub-3="'Release ' + release.name">
+		 :sub-1="happ.title" :sub-3="release.name">
 	<a v-if="$release.loaded" @click="fetchRelease()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $release.loading }"></i>
 	</a>
@@ -58,10 +58,18 @@
 		<div class="card-body">
 		    <dl class="row">
 			<dt class="col-sm-12">Created</dt>
-			<dd class="col-sm-12"><placeholder :when="!$release.current">{{ $filters.time( release.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$release.current">
+				<datetime :datetime="release.published_at" format="weekday+date+time"></datetime>
+			    </placeholder>
+			</dd>
 
 			<dt class="col-sm-12">Last Updated</dt>
-			<dd class="col-sm-12"><placeholder :when="!$release.current">{{ $filters.time( release.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$release.current">
+				<datetime :datetime="release.last_updated" format="weekday+date+time"></datetime>
+			    </placeholder>
+			</dd>
 
 			<dt class="col-sm-12">HDK Version</dt>
 			<dd class="col-sm-12"><placeholder :when="!$release.current">{{ release.hdk_version }}</placeholder></dd>

@@ -44,11 +44,18 @@
 	<list-group-item v-for="dna in dnas">
 	    <div class="row align-items-center">
 		<div class="col pt-3">
-		    <h3 class="fs-6">{{ dna.name }}</h3>
+		    <h3 class="fs-6">{{ dna.display_name || dna.name }}</h3>
 		    <p>{{ dna.description }}</p>
 		</div>
-		<div class="col-4">
-		    <span class="badge badge-md bg-secondary">Created {{ $filters.time( dna.published_at ) }}</span>
+		<div class="col-2 text-center">
+		    <template v-if="dna.tags && dna.tags.length">
+			<span v-for="tag in dna.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
+		    </template>
+		    <span v-else>No tags</span>
+		</div>
+		<div class="col-2 text-center">
+		    <span class="fw-lighter">Last updated</span>
+		    <br><datetime :datetime="dna.last_updated"></datetime>
 		</div>
 		<div class="col-auto">
 		    <router-link :to="'/dnas/' + dna.$id" class="btn btn-light">

@@ -1,5 +1,5 @@
 <page-view id="single-dna-page">
-    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.name">
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.display_name || dna.name">
 	<a v-if="$dna.loaded" @click="fetchDna()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.loading }"></i>
 	</a>
@@ -13,7 +13,13 @@
 
     <page-header class="mb-3">
 	<template #default>
-	    <h1 class="fs-2"><placeholder :when="!$dna.current" size="fill">{{ dna.name }}</placeholder></h1>
+	    <h1 class="fs-2">
+		<placeholder :when="!$dna.current" size="fill">
+		    {{ dna.display_name || dna.name }}
+		    <small v-if="dna.display_name"
+			   class="fw-2 text-monospace">"{{ dna.name }}"</small>
+		</placeholder>
+	    </h1>
 	</template>
 
 	<template #title-extras v-if="!deprecated && $dna.writable">
@@ -52,10 +58,14 @@
 			</dd>
 
 			<dt class="col-sm-4">Created</dt>
-			<dd class="col-sm-8"><placeholder :when="!$dna.current">{{ $filters.time( dna.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$dna.current"><datetime :datetime="dna.published_at" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 
 			<dt class="col-sm-4">Last Updated</dt>
-			<dd class="col-sm-8"><placeholder :when="!$dna.current">{{ $filters.time( dna.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$dna.current"><datetime :datetime="dna.last_updated" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 		    </dl>
 		</div>
 	    </div>
@@ -73,20 +83,17 @@
 			</dt>
 			<dd class="col-sm-12">
 			    <placeholder :when="!$dna.current">
-				<holo-hash :hash="dna.developer.pubkey"></holo-hash>
+				<holo-hash :hash="dna.developer"></holo-hash>
 			    </placeholder>
 			</dd>
-			<dt class="col-sm-12">
-			    External Links
-			</dt>
-			<dd class="col-sm-12">
-			    <placeholder :when="!$dna.current">
-				<span v-if="dna.developer.website">
-				    <a href="#" target="_blank">website</a>
-				</span>
-				<span v-else>None</span>
-			    </placeholder>
-			</dd>
+			<!-- <dt class="col-sm-12"> -->
+			<!--     External Links -->
+			<!-- </dt> -->
+			<!-- <dd class="col-sm-12"> -->
+			<!--     <placeholder :when="!$dna.current"> -->
+			<!-- 	None -->
+			<!--     </placeholder> -->
+			<!-- </dd> -->
 		    </dl>
 		</div>
 	    </div>
@@ -122,10 +129,13 @@
 		<div class="col-2 fw-7">
 		    Version #
 		</div>
-		<div class="col-4 fw-7">
+		<div class="col-3 fw-7">
 		    Created
 		</div>
 		<div class="col-2 fw-7">
+		    Last Updated
+		</div>
+		<div class="col-1 fw-7">
 		    HDK Version
 		</div>
 		<div class="col"></div>
@@ -138,10 +148,13 @@
 		    <div class="col-2">
 			<h3 class="fs-6 m-0">{{ version.version }}</h3>
 		    </div>
-		    <div class="col-4">
-			Created on {{ $filters.time( version.published_at, "weekday+date" ) }}
+		    <div class="col-3">
+			<datetime :datetime="version.published_at" format="weekday+date+time"></datetime>
 		    </div>
 		    <div class="col-2">
+			<datetime :datetime="version.last_updated"></datetime>
+		    </div>
+		    <div class="col-1">
 			<div class="badge bg-light text-dark font-monospace">v{{ version.hdk_version }}</div>
 		    </div>
 		    <div class="col text-end text-nowrap">
