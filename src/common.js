@@ -30,6 +30,25 @@ function fallbackCopyTextToClipboard ( text ) {
     }
 }
 
+
+const RATING_TERMS = {
+    "accuracy": [
+	"Inaccurate", // Wrong, False, Untrue
+	"Vague", // Ambiguous, Unclear
+	"Clear", // Factual, Appropriate
+	"Thorough", // Proper, Good
+	"Meticulous", // Detailed, Precise, Exceptional
+    ],
+    "efficiency": [
+	"Wasteful", // Wasteful, Heavy
+	"Costly", // Costly, Expensive, Substantial
+	"Expected", // Practical
+	"Efficient", // Economical, Cost-effective, Frugal, Prudent
+	"Optimal", // Light-weight, Slender
+    ],
+};
+
+
 const common				= {
     sort_by_object_key ( list_of_objects, key ) {
 	return list_of_objects.sort( (a,b) => {
@@ -361,6 +380,22 @@ const common				= {
 
     capitalize ( str ) {
 	return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+
+    rating_term ( rtype, rating ) {
+	if ( isNaN(rating) )
+	    return "None";
+
+	if ( RATING_TERMS[ rtype ] === undefined )
+	    throw new Error(`No terms defined for type: ${rtype}`);
+
+	const terms			= RATING_TERMS[ rtype ];
+	const i				= Math.round( rating );
+
+	if ( terms[ i ] === undefined )
+	    throw new Error(`No '{{ rtype }}' term for rating: ${i}`);
+
+	return terms[ i ];
     },
 
 

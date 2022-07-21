@@ -13,7 +13,8 @@
 
     <div class="mb-4">
 	<h1 class="fs-2"><placeholder :when="!$zome.current" size="25%">{{ zome.display_name || zome.name }}</placeholder></h1>
-	<rating-stars v-if="summary" class="fs-5 text-primary" :rating="aggregateSummary( summary ).average"></rating-stars>
+	<rating-stars v-if="summary" class="fs-5 text-primary" :rating="aggregateSummary( summary ).average"
+		      :end-text="$reviews.current ? reviews.length + ' reviews' : ''"></rating-stars>
     </div>
 
     <page-header class="mb-2 p-3">
@@ -77,15 +78,6 @@
 
 			<dt class="col-sm-12">Resource Hash</dt>
 			<dd class="col-sm-12"><placeholder :when="!$version.current"><code>{{ version.mere_memory_hash }}</code></placeholder></dd>
-
-			<dt class="col-sm-12">Source Code</dt>
-			<dd class="col-sm-12">
-			    <placeholder :when="!$version.current">
-				<link-preview v-if="version.metadata.source_code_url_preview"
-					      :info="version.metadata.source_code_url_preview"></link-preview>
-				<a v-else :href="version.source_code_commit_url" target="_blank">{{ version.source_code_commit_url }}</a>
-			    </placeholder>
-			</dd>
 		    </dl>
 
 		    <loading :when="!$version.current">
@@ -98,6 +90,19 @@
 			    </a>
 			</div>
 		    </loading>
+		</div>
+	    </div>
+
+	    <div class="mt-4" v-if="version.source_code_commit_url">
+		<link-preview v-if="version.metadata.source_code_url_preview"
+			      :info="version.metadata.source_code_url_preview"></link-preview>
+		<div v-else class="card">
+		    <div class="card-header">
+			Source Code
+		    </div>
+		    <div class="card-body">
+			<a :href="version.source_code_commit_url" target="_blank">{{ version.source_code_commit_url }}</a>
+		    </div>
 		</div>
 	    </div>
 	</div>
@@ -187,7 +192,10 @@
 	<div class="col-4">
 	    <ul v-if="summary" class="list-group">
 		<li v-for="(rating, name) in aggregateSummary( summary ).breakdown" class="list-group-item d-flex">
-		    <span class="flex-grow-1">{{ capitalize( name ) }}</span>
+		    <span class="flex-grow-1">
+			<span class="fw-6 me-1">{{ capitalize( name ) }}</span>
+			<span class="fw-1 fst-italic">({{ rating_term( name, rating/2-1 ) }})</span>
+		    </span>
 		    <rating-stars :rating="rating"></rating-stars>
 		</li>
 	    </ul>
@@ -228,7 +236,7 @@
 			</a>
 		    </div>
 		    <div class="col-7">
-			<label class="form-label">{{ capitalize( rating_type ) }} Rating</label>
+			<label class="form-label">{{ capitalize( rating_type ) }} Rating <i>({{ rating_term( rating_type, review.ratings[rating_type]/2-1 ) }})</i></label>
 			<div class="d-flex justify-content-center">
 			    <a class="pe-2" @click="updateReviewRating( rating_type, 0 )">None</a>
 			    <i v-for="i in 5" class="p-1 cursor-pointer"
