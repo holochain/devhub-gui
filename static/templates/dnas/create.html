@@ -10,6 +10,11 @@
 		<input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
 	    </input-feedback>
 
+	    <label class="form-label fw-6">Display Name</label>
+	    <input-feedback>
+		<input type="text" v-model="input.display_name" class="form-control" :disabled="saving" required>
+	    </input-feedback>
+
 	    <label class="form-label fw-6">DNA Description</label>
 	    <input-feedback>
 		<textarea v-model="input.description" class="form-control" rows="3" :disabled="saving" required></textarea>

@@ -246,6 +246,9 @@ module.exports = async function ( client ) {
 		    try {
 			await this.$store.dispatch("updateZome", [ this.id, input ] );
 
+			this.$store.dispatch("fetchZomes", { "agent": "me" });
+			this.$store.dispatch("fetchAllZomes");
+
 			this.$router.push( "/zomes/" + this.id );
 		    } catch ( err ) {
 			log.error("Failed to update Zome (%s):", String(this.id), err );
@@ -276,20 +279,6 @@ module.exports = async function ( client ) {
 		this.refresh();
 	    },
 	    "computed": {
-		zome () {
-		    return this.$store.getters.zome( this.id );
-		},
-		$zome () {
-		    return this.$store.getters.$zome( this.id );
-		},
-		versions () {
-		    const versions	= this.$store.getters.zome_versions( this.id );
-		    versions.sort( this.sort_version( true ) );
-		    return versions;
-		},
-		$versions () {
-		    return this.$store.getters.$zome_versions( this.id );
-		},
 		form () {
 		    return this.$refs["form"];
 		},
@@ -299,6 +288,23 @@ module.exports = async function ( client ) {
 		unpublishModal () {
 		    return this.$refs["unpublishModal"].modal;
 		},
+
+		zome () {
+		    return this.$store.getters.zome( this.id );
+		},
+		$zome () {
+		    return this.$store.getters.$zome( this.id );
+		},
+
+		versions () {
+		    const versions	= this.$store.getters.zome_versions( this.id );
+		    versions.sort( this.sort_version( true ) );
+		    return versions;
+		},
+		$versions () {
+		    return this.$store.getters.$zome_versions( this.id );
+		},
+
 		deprecated () {
 		    return !!( this.zome && this.zome.deprecation );
 		},

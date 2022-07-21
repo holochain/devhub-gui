@@ -2,6 +2,7 @@ const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("store");
 
 const common				= require('./common.js');
+const $filters				= require('./filters.js');
 
 const { HoloHash,
 	AgentPubKey }			= holohash;
@@ -70,6 +71,18 @@ const dataTypePath			= {
     happReleases:	( id )		=> store_path( "happ", id, "releases" ),
     happRelease:	( id )		=> store_path( "happ", "release", id ),
 
+    agentReviews:	( agent )	=> store_path( agent, "reviews" ),
+    reviews:		( base )	=> store_path( "reviews", base ),
+    review:		( id )		=> store_path( "review", id ),
+    reviewSummaries:	( base )	=> store_path( "review_summaries", base ),
+    reviewSummary:	( id )		=> store_path( "review_summary", id ),
+
+    agentReactions:	( agent )	=> store_path( agent, "reactions" ),
+    reactions:		( base )	=> store_path( "reactions", base ),
+    reaction:		( id )		=> store_path( "reaction", id ),
+    reactionSummaries:	( base )	=> store_path( "reaction_summaries", base ),
+    reactionSummary:	( id )		=> store_path( "reaction_summary", id ),
+
     zomeVersionWasm:	( addr )	=> store_path( "zome", "version", addr, "wasm_bytes" ),
     dnaVersionPackage:	( addr )	=> store_path( "dna",  "version", addr, "package_bytes" ),
     happReleasePackage:	( addr )	=> store_path( "happ", "release", addr, "package_bytes" ),
@@ -78,28 +91,9 @@ const dataTypePath			= {
     webAsset:		( id )		=> store_path( "web_assets", id ),
     file:		( id )		=> store_path( "files", id ),
     bundle:		( id )		=> store_path( "bundles", id ),
+    url:		( url )		=> store_path( "url", url ),
 };
 
-
-function hashesAreEqual ( hash1, hash2 ) {
-    if ( hash1 instanceof Uint8Array )
-	hash1		= new HoloHash( hash1 )
-    if ( hash1 instanceof HoloHash )
-	hash1		= hash1.toString();
-
-    if ( hash2 instanceof Uint8Array )
-	hash2		= new HoloHash( hash2 )
-    if ( hash2 instanceof HoloHash )
-	hash2		= hash2.toString();
-
-    if ( typeof hash1 !== "string" )
-	throw new TypeError(`Invalid first argument; expected string or Uint8Array; not type of ${typeof hash1}`);
-
-    if ( typeof hash2 !== "string" )
-	throw new TypeError(`Invalid second argument; expected string or Uint8Array; not type of ${typeof hash2}`);
-
-    return hash1 === hash2;
-}
 
 function fmt_client_args ( dna, zome, func, args ) {
     if ( String(args) === "[object Object]" && Object.keys(args).length )
@@ -376,6 +370,119 @@ module.exports = async function ( client, app ) {
 		const path		= dataTypePath.bundle( id );
 		return getters.metadata( path );
 	    },
+
+	    url: ( _, getters ) => ( url ) => {
+		const path		= dataTypePath.url( url );
+		return getters.value( path );
+	    },
+	    $url: ( _, getters ) => ( url ) => {
+		const path		= dataTypePath.url( url );
+		return getters.metadata( path );
+	    },
+
+	    //
+	    // Review
+	    //
+	    reviews: ( _, getters ) => ( base_hash ) => {
+		const path		= dataTypePath.reviews( base_hash );
+		return getters.collection( path );
+	    },
+	    $reviews: ( _, getters ) => ( base_hash ) => {
+		const path		= dataTypePath.reviews( base_hash );
+		return getters.metadata( path );
+	    },
+
+	    my_reviews: ( _, getters ) => {
+		const path		= dataTypePath.agentReviews( "me" );
+		return getters.collection( path );
+	    },
+	    $my_reviews: ( _, getters ) => {
+		const path		= dataTypePath.agentReviews( "me" );
+		return getters.metadata( path );
+	    },
+	    reviews_by_subject: ( _, getters ) => {
+		const path		= dataTypePath.agentReviews( "me" );
+		return getters.value( path );
+	    },
+
+	    review: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.review( id );
+		return getters.entity( path );
+	    },
+	    $review: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.review( id );
+		return getters.metadata( path );
+	    },
+
+	    review_summaries: ( _, getters ) => ( base_hash ) =>  {
+		const path		= dataTypePath.reviewSummaries( base_hash );
+		return getters.collection( path );
+	    },
+	    $review_summaries: ( _, getters ) => ( base_hash ) => {
+		const path		= dataTypePath.reviewSummaries( base_hash );
+		return getters.metadata( path );
+	    },
+
+	    review_summary: ( _, getters ) => ( id ) =>  {
+		const path		= dataTypePath.reviewSummary( id );
+		return getters.entity( path );
+	    },
+	    $review_summary: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.reviewSummary( id );
+		return getters.metadata( path );
+	    },
+
+	    //
+	    // Reaction
+	    //
+	    reactions: ( _, getters ) => ( base_hash ) => {
+		const path		= dataTypePath.reactions( base_hash );
+		return getters.collection( path );
+	    },
+	    $reactions: ( _, getters ) => ( base_hash ) => {
+		const path		= dataTypePath.reactions( base_hash );
+		return getters.metadata( path );
+	    },
+
+	    my_reactions: ( _, getters ) => {
+		const path		= dataTypePath.agentReactions( "me" );
+		return getters.collection( path );
+	    },
+	    $my_reactions: ( _, getters ) => {
+		const path		= dataTypePath.agentReactions( "me" );
+		return getters.metadata( path );
+	    },
+	    reactions_by_subject: ( _, getters ) => {
+		const path		= dataTypePath.agentReactions( "me" );
+		return getters.value( path );
+	    },
+
+	    reaction: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.reaction( id );
+		return getters.entity( path );
+	    },
+	    $reaction: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.reaction( id );
+		return getters.metadata( path );
+	    },
+
+	    reaction_summaries: ( _, getters ) => ( base_hash ) =>  {
+		const path		= dataTypePath.reactionSummaries( base_hash );
+		return getters.collection( path );
+	    },
+	    $reaction_summaries: ( _, getters ) => ( base_hash ) => {
+		const path		= dataTypePath.reactionSummaries( base_hash );
+		return getters.metadata( path );
+	    },
+
+	    reaction_summary: ( _, getters ) => ( id ) =>  {
+		const path		= dataTypePath.reactionSummary( id );
+		return getters.entity( path );
+	    },
+	    $reaction_summary: ( _, getters ) => ( id ) => {
+		const path		= dataTypePath.reactionSummary( id );
+		return getters.metadata( path );
+	    },
 	},
 	"mutations": {
 	    expireData ( state, path ) {
@@ -455,6 +562,12 @@ module.exports = async function ( client, app ) {
 		state.metadata[path].current	= true;
 
 		log.trace("%s: record loaded", path );
+	    },
+	    cacheValueInsert ( state, [ path, key, value ] ) {
+		if ( state.values[path] === undefined )
+		    state.values[path]		= {};
+
+		state.values[path][key]		= value;
 	    },
 	},
 	"actions": {
@@ -540,7 +653,7 @@ module.exports = async function ( client, app ) {
 		let agent_info		= await dispatch("getAgent");
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
+		    "writable": common.hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
 		}] );
 	    },
 	    async cacheHappRelease ({ dispatch, commit }, happ_release ) {
@@ -553,7 +666,7 @@ module.exports = async function ( client, app ) {
 		const happ		= await dispatch("getHapp", happ_release.for_happ );
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
+		    "writable": common.hashesAreEqual( happ.designer, agent_info.pubkey.initial ),
 		}] );
 	    },
 	    async cacheDna ({ dispatch, commit }, dna ) {
@@ -565,7 +678,7 @@ module.exports = async function ( client, app ) {
 		let agent_info		= await dispatch("getAgent");
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( dna.developer, agent_info.pubkey.initial ),
+		    "writable": common.hashesAreEqual( dna.developer, agent_info.pubkey.initial ),
 		}] );
 	    },
 	    async cacheDnaVersion ({ dispatch, commit }, dna_version ) {
@@ -578,7 +691,7 @@ module.exports = async function ( client, app ) {
 		const dna		= await dispatch("getDna", dna_version.for_dna );
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( dna.developer, agent_info.pubkey.initial ),
+		    "writable": common.hashesAreEqual( dna.developer, agent_info.pubkey.initial ),
 		}] );
 	    },
 	    async cacheZome ({ dispatch, commit }, zome ) {
@@ -590,7 +703,7 @@ module.exports = async function ( client, app ) {
 		let agent_info		= await dispatch("getAgent");
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( zome.developer, agent_info.pubkey.initial ),
+		    "writable": common.hashesAreEqual( zome.developer, agent_info.pubkey.initial ),
 		}] );
 	    },
 	    async cacheZomeVersion ({ dispatch, commit }, zome_version ) {
@@ -603,7 +716,75 @@ module.exports = async function ( client, app ) {
 		const zome		= await dispatch("getZome", zome_version.for_zome );
 
 		commit("metadata", [ path, {
-		    "writable": hashesAreEqual( zome.developer, agent_info.pubkey.initial ),
+		    "writable": common.hashesAreEqual( zome.developer, agent_info.pubkey.initial ),
+		}] );
+	    },
+	    async cacheReview ({ dispatch, commit }, review ) {
+		const path		= dataTypePath.review( review.$id );
+
+		const agent_info	= await dispatch("getAgent");
+		const author_is_me	= common.hashesAreEqual( review.author, agent_info.pubkey.initial );
+
+		commit("cacheEntity", [ path, review ] );
+
+		if ( author_is_me ) {
+		    const agent_path	= dataTypePath.agentReviews( "me" );
+
+		    for ( let [id, _] of review.subject_ids ) {
+			commit("cacheValueInsert", [ agent_path, id, review ] );
+		    }
+
+		    commit("metadata", [ path, {
+			"writable": true,
+		    }] );
+		}
+
+		commit("recordLoaded", path );
+	    },
+	    async cacheReviewSummary ({ dispatch, commit }, review_summary ) {
+		const path		= dataTypePath.reviewSummary( review_summary.$id );
+
+		commit("cacheEntity", [ path, review_summary ] );
+		commit("recordLoaded", path );
+
+		let agent_info		= await dispatch("getAgent");
+
+		commit("metadata", [ path, {
+		    "writable": false,
+		}] );
+	    },
+	    async cacheReaction ({ dispatch, commit }, reaction ) {
+		const path		= dataTypePath.reaction( reaction.$id );
+
+		const agent_info	= await dispatch("getAgent");
+		const author_is_me	= common.hashesAreEqual( reaction.author, agent_info.pubkey.initial );
+
+		commit("cacheEntity", [ path, reaction ] );
+
+		if ( author_is_me ) {
+		    const agent_path	= dataTypePath.agentReactions( "me" );
+
+		    for ( let [id, _] of reaction.subject_ids ) {
+			commit("cacheValueInsert", [ agent_path, id, reaction ] );
+		    }
+
+		    commit("metadata", [ path, {
+			"writable": true,
+		    }] );
+		}
+
+		commit("recordLoaded", path );
+	    },
+	    async cacheReactionSummary ({ dispatch, commit }, reaction_summary ) {
+		const path		= dataTypePath.reactionSummary( reaction_summary.$id );
+
+		commit("cacheEntity", [ path, reaction_summary ] );
+		commit("recordLoaded", path );
+
+		let agent_info		= await dispatch("getAgent");
+
+		commit("metadata", [ path, {
+		    "writable": false,
 		}] );
 	    },
 
@@ -711,7 +892,7 @@ module.exports = async function ( client, app ) {
 		return zomes;
 	    },
 
-	    async fetchZomesByName ({ dispatch, commit }, name ) {
+	    async fetchZomesByName ({ dispatch }, name ) {
 		const path		= dataTypePath.zomesByName( name );
 		const zomes		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_zomes_by_filter", {
@@ -742,7 +923,7 @@ module.exports = async function ( client, app ) {
 		return dnas;
 	    },
 
-	    async fetchDnasByName ({ dispatch, commit }, name ) {
+	    async fetchDnasByName ({ dispatch }, name ) {
 		const path		= dataTypePath.dnasByName( name );
 		const dnas		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_dnas_by_filter", {
@@ -776,6 +957,30 @@ module.exports = async function ( client, app ) {
 		return happs;
 	    },
 
+	    async fetchMyReviews ({ dispatch }) {
+		const path		= dataTypePath.agentReviews( "me" );
+		const reviews		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "reviews", "get_my_reviews",
+		]);
+
+		for ( let review of reviews )
+		    await dispatch("cacheReview", review );
+
+		return reviews;
+	    },
+
+	    async fetchMyReactions ({ dispatch }) {
+		const path		= dataTypePath.agentReactions( "me" );
+		const reactions		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "reviews", "get_my_reactions",
+		]);
+
+		for ( let reaction of reactions )
+		    await dispatch("cacheReaction", reaction );
+
+		return reactions;
+	    },
+
 
 	    //
 	    // Zome
@@ -787,7 +992,7 @@ module.exports = async function ( client, app ) {
 		    return await dispatch("fetchZome", id );
 	    },
 
-	    async fetchZome ({ dispatch, commit }, id ) {
+	    async fetchZome ({ dispatch }, id ) {
 		const path		= dataTypePath.zome( id );
 		const zome		= await dispatch("fetchEntity", [
 		    path, "dnarepo", "dna_library", "get_zome", { id }
@@ -798,7 +1003,7 @@ module.exports = async function ( client, app ) {
 		return zome;
 	    },
 
-	    async fetchVersionsForZome ({ dispatch, commit }, zome_id ) {
+	    async fetchVersionsForZome ({ dispatch }, zome_id ) {
 		const path		= dataTypePath.zomeVersions( zome_id );
 		const versions		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_zome_versions", { "for_zome": zome_id }
@@ -877,7 +1082,7 @@ module.exports = async function ( client, app ) {
 		return zomes;
 	    },
 
-	    async fetchZomesWithHDKVersion ({ dispatch, commit }, hdk_version ) {
+	    async fetchZomesWithHDKVersion ({ dispatch }, hdk_version ) {
 		const path		= dataTypePath.zomes( hdk_version );
 		const zomes		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_zomes_with_an_hdk_version", hdk_version
@@ -900,7 +1105,7 @@ module.exports = async function ( client, app ) {
 		    return await dispatch("fetchZomeVersion", id );
 	    },
 
-	    async fetchZomeVersion ({ dispatch, commit }, id ) {
+	    async fetchZomeVersion ({ dispatch }, id ) {
 		const path		= dataTypePath.zomeVersion( id );
 		const version		= await dispatch("fetchEntity", [
 		    path, "dnarepo", "dna_library", "get_zome_version", { id }
@@ -911,7 +1116,7 @@ module.exports = async function ( client, app ) {
 		return version;
 	    },
 
-	    async fetchZomeVersionsByHash ({ dispatch, commit }, hash ) {
+	    async fetchZomeVersionsByHash ({ dispatch }, hash ) {
 		const path		= dataTypePath.zomeVersionsByHash( hash );
 		const versions		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_zome_versions_by_filter", {
@@ -965,6 +1170,50 @@ module.exports = async function ( client, app ) {
 		]);
 	    },
 
+	    async updateZomeVersionReviewSummary ({ dispatch, getters }, id ) {
+		const entity		= getters.zome_version( id );
+		const path		= dataTypePath.zomeVersion( id );
+
+		const reviews		= await dispatch("fetchReviewsForBase", id );
+		for ( let review of reviews ) {
+		    try {
+			await dispatch("updateReviewReactionSummary", review.$id );
+		    }
+		    catch (err) {
+			if ( err.message.includes("Not updating") || err.message.includes("summary is not better") )
+			    console.error("Error is ok...");
+			else
+			    console.error( err );
+		    }
+		}
+
+		if ( entity.review_summary ) {
+		    const summary		= await dispatch("getReviewSummary", entity.review_summary );
+
+		    // If the review summary report has been updated in the last 24 hours, then do nothing.
+		    if ( summary.last_updated > common.pastTime( 24 ) )
+			throw new Error(`Not updating review summary for zome version (${id}) because it was updated within the last 24 hours: ${$filters.time(summary.last_updated)}`);
+		    else {
+			await dispatch("updateReviewSummary", entity.review_summary );
+		    }
+
+		    return entity;
+		}
+		else {
+		    log.normal("Updating Zome Version Review Summary (%s)", String(entity.$addr) );
+		    const zome_version = await dispatch("updateEntity", [
+			path, "dnarepo", "dna_library", "create_zome_version_review_summary", {
+			    "subject_header": entity.$header,
+			    "addr": entity.$addr,
+			}
+		    ]);
+
+		    await dispatch("cacheZomeVersion", zome_version );
+
+		    return zome_version;
+		}
+	    },
+
 	    async unpublishZomeVersion ({ dispatch }, id ) {
 		const path		= dataTypePath.zomeVersion( id );
 
@@ -985,7 +1234,7 @@ module.exports = async function ( client, app ) {
 		    return await dispatch("fetchDna", id );
 	    },
 
-	    async fetchDna ({ dispatch, commit }, id ) {
+	    async fetchDna ({ dispatch }, id ) {
 		const path		= dataTypePath.dna( id );
 		const dna		= await dispatch("fetchEntity", [
 		    path, "dnarepo", "dna_library", "get_dna", { id }
@@ -996,7 +1245,7 @@ module.exports = async function ( client, app ) {
 		return dna;
 	    },
 
-	    async fetchVersionsForDna ({ dispatch, commit }, dna_id ) {
+	    async fetchVersionsForDna ({ dispatch }, dna_id ) {
 		const path		= dataTypePath.dnaVersions( dna_id );
 		const versions		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_dna_versions", { "for_dna": dna_id }
@@ -1075,7 +1324,7 @@ module.exports = async function ( client, app ) {
 		return dnas;
 	    },
 
-	    async fetchDnasWithHDKVersion ({ dispatch, commit }, hdk_version ) {
+	    async fetchDnasWithHDKVersion ({ dispatch }, hdk_version ) {
 		const path		= dataTypePath.dnas( hdk_version );
 		const dnas		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_dnas_with_an_hdk_version", hdk_version
@@ -1098,7 +1347,7 @@ module.exports = async function ( client, app ) {
 		    return await dispatch("fetchDnaVersion", id );
 	    },
 
-	    async fetchDnaVersion ({ dispatch, commit }, id ) {
+	    async fetchDnaVersion ({ dispatch }, id ) {
 		const path		= dataTypePath.dnaVersion( id );
 
 		const version		= await dispatch("fetchEntity", [
@@ -1110,7 +1359,7 @@ module.exports = async function ( client, app ) {
 		return version;
 	    },
 
-	    async fetchDnaVersionsByHash ({ dispatch, commit }, hash ) {
+	    async fetchDnaVersionsByHash ({ dispatch }, hash ) {
 		const path		= dataTypePath.dnaVersionsByHash( hash );
 		const versions		= await dispatch("fetchCollection", [
 		    path, "dnarepo", "dna_library", "get_dna_versions_by_filter", {
@@ -1185,7 +1434,7 @@ module.exports = async function ( client, app ) {
 		    return await dispatch("fetchHapp", id );
 	    },
 
-	    async fetchHapp ({ dispatch, commit }, id ) {
+	    async fetchHapp ({ dispatch }, id ) {
 		const path		= dataTypePath.happ( id );
 
 		log.debug("Getting happ %s", String(id) );
@@ -1290,7 +1539,7 @@ module.exports = async function ( client, app ) {
 		    return await dispatch("fetchHappRelease", id );
 	    },
 
-	    async fetchHappRelease ({ dispatch, commit }, id ) {
+	    async fetchHappRelease ({ dispatch }, id ) {
 		const path		= dataTypePath.happRelease( id );
 
 		log.debug("Getting happ release %s", String(id) );
@@ -1374,7 +1623,7 @@ module.exports = async function ( client, app ) {
 	    //
 	    // Miscellaneous
 	    //
-	    async fetchHDKVersions ({ dispatch, commit }) {
+	    async fetchHDKVersions ({ dispatch }) {
 		const path		= dataTypePath.hdkVersions();
 
 		log.debug("Getting previous HDK versions");
@@ -1459,6 +1708,8 @@ module.exports = async function ( client, app ) {
 		const path		= dataTypePath.bundle( file.hash );
 
 		commit("signalLoading", path );
+
+		await common.delay();
 
 		log.info("Unpacking bundle with %s bytes", file.bytes.length );
 		const msgpack_bytes	= gzip.unzip( file.bytes );
@@ -1559,6 +1810,302 @@ module.exports = async function ( client, app ) {
 		commit("recordLoaded", path );
 
 		return manifest;
+	    },
+
+	    async getUrlPreview ({ dispatch, commit }, url ) {
+		const path		= dataTypePath.url( url );
+
+		commit("signalLoading", path );
+
+		try {
+		    const url_info	= await common.http_info( url );
+
+		    commit("cacheValue", [ path, url_info ] );
+
+		    return url_info;
+		} finally {
+		    commit("recordLoaded", path );
+		}
+	    },
+
+
+	    //
+	    // Reviews
+	    //
+	    async getReview ({ dispatch, getters }, id ) {
+		if ( getters.review( id ) )
+		    return getters.review( id );
+		else
+		    return await dispatch("fetchReview", id );
+	    },
+
+	    async fetchReview ({ dispatch }, id ) {
+		const path		= dataTypePath.review( id );
+		const review		= await dispatch("fetchEntity", [
+		    path, "dnarepo", "reviews", "get_review", { id }
+		]);
+
+		await dispatch("cacheReview", review );
+
+		return review;
+	    },
+
+	    async fetchReviewsForBase ({ dispatch }, base_hash ) {
+		const path		= dataTypePath.reviews( base_hash );
+		const reviews		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "reviews", "get_reviews_for_subject", { "id": base_hash }
+		]);
+
+		for ( let review of reviews )
+		    await dispatch("cacheReview", review );
+
+		return reviews;
+	    },
+
+	    async createReview ({ dispatch }, input ) {
+		log.normal("Creating Review: %s", input.subject_id );
+		return await dispatch("createEntity", [
+		    dataTypePath.review, "dnarepo", "reviews", "create_review", input
+		]);
+	    },
+
+	    async updateReview ({ dispatch, getters }, [ id, input ] ) {
+		const entity		= getters.review( id );
+		const path		= dataTypePath.review( id );
+
+		log.normal("Updating Review (%s)", String(entity.$addr) );
+		return await dispatch("updateEntity", [
+		    path, "dnarepo", "reviews", "update_review", {
+			"addr": entity.$addr,
+			"properties": input,
+		    }
+		]);
+	    },
+
+	    async updateReviewReactionSummary ({ dispatch, getters }, id ) {
+		const entity		= getters.review( id );
+		const path		= dataTypePath.review( id );
+
+		if ( entity.reaction_summary ) {
+		    const summary		= await dispatch("getReactionSummary", entity.reaction_summary );
+
+		    // If the reaction summary report has been updated in the last 24 hours, then do nothing.
+		    if ( summary.last_updated > common.pastTime( 24 ) )
+			throw new Error(`Not updating reaction summary for zome version (${id}) because it was updated within the last 24 hours: ${$filters.time(summary.last_updated)}`);
+		    else
+			await dispatch("updateReactionSummary", entity.reaction_summary );
+
+		    return entity;
+		}
+		else {
+		    log.normal("Updating Review Reaction Summary (%s)", String(entity.$addr) );
+		    return await dispatch("updateEntity", [
+			path, "dnarepo", "reviews", "create_review_reaction_summary", {
+			    "subject_header": entity.$header,
+			    "addr": entity.$addr,
+			}
+		    ]);
+		}
+	    },
+
+	    async unpublishReview ({ dispatch }, id ) {
+		const path		= dataTypePath.review( id );
+
+		log.normal("Deleting Review (%s)", String(id) );
+		return await dispatch("unpublishEntity", [
+		    path, "dnarepo", "reviews", "delete_review", { id }
+		]);
+	    },
+
+
+	    //
+	    // Review Summaries
+	    //
+	    async getReviewSummary ({ dispatch, getters }, id ) {
+		if ( getters.review_summary( id ) )
+		    return getters.review_summary( id );
+		else
+		    return await dispatch("fetchReviewSummary", id );
+	    },
+
+	    async fetchReviewSummary ({ dispatch }, id ) {
+		const path		= dataTypePath.reviewSummary( id );
+		const summary		= await dispatch("fetchEntity", [
+		    path, "dnarepo", "reviews", "get_review_summary", { id }
+		]);
+
+		await dispatch("cacheReviewSummary", summary );
+
+		return summary;
+	    },
+
+	    async fetchReviewSummariesForBase ({ dispatch }, base_hash ) {
+		const path		= dataTypePath.reviewSummaries( base_hash );
+		const summaries		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "reviews", "get_review_summaries_for_subject", { "id": base_hash }
+		]);
+
+		for ( let summary of summaries )
+		    await dispatch("cacheReviewSummary", summary );
+
+		return summaries;
+	    },
+
+	    async updateReviewSummary ({ dispatch, getters }, id ) {
+		const entity		= getters.review_summary( id );
+		const path		= dataTypePath.reviewSummary( id );
+
+		log.normal("Updating Review Summary (%s)", id );
+		return await dispatch("updateEntity", [
+		    path, "dnarepo", "reviews", "update_review_summary", { id }
+		]);
+	    },
+
+	    // async getBestReviewSummaryForBase ({ dispatch, getters }, base_hash ) {
+	    // 	const path		= dataTypePath.reviewSummaries( base_hash );
+
+	    // 	if ( getters.review_summaries( base_hash ).length === 0 )
+	    // 	    await dispatch("fetchReviewSummariesForBase", base_hash );
+
+	    // 	const summaries		= getters.review_summaries( base_hash );
+
+	    // 	return summaries.reduce( (acc, summary, i) => {
+	    // 	    if ( acc === null )
+	    // 		return summary;
+
+	    // 	    if ( summary.factored_action_count > acc.factored_action_count )
+	    // 		return summary;
+
+	    // 	    return acc;
+	    // 	}, null );
+	    // },
+
+
+	    //
+	    // Reactions
+	    //
+	    async getReaction ({ dispatch, getters }, id ) {
+		if ( getters.reaction( id ) )
+		    return getters.reaction( id );
+		else
+		    return await dispatch("fetchReaction", id );
+	    },
+
+	    async fetchReaction ({ dispatch }, id ) {
+		const path		= dataTypePath.reaction( id );
+		const reaction		= await dispatch("fetchEntity", [
+		    path, "dnarepo", "reviews", "get_reaction", { id }
+		]);
+
+		await dispatch("cacheReaction", reaction );
+
+		return reaction;
+	    },
+
+	    async fetchReactionsForBase ({ dispatch }, base_hash ) {
+		const path		= dataTypePath.reactions( base_hash );
+		const reactions		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "reviews", "get_reactions_for_subject", { "id": base_hash }
+		]);
+
+		for ( let reaction of reactions )
+		    await dispatch("cacheReaction", reaction );
+
+		return reactions;
+	    },
+
+	    async createReaction ({ dispatch, getters }, [ subject, reaction_type ] ) {
+		log.normal("Creating Reaction: %s", reaction_type );
+
+		const reaction		= await dispatch("createEntity", [
+		    dataTypePath.reaction, "dnarepo", "reviews", "create_reaction", {
+			"subject_ids": [
+			    [ subject.$id, subject.$header ],
+			],
+			"reaction_type": reaction_type,
+		    },
+		]);
+
+		await dispatch("cacheReaction", reaction );
+
+		return reaction;
+	    },
+
+	    async updateReaction ({ dispatch, getters }, [ id, input ] ) {
+		const entity		= getters.reaction( id );
+		const path		= dataTypePath.reaction( id );
+
+		log.normal("Updating Reaction (%s)", entity.$addr );
+		const reaction		= await dispatch("updateEntity", [
+		    path, "dnarepo", "reviews", "update_reaction", {
+			"addr": entity.$addr,
+			"properties": input,
+		    }
+		]);
+
+		await dispatch("cacheReaction", reaction );
+
+		return reaction;
+	    },
+
+	    async deleteReaction ({ dispatch, getters }, id ) {
+		const entity		= getters.reaction( id );
+		const path		= dataTypePath.reaction( id );
+
+		log.normal("Deleting Reaction (%s)", id );
+		const reaction		= await dispatch("updateEntity", [
+		    path, "dnarepo", "reviews", "delete_reaction", {
+			"addr": entity.$addr,
+		    }
+		]);
+
+		await dispatch("cacheReaction", reaction );
+
+		return reaction;
+	    },
+
+
+	    //
+	    // Reaction Summaries
+	    //
+	    async getReactionSummary ({ dispatch, getters }, id ) {
+		if ( getters.reaction_summary( id ) )
+		    return getters.reaction_summary( id );
+		else
+		    return await dispatch("fetchReactionSummary", id );
+	    },
+
+	    async fetchReactionSummary ({ dispatch }, id ) {
+		const path		= dataTypePath.reactionSummary( id );
+		const reaction		= await dispatch("fetchEntity", [
+		    path, "dnarepo", "reviews", "get_reaction_summary", { id }
+		]);
+
+		await dispatch("cacheReactionSummary", reaction );
+
+		return reaction;
+	    },
+
+	    async fetchReactionSummariesForBase ({ dispatch }, base_hash ) {
+		const path		= dataTypePath.reactionSummaries( base_hash );
+		const summaries		= await dispatch("fetchCollection", [
+		    path, "dnarepo", "reviews", "get_reaction_summaries_for_subject", { "id": base_hash }
+		]);
+
+		for ( let summary of summaries )
+		    await dispatch("cacheReactionSummary", summary );
+
+		return summaries;
+	    },
+
+	    async updateReactionSummary ({ dispatch, getters }, id ) {
+		const entity		= getters.reaction_summary( id );
+		const path		= dataTypePath.reactionSummary( id );
+
+		log.normal("Updating Reaction Summary (%s)", id );
+		return await dispatch("updateEntity", [
+		    path, "dnarepo", "reviews", "update_reaction_summary", { id }
+		]);
 	    },
 	},
     });

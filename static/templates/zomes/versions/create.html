@@ -10,7 +10,15 @@
 	    <input-feedback>
 		<div class="input-group">
 		    <span class="input-group-text">v</span>
-		    <input type="number" v-model.number="input.version" class="form-control" :disabled="saving" required>
+		    <input v-model="input.version" class="form-control" :disabled="saving" required>
+		</div>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Ordering</label>
+	    <input-feedback>
+		<div class="input-group">
+		    <span class="input-group-text">v</span>
+		    <input type="number" v-model.number="input.ordering" class="form-control" :disabled="saving" required>
 		</div>
 	    </input-feedback>
 
@@ -45,6 +53,54 @@
 	    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
 		<input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving" required>
 	    </input-feedback>
+
+	    <label class="form-label fw-6">Source Code (commit) URL</label>
+	    <input-feedback class="mb-3">
+		<input v-model="input.source_code_commit_url" class="form-control">
+	    </input-feedback>
+
+	    <loading :when="$sc_url_preview.loading">
+		<!-- Is there a preview? -->
+		<div v-if="input.metadata.source_code_url_preview || (input.metadata && input.metadata.source_code_url_preview)">
+		    <!-- Preview is changing -->
+		    <template v-if="input.metadata && input.metadata.source_code_url_preview">
+			<h4>New Preview</h4>
+			<link-preview :info="input.metadata.source_code_url_preview"></link-preview>
+		    </template>
+
+		    <!-- Display current preview -->
+		    <template v-else>
+			<h4>Preview</h4>
+			<link-preview :info="input.metadata.source_code_url_preview"></link-preview>
+		    </template>
+
+		    <!-- Update or Remove preview info -->
+		    <div class="row mt-3">
+			<div class="col-6">
+			    <a @click="createSourceCodeUrlPreview( input.source_code_commit_url )"
+			       class="btn btn-outline-primary w-100"
+			       :class="{ 'disabled': saving }">
+				Update URL Preview
+			    </a>
+			</div>
+			<div class="col-6">
+			    <a @click="createSourceCodeUrlPreview( null )"
+			       class="btn btn-outline-secondary w-100">
+				Remove Preview
+			    </a>
+			</div>
+		    </div>
+		</div>
+		<!-- No preview yet -->
+		<div v-else>
+		    <a @click="createSourceCodeUrlPreview( input.source_code_commit_url )"
+		       class="btn btn-outline-primary w-100">
+			Create URL Preview
+		    </a>
+		</div>
+
+		<!-- <pre>{{ $debug(input) }}</pre> -->
+	    </loading>
 
 	    <display-error class="mt-5" :error="error"></display-error>
 

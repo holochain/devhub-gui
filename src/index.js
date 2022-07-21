@@ -150,6 +150,26 @@ window.PersistentStorage		= {
 	    $agent () {
 		return this.$store.getters.$agent;
 	    },
+
+	    reviews () {
+		return this.$store.getters.reviews;
+	    },
+	    reviewsMap () {
+		return this.$store.getters.reviews_by_subject;
+	    },
+	    $reviews () {
+		return this.$store.getters.$my_reviews;
+	    },
+
+	    reactions () {
+		return this.$store.getters.reactions;
+	    },
+	    reactionsMap () {
+		return this.$store.getters.reactions_by_subject;
+	    },
+	    $reactions () {
+		return this.$store.getters.$my_reactions;
+	    },
 	},
 	async created () {
 	    this.$router.afterEach( (to, from, failure) => {
@@ -168,6 +188,9 @@ window.PersistentStorage		= {
 		let agent_info		= await this.$store.dispatch("fetchAgent");
 
 		this.agent_id		= agent_info.pubkey.current;
+
+		await this.$store.dispatch("fetchMyReviews");
+		await this.$store.dispatch("fetchMyReactions");
 	    } catch (err) {
 		if ( err instanceof TimeoutError )
 		    return this.showStatusView( 408, {
@@ -195,6 +218,7 @@ window.PersistentStorage		= {
     });
 
     const store				= await store_init( client );
+    window.store			= store;
 
     app.mixin({
 	data () {
@@ -273,6 +297,41 @@ window.PersistentStorage		= {
 		}
 	    },
 
+	    hasReactionForSubject ( id, reaction_type ) {
+		if ( !(this.$root.$reactions.current && this.$root.reactionsMap) )
+		    return false;
+
+		// console.log("Checking for %s in reaction map:", id, this.$root.reactionsMap );
+		const reaction		= this.$root.reactionsMap[ id ];
+
+		if ( !reaction )
+		    return false;
+
+		if ( reaction.deleted )
+		    return null;
+
+		if ( reaction_type === undefined )
+		    return true;
+
+		return reaction.reaction_type == reaction_type;
+	    },
+
+	    hasReviewForSubject ( id ) {
+		if ( !(this.$root.$reviews.current && this.$root.reviewsMap) )
+		    return false;
+
+		// console.log("Checking for %s in review map:", id, this.$root.reviewsMap );
+		const review		= this.$root.reviewsMap[ id ];
+
+		if ( !review )
+		    return false;
+
+		if ( review.deleted )
+		    return null;
+
+		return true;
+	    },
+
 	    ...common,
 	},
     });
@@ -289,10 +348,12 @@ window.PersistentStorage		= {
 
     const components			= [
 	"Breadcrumbs",
+	"Datetime",
 	"DeprecationAlert",
 	"DisplayError",
 	"HoloHash",
 	"InputFeedback",
+	"LinkPreview",
 	"ListGroup",
 	"ListGroupItem",
 	"Loading",
@@ -300,8 +361,8 @@ window.PersistentStorage		= {
 	"PageHeader",
 	"PageView",
 	"Placeholder",
+	"RatingStars",
 	"Search",
-	"Datetime",
 
 	"ZomeCard",
 	"ZomeVersionCard",

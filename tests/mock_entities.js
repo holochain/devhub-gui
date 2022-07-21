@@ -56,7 +56,7 @@ function ZomeVersionEntry ( cell_state = {}, opts = {} ) {
 	"changelog":		faker.lorem.sentence() + "..",
 	"mere_memory_addr":	new EntryHash( crypto.randomBytes(32) ),
 	"mere_memory_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
-	"hdk_version":		`v0.0.${faker.datatype.number(100, 132)}`,
+	"hdk_version":		`v0.0.${faker.datatype.number({ min: 100, max: 132 })}`,
 	"metadata":		{},
     };
 }

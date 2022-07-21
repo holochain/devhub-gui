@@ -13,6 +13,7 @@
 
     <div class="mb-4">
 	<h1 class="fs-2"><placeholder :when="!$zome.current" size="25%">{{ zome.display_name || zome.name }}</placeholder></h1>
+	<rating-stars v-if="summary" class="fs-5 text-primary" :rating="aggregateSummary( summary ).average"></rating-stars>
     </div>
 
     <page-header class="mb-2 p-3">
@@ -76,6 +77,15 @@
 
 			<dt class="col-sm-12">Resource Hash</dt>
 			<dd class="col-sm-12"><placeholder :when="!$version.current"><code>{{ version.mere_memory_hash }}</code></placeholder></dd>
+
+			<dt class="col-sm-12">Source Code</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.current">
+				<link-preview v-if="version.metadata.source_code_url_preview"
+					      :info="version.metadata.source_code_url_preview"></link-preview>
+				<a v-else :href="version.source_code_commit_url" target="_blank">{{ version.source_code_commit_url }}</a>
+			    </placeholder>
+			</dd>
 		    </dl>
 
 		    <loading :when="!$version.current">
@@ -93,8 +103,147 @@
 	</div>
     </div>
 
+    <div class="row mt-5">
+	<div class="d-flex mb-3">
+	    <h2 class="fs-4 flex-grow-1">Reviews</h2>
+
+	    <a v-if="hasReviewForSubject( id )"
+	       @click="editReview( $root.reviewsMap[ id ] )" class="btn btn-outline-primary text-nowrap">
+		<i class="bi-pencil"></i>
+		Update Review
+	    </a>
+	    <a v-else
+	       @click="reviewModal.show()" class="btn btn-primary text-nowrap">
+		<i class="bi-pencil"></i>
+		Write Review
+	    </a>
+	</div>
+
+	<div class="col-8">
+	    <list-group :list="reviews" no-result-text="No Zome Reviews"
+			:loading="$reviews.loading" :border="true">
+		<list-group-item v-for="review in reviews" class="p-3 pb-1">
+		    <div class="row">
+			<div class="col-8 pb-2">
+			    <div class="d-flex">
+				<div class="flex-grow-1">
+				    <div class="d-flex align-items-center">
+					<i class="bi-person-circle fs-1 me-3"></i>
+					<holo-hash :hash="review.author"></holo-hash>
+					<span v-if="$zome.current && hashesAreEqual( zome.developer, review.author )"
+					      class="badge bg-light text-dark ms-1">Developer</span>
+				    </div>
+				    <rating-stars :rating="average( ...Object.values( review.ratings ) )"></rating-stars>
+				</div>
+				<datetime :datetime="review.published_at"></datetime>
+			    </div>
+			    <blockquote class="blockquote mb-0">
+				<p style="white-space: pre-wrap;">{{ review.message }}</p>
+			    </blockquote>
+			</div>
+			<div class="col-4 d-flex flex-column">
+			    <div class="flex-grow-1 d-flex">
+				<div class="flex-grow-1">
+				</div>
+				<div class="d-flex flex-column">
+				    <a v-if="$review( review.$id ).writable"
+				       class="btn btn-outline-secondary"
+				       @click="editReview( review )">
+					<i class="bi-pencil me-0"></i>
+				    </a>
+				    <template v-else-if="review.message">
+					<span class="text-smaller">Is this helpful?</span>
+					<div class="d-flex justify-content-around">
+					    <a @click="doReaction( review, 1 )">
+						<i v-if="hasReactionForSubject( review.$id, 1 )"
+						   class="bi-hand-thumbs-up-fill fs-3"></i>
+						<i v-else class="bi-hand-thumbs-up fs-3"></i>
+					    </a>
+					    <a @click="doReaction( review, 2 )">
+						<i v-if="hasReactionForSubject( review.$id, 2 )"
+						   class="bi-hand-thumbs-down-fill fs-3"></i>
+						<i v-else class="bi-hand-thumbs-down fs-3"></i>
+					    </a>
+					</div>
+				    </template>
+				</div>
+			    </div>
+			    <div class="d-flex justify-content-end">
+				<!-- <a @click="updateReactionSummaryReport( review )" class="btn btn-outline-primary text-nowrap ms-2"> -->
+				<!--     <span v-if="review.calculating" -->
+				<!-- 	  class="spinner-border spinner-border-sm me-3"></span> -->
+				<!--     {{ review.reaction_summary ? 'Rec' : 'C' }}alculate Reaction -->
+				<!-- </a> -->
+				<!-- <a @click="" class="d-flex align-items-center"> -->
+				<!--     <i class="bi-chat fs-3 me-1"></i> -->
+				<!--     <span class="text-bigger">Reply</span> -->
+				<!-- </a> -->
+			    </div>
+			</div>
+		    </div>
+		</list-group-item>
+	    </list-group>
+	</div>
+	<div class="col-4">
+	    <ul v-if="summary" class="list-group">
+		<li v-for="(rating, name) in aggregateSummary( summary ).breakdown" class="list-group-item d-flex">
+		    <span class="flex-grow-1">{{ capitalize( name ) }}</span>
+		    <rating-stars :rating="rating"></rating-stars>
+		</li>
+	    </ul>
+
+	    <div v-if="$version.writable && $reviews.current && reviews.length > 1" class="my-3 text-end">
+		<a @click="updateReviewSummaryReport( true )" class="btn btn-outline-primary text-nowrap ms-2">
+		    <span v-if="calculating"
+			  class="spinner-border spinner-border-sm me-3"></span>
+		    {{ version.review_summary ? 'Rec' : 'C' }}alculate Reviews
+		</a>
+
+		<display-error class="my-3" :error="review_summary_error"></display-error>
+	    </div>
+	    <!-- 	<p><span class="fw-light">{{ summary.accuracy_average.toFixed(1) }}</span>/10</p> -->
+	    <!-- 	<p><span class="fw-light">{{ summary.efficiency_average.toFixed(1) }}</span>/10</p> -->
+	</div>
+    </div>
+
     <modal v-if="version && zome" title="Unpublish Zome Version" ref="modal"
 	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
 	<p>Are you sure you want to unpublish the {{ zome.name }} Zome Version <strong>{{ version.version }}</strong>?</p>
+    </modal>
+
+    <modal title="Post review" ref="review"
+	   action-text="Post" :action="postReview" :cancel="resetReviewEdit" data-bs-backdrop="static">
+	<form ref="form_review" :class="{ 'was-validated': review.validated }">
+	    <div v-for="rating_type in ['accuracy', 'efficiency']" class="mb-1">
+		<div v-if="review.ratings[rating_type] === undefined">
+		    <a @click="updateReviewRating( rating_type, 5 )" class="btn btn-outline-primary text-nowrap"
+		       :class="{ 'border-danger': review.validated && reviewInputMissingRating() }">
+			Add {{ capitalize( rating_type ) }} Rating
+		    </a>
+		</div>
+		<div v-else class="row align-items-center">
+		    <div class="col-5 text-start">
+			<a @click="updateReviewRating( rating_type, undefined )" class="btn btn-outline-secondary text-nowrap">
+			    Cancel
+			</a>
+		    </div>
+		    <div class="col-7">
+			<label class="form-label">{{ capitalize( rating_type ) }} Rating</label>
+			<div class="d-flex justify-content-center">
+			    <a class="pe-2" @click="updateReviewRating( rating_type, 0 )">None</a>
+			    <i v-for="i in 5" class="p-1 cursor-pointer"
+			       :class="starClass( rating_type, i )"
+			       @click="updateReviewRating( rating_type, i*2 )"></i>
+			</div>
+		    </div>
+		</div>
+	    </div>
+
+	    <label class="form-label">Message</label>
+	    <input-feedback>
+		<textarea v-model="review.message" class="form-control" rows="4"
+			  placeholder="Message (optional)"></textarea>
+	    </input-feedback>
+	</form>
     </modal>
 </page-view>

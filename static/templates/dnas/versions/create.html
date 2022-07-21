@@ -32,8 +32,13 @@
 		<input-feedback>
 		    <div class="input-group">
 			<span class="input-group-text">v</span>
-			<input type="number" v-model.number="input.version" class="form-control" :disabled="saving" required>
+			<input v-model="input.version" class="form-control" :disabled="saving" required>
 		    </div>
+		</input-feedback>
+
+		<label class="form-label fw-6">Ordering</label>
+		<input-feedback>
+		    <input type="number" v-model.number="input.ordering" class="form-control" :disabled="saving" required>
 		</input-feedback>
 
 		<label class="form-label fw-6">Changelog</label>

@@ -82,6 +82,14 @@
 			    </dd>
 			</dl>
 
+			<label class="form-label fw-6">Ordering</label>
+			<placeholder :when="!$release.current">
+			    <input-feedback>
+				<input type="number" v-model.number="release.ordering" class="form-control"
+				       @change="copy(release, input, 'ordering')" required>
+			    </input-feedback>
+			</placeholder>
+
 			<label class="form-label fw-6">Drag and drop zipped GUI</label>
 			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
 			    <input type="file" @change="file_selected" class="form-control form-input-file" :disabled="$release.updating || saving_gui">

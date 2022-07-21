@@ -1,4 +1,5 @@
 const { EntryHash,
+	HeaderHash,
 	AgentPubKey }			= holohash;
 
 
@@ -76,6 +77,42 @@ module.exports = {
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
 	    content.mere_memory_addr	= new EntryHash( content.mere_memory_addr );
+
+	    if ( content.review_summary )
+		content.review_summary	= new EntryHash( content.review_summary );
+
+	    return content;
+	},
+    },
+    // Reviews
+    "review": {
+	"*": function ( content ) {
+	    content.published_at	= new Date( content.published_at );
+	    content.last_updated	= new Date( content.last_updated );
+	    content.author		= new AgentPubKey( content.author );
+
+	    if ( content.reaction_summary )
+		content.reaction_summary = new EntryHash( content.reaction_summary );
+
+	    content.subject_ids.forEach( ([id, header], i) => {
+		content.subject_ids[i]	= [ new EntryHash( id ), new HeaderHash( header ) ];
+	    });
+
+	    return content;
+	},
+    },
+    // Reactions
+    "reaction": {
+	"*": function ( content ) {
+	    content.published_at	= new Date( content.published_at );
+	    content.last_updated	= new Date( content.last_updated );
+	    content.author		= new AgentPubKey( content.author );
+	    content.type_name		= content.reaction_type === 1 ? "like" : "dislike";
+
+	    content.subject_ids.forEach( ([id, header], i) => {
+		content.subject_ids[i]	= [ new EntryHash( id ), new HeaderHash( header ) ];
+	    });
+
 	    return content;
 	},
     },

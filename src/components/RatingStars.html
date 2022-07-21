@@ -1,0 +1,8 @@
+<div class="d-flex" :rating="rating">
+    <template v-for="i in 5">
+	<i v-if="(i*2)-1 < rating" class="bi-star-fill"></i>
+	<i v-else-if="(i*2)-1.5 <= rating" class="bi-star-half"></i>
+	<i v-else class="bi-star"></i>
+    </template>
+    <span class="ms-1">{{ (rating/2).toFixed(1) }}</span>
+</div>
