@@ -1,5 +1,5 @@
 const { EntryHash,
-	HeaderHash,
+	ActionHash,
 	AgentPubKey }			= holohash;
 
 
@@ -94,8 +94,8 @@ module.exports = {
 	    if ( content.reaction_summary )
 		content.reaction_summary = new EntryHash( content.reaction_summary );
 
-	    content.subject_ids.forEach( ([id, header], i) => {
-		content.subject_ids[i]	= [ new EntryHash( id ), new HeaderHash( header ) ];
+	    content.subject_ids.forEach( ([id, action], i) => {
+		content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
 	    });
 
 	    return content;
@@ -109,8 +109,8 @@ module.exports = {
 	    content.author		= new AgentPubKey( content.author );
 	    content.type_name		= content.reaction_type === 1 ? "like" : "dislike";
 
-	    content.subject_ids.forEach( ([id, header], i) => {
-		content.subject_ids[i]	= [ new EntryHash( id ), new HeaderHash( header ) ];
+	    content.subject_ids.forEach( ([id, action], i) => {
+		content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
 	    });
 
 	    return content;

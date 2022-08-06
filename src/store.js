@@ -1051,7 +1051,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Zome (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "dna_library", "update_zome", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1064,7 +1064,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Deprecating Zome (%s) because: %s", String(entity.$addr), message );
 		return await dispatch("deprecateEntity", [
 		    path, "dnarepo", "dna_library", "deprecate_zome", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"message": message,
 		    }
 		]);
@@ -1164,7 +1164,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Zome Version (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "dna_library", "update_zome_version", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1203,8 +1203,8 @@ module.exports = async function ( client, app ) {
 		    log.normal("Updating Zome Version Review Summary (%s)", String(entity.$addr) );
 		    const zome_version = await dispatch("updateEntity", [
 			path, "dnarepo", "dna_library", "create_zome_version_review_summary", {
-			    "subject_header": entity.$header,
-			    "addr": entity.$addr,
+			    "subject_action": entity.$action,
+			    "addr": entity.$action,
 			}
 		    ]);
 
@@ -1293,7 +1293,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating DNA (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "dna_library", "update_dna", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1306,7 +1306,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Deprecating DNA (%s) because: %s", String(entity.$addr), message );
 		return await dispatch("deprecateEntity", [
 		    path, "dnarepo", "dna_library", "deprecate_dna", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"message": message,
 		    }
 		]);
@@ -1408,7 +1408,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating DNA Version (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "dna_library", "update_dna_version", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1497,7 +1497,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Happ (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "happs", "happ_library", "update_happ", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1510,7 +1510,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Deprecating Happ (%s) because: %s", String(entity.$addr), message );
 		return await dispatch("deprecateEntity", [
 		    path, "happs", "happ_library", "deprecate_happ", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"message": message,
 		    }
 		]);
@@ -1604,7 +1604,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Happ Release (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "happs", "happ_library", "update_happ_release", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1876,7 +1876,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Review (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "reviews", "update_review", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1901,8 +1901,8 @@ module.exports = async function ( client, app ) {
 		    log.normal("Updating Review Reaction Summary (%s)", String(entity.$addr) );
 		    return await dispatch("updateEntity", [
 			path, "dnarepo", "reviews", "create_review_reaction_summary", {
-			    "subject_header": entity.$header,
-			    "addr": entity.$addr,
+			    "subject_action": entity.$action,
+			    "addr": entity.$action,
 			}
 		    ]);
 		}
@@ -2020,7 +2020,7 @@ module.exports = async function ( client, app ) {
 		const reaction		= await dispatch("createEntity", [
 		    dataTypePath.reaction, "dnarepo", "reviews", "create_reaction", {
 			"subject_ids": [
-			    [ subject.$id, subject.$header ],
+			    [ subject.$id, subject.$action ],
 			],
 			"reaction_type": reaction_type,
 		    },
@@ -2038,7 +2038,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Reaction (%s)", entity.$addr );
 		const reaction		= await dispatch("updateEntity", [
 		    path, "dnarepo", "reviews", "update_reaction", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -2055,7 +2055,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Deleting Reaction (%s)", id );
 		const reaction		= await dispatch("updateEntity", [
 		    path, "dnarepo", "reviews", "delete_reaction", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 		    }
 		]);
 

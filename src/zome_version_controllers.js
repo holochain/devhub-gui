@@ -3,7 +3,7 @@ const log				= new Logger("zome versions");
 
 const { load_html, http_info }		= require('./common.js');
 const md_converter			= new showdown.Converter({
-    "headerLevelStart": 3,
+    "actionLevelStart": 3,
 });
 
 
@@ -411,8 +411,8 @@ module.exports = async function ( client ) {
 			const zome		= await this.$store.dispatch("getZome", this.version.for_zome );
 
 			this.review.subject_ids	= [
-			    [ this.version.$id, this.version.$header ],
-			    [ zome.$id,		zome.$header ],
+			    [ this.version.$id, this.version.$action ],
+			    [ zome.$id,		zome.$action ],
 			];
 
 			await this.$store.dispatch("createReview", this.review );
@@ -448,10 +448,10 @@ module.exports = async function ( client ) {
 		    const breakdown		= {};
 
 		    for ( let review_id in summary.review_refs ) {
-			// (EntryHash, HeaderHash, AgentPubKey, u64, BTreeMap<String,u8>, Option<(HeaderHash, u64, BTreeMap<u64,u64>)>)
+			// (EntryHash, ActionHash, AgentPubKey, u64, BTreeMap<String,u8>, Option<(ActionHash, u64, BTreeMap<u64,u64>)>)
 			const [
 			    _,
-			    latest_header,
+			    latest_action,
 			    author,
 			    action_count,
 			    ratings,
