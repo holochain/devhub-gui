@@ -93,7 +93,22 @@
 			</div>
 		    </div>
 
-		    <list-group v-if="version" :list="Object.values(version.zomes)" no-result-text="No Zomes" class="my-5" :loading="!$version.current">
+		    <h4 class="fs-6 mt-5">Integrity Zomes</h4>
+		    <list-group v-if="version" :list="Object.values(version.integrity_zomes)" :loading="!$version.current">
+			<template v-for="(zome_version, name) in version.integrity_zomes">
+			    <zome-version-card v-if="zome_version" class="my-2"
+					       :title="zome_version.name || name"
+					       :id="zome_version.$id || zome_version.version"></zome-version-card>
+			    <div v-else class="card my-2">
+				<div class="card-body text-center">
+				    <p><i>This version of <strong>{{ name }}</strong> has been unpublished</i></p>
+				</div>
+			    </div>
+			</template>
+		    </list-group>
+
+		    <h4 class="fs-6 mt-5">Coordination Zomes</h4>
+		    <list-group v-if="version" :list="Object.values(version.zomes)" no-result-text="No Zomes" :loading="!$version.current">
 			<template v-for="(zome_version, name) in version.zomes">
 			    <zome-version-card v-if="zome_version" class="my-2"
 					       :title="zome_version.name || name"

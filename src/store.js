@@ -1735,11 +1735,11 @@ module.exports = async function ( client, app ) {
 		    resources[ key ]	= new Uint8Array( resources[ key ] );
 		}
 
-		if ( manifest.zomes ) {
+		if ( manifest.integrity && manifest.coordinator ) {
 		    log.trace("Detected a DNA bundle");
 		    manifest.type	= "dna";
 
-		    manifest.zomes.forEach( zome => {
+		    manifest.integrity.zomes.forEach( zome => {
 			log.trace("Preparing resource Promises for zome: %s", zome.bundled );
 
 			zome.bytes	= resources[ zome.bundled ];
@@ -1749,12 +1749,22 @@ module.exports = async function ( client, app ) {
 			delete zome.bundled;
 		    });
 
-		    manifest.zome_digests	= manifest.zomes.map( zome => zome.digest );
+		    manifest.zome_digests	= manifest.integrity.zomes.map( zome => zome.digest );
 
 		    const hashes	= manifest.zome_digests.slice();
 		    hashes.sort( common.array_compare );
 		    manifest.dna_digest	= common.digest( ...hashes );
 		    manifest.dna_hash	= common.toHex( manifest.dna_digest );
+
+		    manifest.coordinator.zomes.forEach( zome => {
+			log.trace("Preparing resource Promises for zome: %s", zome.bundled );
+
+			zome.bytes	= resources[ zome.bundled ];
+			zome.digest	= common.digest( zome.bytes );
+			zome.hash	= common.toHex( zome.digest );
+
+			delete zome.bundled;
+		    });
 		}
 		else if ( manifest.roles ) {
 		    log.trace("Detected a hApp bundle");

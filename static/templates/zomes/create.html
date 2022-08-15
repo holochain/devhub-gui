@@ -20,6 +20,24 @@
 		<textarea v-model="input.description" class="form-control" rows="3" :disabled="saving" required></textarea>
 	    </input-feedback>
 
+	    <label class="form-label fw-6">Zome Type</label>
+	    <div class="mb-3">
+		<div class="form-check">
+		    <input class="form-check-input" type="radio"
+			   name="zome_type" v-model.number="input.zome_type" :value="0">
+		    <label class="form-check-label">
+			Integrity Zome
+		    </label>
+		</div>
+		<div class="form-check">
+		    <input class="form-check-input" type="radio"
+			   name="zome_type" v-model.number="input.zome_type" :value="1">
+		    <label class="form-check-label">
+			Coordination Zome
+		    </label>
+		</div>
+	    </div>
+
 	    <!-- <div class="mt-5"> -->
 	    <!-- 	<h6>Developed by</h6> -->
 

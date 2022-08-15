@@ -46,20 +46,45 @@
 		    <textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="saving"></textarea>
 		</input-feedback>
 
-		<label class="form-label fw-6">Zomes</label>
+		<label class="form-label fw-6">Integrity Zomes</label>
+
+		<list-group :list="input.integrity_zomes" no-result-text="No Integrity Zomes have been added"
+			    class="mt-0">
+		    <list-group-item v-for="(zome_ref, index) in input.integrity_zomes" class="py-3">
+			<zome-version-card :id="zome_ref.version"
+					   :actions="zome_card_actions( index )"></zome-version-card>
+
+			<input-feedback class="mt-3">
+			    <div class="input-group">
+				<span class="input-group-text">Zome Name</span>
+				<input type="text" v-model="zome_ref.name" class="form-control" required :disabled="saving">
+			    </div>
+			</input-feedback>
+		    </list-group-item>
+		</list-group>
+
+		<label class="form-label fw-6">Coordination Zomes</label>
 
 		<list-group :list="input.zomes" no-result-text="No Zomes have been added"
 			    class="mt-0">
 		    <list-group-item v-for="(zome_ref, index) in input.zomes" class="py-3">
-			<input-feedback class="mb-3">
+			<zome-version-card :id="zome_ref.version"
+					   :actions="zome_card_actions( index )"></zome-version-card>
+
+			<input-feedback class="my-3">
 			    <div class="input-group">
 				<span class="input-group-text">Zome Name</span>
 				<input type="text" v-model="zome_ref.name" class="form-control" required :disabled="saving">
 			    </div>
 			</input-feedback>
 
-			<zome-version-card :id="zome_ref.version"
-					   :actions="zome_card_actions( index )"></zome-version-card>
+			<label class="form-label fw-6">Dependency Zome(s)</label>
+			<input-feedback class="mb-3">
+			    <select class="form-select" multiple required>
+				<option v-for="izome_ref in input.integrity_zomes"
+					:value="izome_ref.name">{{ izome_ref.name }}</option>
+			    </select>
+			</input-feedback>
 		    </list-group-item>
 		</list-group>
 	    </div>
@@ -72,12 +97,24 @@
 		    </div>
 		</div>
 
+		<label class="form-label fw-6">Integrity Zomes</label>
+		<list-group :list="compatible_integrity_zomes" :loading="$compatible_zomes.loading" no-result-text="No Zomes" class="mt-0">
+		    <template v-for="zome in filtered_integrity_zomes" :key="zome.$id">
+			<list-group-item v-if="!zomeIsAdded( zome.$id )" class="py-3">
+			    <zome-card :id="zome.$id"
+				       :link="false"
+				       :actions="[ addZomeAction( zome, input.integrity_zomes ) ]"></zome-card>
+			</list-group-item>
+		    </template>
+		</list-group>
+
+		<label class="form-label fw-6">Coordination Zomes</label>
 		<list-group :list="compatible_zomes" :loading="$compatible_zomes.loading" no-result-text="No Zomes" class="mt-0">
 		    <template v-for="zome in filtered_zomes" :key="zome.$id">
 			<list-group-item v-if="!zomeIsAdded( zome.$id )" class="py-3">
 			    <zome-card :id="zome.$id"
 				       :link="false"
-				       :actions="[ addZomeAction( zome ) ]"></zome-card>
+				       :actions="[ addZomeAction( zome, input.zomes ) ]"></zome-card>
 			</list-group-item>
 		    </template>
 		</list-group>
