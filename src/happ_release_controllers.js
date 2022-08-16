@@ -747,10 +747,15 @@ module.exports = async function ( client ) {
 		    log.info("Make reverse-lookup for previous DNAs:", this.happ_release );
 		    this.happ_release.dnas.forEach( async dna_ref => {
 			const prev_dna_info	= this.previous_dnas[dna_ref.role_id]	= this.copy( dna_ref );
-			prev_dna_info.zomes	= {};
+			prev_dna_info.integrity_zomes	= {};
+			prev_dna_info.zomes		= {};
 
 			this.$store.dispatch("getDnaVersion", dna_ref.version ).then( dna_version => {
-			    prev_dna_info.zomes			= {};
+			    // prev_dna_info.zomes			= {};
+
+			    for ( let zome_ref of dna_version.integrity_zomes ) {
+				prev_dna_info.integrity_zomes[zome_ref.name]	= zome_ref;
+			    }
 
 			    for ( let zome_ref of dna_version.zomes ) {
 				prev_dna_info.zomes[zome_ref.name]	= zome_ref;
@@ -814,7 +819,11 @@ module.exports = async function ( client ) {
 		},
 
 		missing_zome_version ( dna ) {
-		    for ( let zome_sources of Object.values( dna.zomes ) ) {
+		    for ( let zome_sources of Object.values( dna.integrity_zomes ) ) {
+			if ( !zome_sources.upload.zome_version_id )
+			    return true;
+		    }
+		    for ( let zome_sources of Object.values( dna.coordinator.zomes ) ) {
 			if ( !zome_sources.upload.zome_version_id )
 			    return true;
 		    }
@@ -904,7 +913,42 @@ module.exports = async function ( client ) {
 			this.$store.dispatch("fetchDnasByName", role.bundle.name );
 			this.$dna_versions( role.hash ).current || this.$store.dispatch("fetchDnaVersionsByHash", role.hash );
 
-			role.bundle.zomes.forEach( async zome_ref => {
+			role.bundle.integrity.zomes.forEach( async zome_ref => {
+			    await this.delay();
+
+			    zome_ref.version		= "";
+			    zome_ref.ordering		= 1;
+
+			    if ( this.previous_dnas[ role.id ] && this.previous_dnas[ role.id ].integrity_zomes[ zome_ref.name ] ) {
+				const prev_zome		= this.previous_dnas[ role.id ].integrity_zomes[ zome_ref.name ];
+
+				log.normal("Previous zome match (%s) in role '%s':", zome_ref.name, role.id, prev_zome );
+				if ( prev_zome.mere_memory_hash === zome_ref.hash
+				     && prev_zome.hdk_version === this.input.hdk_version) {
+				    // Auto-select the previous role->zome Version
+				    this.select_zome_version( zome_ref, prev_zome );
+				}
+				else {
+				    await this.$store.dispatch("fetchZomeVersionsByHash", zome_ref.hash );
+
+				    // If there are any matching versions, then we won't assume that
+				    // a new Zome Version is being created.
+				    if ( this.zome_versions( zome_ref.hash ).length === 0 ) {
+					// Auto-select the parent Zome of the previous role->zome configuration
+					this.$store.dispatch("getZome", prev_zome.zome )
+					    .then( zome => {
+						this.assign_parent_zome_for( zome_ref, zome );
+					    });
+				    }
+				}
+			    }
+
+			    // Search for existing zomes with the same name
+			    this.$store.dispatch("fetchZomesByName", zome_ref.name );
+			    this.$zome_versions( zome_ref.hash ).current || this.$store.dispatch("fetchZomeVersionsByHash", zome_ref.hash );
+			});
+
+			role.bundle.coordinator.zomes.forEach( async zome_ref => {
 			    await this.delay();
 
 			    zome_ref.version		= "";
@@ -1055,11 +1099,11 @@ module.exports = async function ( client ) {
 
 		    delete upload.selected_zome_version;
 
-		    let empty				= true;
-		    for ( let zome of role.bundle.zomes ) {
-			if ( zome.selected_zome_version )
-			    empty			= false;
-		    }
+		    // let empty				= true;
+		    // for ( let zome of role.bundle.zomes ) {
+		    // 	if ( zome.selected_zome_version )
+		    // 	    empty			= false;
+		    // }
 
 		    if ( upload.selected_zome ) {
 			const version		= await this.$store.dispatch("getLatestVersionForZome", [ upload.selected_zome.$id, null ]  );
@@ -1176,18 +1220,28 @@ module.exports = async function ( client ) {
 			// Create the new version
 			const version			= await this.$client.call(
 			    "dnarepo", "dna_library", "create_dna_version", {
-				"for_dna":	role.selected_dna.$id,
-				"version":	role.version,
-				"ordering":	role.ordering,
-				"hdk_version":	this.input.hdk_version,
-				"properties":	role.bundle.properties,
-				"zomes":	role.bundle.zomes.map( zome_info => {
+				"for_dna":		role.selected_dna.$id,
+				"version":		role.version,
+				"ordering":		role.ordering,
+				"hdk_version":		this.input.hdk_version,
+				"properties":		role.bundle.properties,
+				"integrity_zomes":	role.bundle.integrity.zomes.map( zome_info => {
 				    return {
 					"name":			zome_info.name,
 					"zome":			zome_info.selected_zome_version.for_zome,
 					"version":		zome_info.selected_zome_version.$id,
 					"resource":		zome_info.selected_zome_version.mere_memory_addr,
 					"resource_hash":	zome_info.selected_zome_version.mere_memory_hash,
+				    };
+				}),
+				"zomes":		role.bundle.coordinator.zomes.map( zome_info => {
+				    return {
+					"name":			zome_info.name,
+					"zome":			zome_info.selected_zome_version.for_zome,
+					"version":		zome_info.selected_zome_version.$id,
+					"resource":		zome_info.selected_zome_version.mere_memory_addr,
+					"resource_hash":	zome_info.selected_zome_version.mere_memory_hash,
+					"dependencies":		Object.values( zome_info.dependencies ).map( ref => ref.name ),
 				    };
 				}),
 			    }
