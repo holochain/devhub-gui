@@ -21,6 +21,7 @@
     "@babel/runtime": "^7.15.3",
     "@msgpack/msgpack": "^2.7.1",
     "@whi/crux-payload-parser": "^0.2.1",
+    "@whi/holo-hash": "^0.3.0",
     "@whi/holochain-client": "^0.50.0",
     "@whi/weblogger": "^0.1.4",
     "gzip-js": "^0.3.2",

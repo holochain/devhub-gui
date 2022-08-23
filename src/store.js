@@ -7,7 +7,9 @@ const $filters				= require('./filters.js');
 const { HoloHash,
 	AgentPubKey }			= holohash;
 const { EntityArchitect }		= CruxPayloadParser;
-const { Entity, Collection }		= EntityArchitect;
+const { Entity }			= EntityArchitect;
+
+console.log( EntityArchitect );
 
 
 // Data getting scenarios:
@@ -613,9 +615,6 @@ module.exports = async function ( client, app ) {
 		commit("signalLoading", path );
 
 		const collection	= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
-
-		if ( collection.constructor.name !== "Collection" )
-		    log.warn("Expected instance of Collection for request %s; received type '%s'", fmt_client_args( dna, zome, func, args ), typeof collection );
 
 		commit("cacheCollection", [ path, collection ] );
 		commit("recordLoaded", path );
@@ -1637,7 +1636,7 @@ module.exports = async function ( client, app ) {
 	    async createWebAsset ({ dispatch }, bytes ) {
 		log.normal("Creating Web Asset: %s bytes", bytes.length );
 		return await dispatch("createEntity", [
-		    dataTypePath.webAsset, "webassets", "web_assets", "create_file", {
+		    dataTypePath.webAsset, "web_assets", "web_assets", "create_file", {
 			"file_bytes": bytes,
 		    }
 		]);
