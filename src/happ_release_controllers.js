@@ -1142,7 +1142,7 @@ module.exports = async function ( client ) {
 		    this.ready_for_review	= true;
 		},
 
-		async create_zome_version ( zome_info ) {
+		async create_zome_version ( zome_info, zome_type ) {
 		    this.validated		= true;
 		    zome_info.validated		= true;
 
@@ -1161,6 +1161,7 @@ module.exports = async function ( client ) {
 				    "name": zome_info.name,
 				    "display_name": zome_info.display_name,
 				    "description": zome_info.description,
+				    zome_type,
 				}
 			    );
 			    this.$store.dispatch("fetchZomesByName", zome_info.name );
@@ -1224,7 +1225,7 @@ module.exports = async function ( client ) {
 				"version":		role.version,
 				"ordering":		role.ordering,
 				"hdk_version":		this.input.hdk_version,
-				"properties":		role.bundle.properties,
+				"properties":		role.bundle.integrity.properties,
 				"integrity_zomes":	role.bundle.integrity.zomes.map( zome_info => {
 				    return {
 					"name":			zome_info.name,

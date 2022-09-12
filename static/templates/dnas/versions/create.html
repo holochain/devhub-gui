@@ -52,6 +52,7 @@
 			    class="mt-0">
 		    <list-group-item v-for="(zome_ref, index) in input.integrity_zomes" class="py-3">
 			<zome-version-card :id="zome_ref.version"
+					   :link="false"
 					   :actions="zome_card_actions( index )"></zome-version-card>
 
 			<input-feedback class="mt-3">
@@ -69,6 +70,7 @@
 			    class="mt-0">
 		    <list-group-item v-for="(zome_ref, index) in input.zomes" class="py-3">
 			<zome-version-card :id="zome_ref.version"
+					   :link="false"
 					   :actions="zome_card_actions( index )"></zome-version-card>
 
 			<input-feedback class="my-3">

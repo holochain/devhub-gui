@@ -356,7 +356,7 @@
 											<div class="col-12">
 											    <span v-if="zome.saving"
 												  class="spinner-border spinner-border-sm me-3"></span>
-											    <a @click="create_zome_version( zome )"
+											    <a @click="create_zome_version( zome, 0 )"
 											       title="Upload new Zome Version">
 												<i class="bi-upload"></i>
 											    </a>
@@ -516,7 +516,7 @@
 											<div class="col-12">
 											    <span v-if="zome.saving"
 												  class="spinner-border spinner-border-sm me-3"></span>
-											    <a @click="create_zome_version( zome )"
+											    <a @click="create_zome_version( zome, 1 )"
 											       title="Upload new Zome Version">
 												<i class="bi-upload"></i>
 											    </a>

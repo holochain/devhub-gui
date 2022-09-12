@@ -684,8 +684,8 @@ module.exports = async function ( client ) {
 			return this.reset_file();
 		    }
 
-		    if ( this.bundle.properties )
-			this.input.properties	= Object.assign( {}, this.bundle.properties );
+		    if ( this.bundle.integrity.properties )
+			this.input.properties	= Object.assign( {}, this.bundle.integrity.properties );
 
 		    this.bundle.integrity.zomes.forEach( async zome => {
 			zome.ordering		= 1;
