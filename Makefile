@@ -174,7 +174,7 @@ clean-files-all:	clean-remove-chaff
 	git clean -ndx
 clean-files-all-force:	clean-remove-chaff
 	git clean -fdx
-web_assets.zip:		Makefile
+web_assets.zip:		Makefile static/* static/*/*
 	npm run build
 	cp node_modules/@whi/holochain-client/dist/holochain-client.prod.js		static/dependencies/holochain-client.js
 	cp node_modules/@whi/holochain-client/dist/holochain-client.prod.js.map		static/dependencies/holochain-client.js.map

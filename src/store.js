@@ -7,7 +7,9 @@ const $filters				= require('./filters.js');
 const { HoloHash,
 	AgentPubKey }			= holohash;
 const { EntityArchitect }		= CruxPayloadParser;
-const { Entity, Collection }		= EntityArchitect;
+const { Entity }			= EntityArchitect;
+
+console.log( EntityArchitect );
 
 
 // Data getting scenarios:
@@ -614,9 +616,6 @@ module.exports = async function ( client, app ) {
 
 		const collection	= await dispatch("callClient", [ dna, zome, func, args, timeout ]);
 
-		if ( collection.constructor.name !== "Collection" )
-		    log.warn("Expected instance of Collection for request %s; received type '%s'", fmt_client_args( dna, zome, func, args ), typeof collection );
-
 		commit("cacheCollection", [ path, collection ] );
 		commit("recordLoaded", path );
 
@@ -1051,7 +1050,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Zome (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "dna_library", "update_zome", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1064,7 +1063,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Deprecating Zome (%s) because: %s", String(entity.$addr), message );
 		return await dispatch("deprecateEntity", [
 		    path, "dnarepo", "dna_library", "deprecate_zome", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"message": message,
 		    }
 		]);
@@ -1164,7 +1163,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Zome Version (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "dna_library", "update_zome_version", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1203,8 +1202,8 @@ module.exports = async function ( client, app ) {
 		    log.normal("Updating Zome Version Review Summary (%s)", String(entity.$addr) );
 		    const zome_version = await dispatch("updateEntity", [
 			path, "dnarepo", "dna_library", "create_zome_version_review_summary", {
-			    "subject_header": entity.$header,
-			    "addr": entity.$addr,
+			    "subject_action": entity.$action,
+			    "addr": entity.$action,
 			}
 		    ]);
 
@@ -1293,7 +1292,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating DNA (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "dna_library", "update_dna", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1306,7 +1305,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Deprecating DNA (%s) because: %s", String(entity.$addr), message );
 		return await dispatch("deprecateEntity", [
 		    path, "dnarepo", "dna_library", "deprecate_dna", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"message": message,
 		    }
 		]);
@@ -1408,7 +1407,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating DNA Version (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "dna_library", "update_dna_version", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1497,7 +1496,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Happ (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "happs", "happ_library", "update_happ", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1510,7 +1509,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Deprecating Happ (%s) because: %s", String(entity.$addr), message );
 		return await dispatch("deprecateEntity", [
 		    path, "happs", "happ_library", "deprecate_happ", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"message": message,
 		    }
 		]);
@@ -1604,7 +1603,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Happ Release (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "happs", "happ_library", "update_happ_release", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1637,7 +1636,7 @@ module.exports = async function ( client, app ) {
 	    async createWebAsset ({ dispatch }, bytes ) {
 		log.normal("Creating Web Asset: %s bytes", bytes.length );
 		return await dispatch("createEntity", [
-		    dataTypePath.webAsset, "webassets", "web_assets", "create_file", {
+		    dataTypePath.webAsset, "web_assets", "web_assets", "create_file", {
 			"file_bytes": bytes,
 		    }
 		]);
@@ -1735,11 +1734,11 @@ module.exports = async function ( client, app ) {
 		    resources[ key ]	= new Uint8Array( resources[ key ] );
 		}
 
-		if ( manifest.zomes ) {
+		if ( manifest.integrity && manifest.coordinator ) {
 		    log.trace("Detected a DNA bundle");
 		    manifest.type	= "dna";
 
-		    manifest.zomes.forEach( zome => {
+		    manifest.integrity.zomes.forEach( zome => {
 			log.trace("Preparing resource Promises for zome: %s", zome.bundled );
 
 			zome.bytes	= resources[ zome.bundled ];
@@ -1749,12 +1748,22 @@ module.exports = async function ( client, app ) {
 			delete zome.bundled;
 		    });
 
-		    manifest.zome_digests	= manifest.zomes.map( zome => zome.digest );
+		    manifest.zome_digests	= manifest.integrity.zomes.map( zome => zome.digest );
 
 		    const hashes	= manifest.zome_digests.slice();
 		    hashes.sort( common.array_compare );
 		    manifest.dna_digest	= common.digest( ...hashes );
 		    manifest.dna_hash	= common.toHex( manifest.dna_digest );
+
+		    manifest.coordinator.zomes.forEach( zome => {
+			log.trace("Preparing resource Promises for zome: %s", zome.bundled );
+
+			zome.bytes	= resources[ zome.bundled ];
+			zome.digest	= common.digest( zome.bytes );
+			zome.hash	= common.toHex( zome.digest );
+
+			delete zome.bundled;
+		    });
 		}
 		else if ( manifest.roles ) {
 		    log.trace("Detected a hApp bundle");
@@ -1876,7 +1885,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Review (%s)", String(entity.$addr) );
 		return await dispatch("updateEntity", [
 		    path, "dnarepo", "reviews", "update_review", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -1901,8 +1910,8 @@ module.exports = async function ( client, app ) {
 		    log.normal("Updating Review Reaction Summary (%s)", String(entity.$addr) );
 		    return await dispatch("updateEntity", [
 			path, "dnarepo", "reviews", "create_review_reaction_summary", {
-			    "subject_header": entity.$header,
-			    "addr": entity.$addr,
+			    "subject_action": entity.$action,
+			    "addr": entity.$action,
 			}
 		    ]);
 		}
@@ -2020,7 +2029,7 @@ module.exports = async function ( client, app ) {
 		const reaction		= await dispatch("createEntity", [
 		    dataTypePath.reaction, "dnarepo", "reviews", "create_reaction", {
 			"subject_ids": [
-			    [ subject.$id, subject.$header ],
+			    [ subject.$id, subject.$action ],
 			],
 			"reaction_type": reaction_type,
 		    },
@@ -2038,7 +2047,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Updating Reaction (%s)", entity.$addr );
 		const reaction		= await dispatch("updateEntity", [
 		    path, "dnarepo", "reviews", "update_reaction", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 			"properties": input,
 		    }
 		]);
@@ -2055,7 +2064,7 @@ module.exports = async function ( client, app ) {
 		log.normal("Deleting Reaction (%s)", id );
 		const reaction		= await dispatch("updateEntity", [
 		    path, "dnarepo", "reviews", "delete_reaction", {
-			"addr": entity.$addr,
+			"addr": entity.$action,
 		    }
 		]);
 

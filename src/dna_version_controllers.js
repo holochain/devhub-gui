@@ -22,6 +22,7 @@ module.exports = async function ( client ) {
 			"version": null,
 			"changelog": null,
 			"hdk_version": null,
+			"integrity_zomes": [],
 			"zomes": [],
 		    },
 		    "added_zomes": [],
@@ -48,7 +49,12 @@ module.exports = async function ( client ) {
 		},
 
 		compatible_zomes () {
-		    return this.$store.getters.zomes( this.input.hdk_version || "all" );
+		    const zomes				= this.$store.getters.zomes( this.input.hdk_version || "all" );
+		    return zomes.filter( zome => zome.zome_type === 1 );
+		},
+		compatible_integrity_zomes () {
+		    const zomes				= this.$store.getters.zomes( this.input.hdk_version || "all" );
+		    return zomes.filter( zome => zome.zome_type === 0 );
 		},
 		$compatible_zomes () {
 		    return this.$store.getters.$zomes( this.input.hdk_version || "all" );
@@ -70,6 +76,13 @@ module.exports = async function ( client ) {
 		    return this.$store.getters.$zome_versions( this.change_version_context ? this.change_version_context[1].$id : "" );
 		},
 
+		filtered_integrity_zomes () {
+		    return this.compatible_integrity_zomes.filter( zome => {
+			return zome.name.toLowerCase()
+			    .includes( this.zome_search_text.toLowerCase() )
+			    && !this.added_zomes.find( z => z.$id === zome.$id );
+		    });
+		},
 		filtered_zomes () {
 		    return this.compatible_zomes.filter( zome => {
 			return zome.name.toLowerCase()
@@ -151,12 +164,12 @@ module.exports = async function ( client ) {
 			},
 		    };
 		},
-		addZomeAction ( zome ) {
+		addZomeAction ( zome, zome_list ) {
 		    return {
 			"icon": "plus-lg",
 			"title": "Add Zome",
 			"method": () => {
-			    this.addZome( zome );
+			    this.addZome( zome, zome_list );
 			},
 		    };
 		},
@@ -168,7 +181,7 @@ module.exports = async function ( client ) {
 		    if ( this.added_zomes.length === 0 )
 			this.lock_hdk_version_input = false;
 		},
-		async addZome ( zome ) {
+		async addZome ( zome, zome_list ) {
 		    log.normal("Adding zome:", zome );
 		    if ( zome === undefined )
 			return;
@@ -189,7 +202,7 @@ module.exports = async function ( client ) {
 		    this.lock_hdk_version_input		= true;
 
 		    this.added_zomes.push( zome );
-		    this.input.zomes.push({
+		    zome_list.push({
 			"name":		zome.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
 			"zome":		zome.$id,
 			"version":	latest_version.$id,
@@ -671,10 +684,18 @@ module.exports = async function ( client ) {
 			return this.reset_file();
 		    }
 
-		    if ( this.bundle.properties )
-			this.input.properties	= Object.assign( {}, this.bundle.properties );
+		    if ( this.bundle.integrity.properties )
+			this.input.properties	= Object.assign( {}, this.bundle.integrity.properties );
 
-		    this.bundle.zomes.forEach( async zome => {
+		    this.bundle.integrity.zomes.forEach( async zome => {
+			zome.ordering		= 1;
+
+			// Search for existing zomes with the same name
+			this.$store.dispatch("fetchZomesByName", zome.name );
+			this.$store.dispatch("fetchZomeVersionsByHash", zome.hash );
+		    });
+
+		    this.bundle.coordinator.zomes.forEach( async zome => {
 			zome.ordering		= 1;
 
 			// Search for existing zomes with the same name
@@ -722,10 +743,16 @@ module.exports = async function ( client ) {
 		    delete upload.selected_zome_version;
 
 		    let empty				= true;
-		    for ( let zome of this.bundle.zomes ) {
+		    for ( let zome of this.bundle.integrity.zomes ) {
 			if ( zome.selected_zome_version )
 			    empty			= false;
 		    }
+
+		    for ( let zome of this.bundle.coordinator.zomes ) {
+			if ( zome.selected_zome_version )
+			    empty			= false;
+		    }
+
 		    if ( empty )
 			this.lock_hdk_version_input	= false;
 
@@ -762,7 +789,7 @@ module.exports = async function ( client ) {
 		    this.ready_for_review	= true;
 		},
 
-		async create_zome_version ( zome_info ) {
+		async create_zome_version ( zome_info, zome_type ) {
 		    this.validated		= true;
 		    zome_info.validated		= true;
 
@@ -783,6 +810,7 @@ module.exports = async function ( client ) {
 				"dnarepo", "dna_library", "create_zome", {
 				    "name": zome_info.name,
 				    "description": zome_info.description,
+				    zome_type,
 				}
 			    );
 			    this.$store.dispatch("fetchZomesByName", zome_info.name );
@@ -819,14 +847,14 @@ module.exports = async function ( client ) {
 		    try {
 			log.normal("Creating DNA version: %s", this.input.version );
 
-			log.debug("Create DNA version #%s: (%s zomes):", this.input.version, this.bundle.zomes.length, this.input );
+			log.debug("Create DNA version #%s: (%s zomes):", this.input.version, this.bundle.integrity.zomes.length + this.bundle.coordinator.zomes.length, this.input );
 			const input			= {
 			    "version": this.input.version,
 			    "ordering":	this.input.ordering,
 			    "hdk_version": this.input.hdk_version,
 			    "properties": this.input.properties,
 			    "changelog": this.input.changelog,
-			    "zomes": this.bundle.zomes.map( info => {
+			    "integrity_zomes": this.bundle.integrity.zomes.map( info => {
 				const zome		= info.selected_zome;
 				const version		= info.selected_zome_version;
 				return {
@@ -835,6 +863,18 @@ module.exports = async function ( client ) {
 				    "version":		version.$id,
 				    "resource":		version.mere_memory_addr,
 				    "resource_hash":	version.mere_memory_hash,
+				};
+			    }),
+			    "zomes": this.bundle.coordinator.zomes.map( info => {
+				const zome		= info.selected_zome;
+				const version		= info.selected_zome_version;
+				return {
+				    "name":		info.name,
+				    "zome":		version.for_zome,
+				    "version":		version.$id,
+				    "resource":		version.mere_memory_addr,
+				    "resource_hash":	version.mere_memory_hash,
+				    "dependencies":	Object.values( info.dependencies ).map( ref => ref.name ),
 				};
 			    }),
 			};
@@ -867,7 +907,12 @@ module.exports = async function ( client ) {
 		    if ( !this.bundle )
 			return false;
 
-		    for ( let zome of this.bundle.zomes ) {
+		    for ( let zome of this.bundle.integrity.zomes ) {
+			if ( !zome.selected_zome_version )
+			    return true;
+		    }
+
+		    for ( let zome of this.bundle.coordinator.zomes ) {
 			if ( !zome.selected_zome_version )
 			    return true;
 		    }

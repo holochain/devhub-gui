@@ -2,7 +2,7 @@ const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/holo-hash");
 
 const { EntryHash,
-	HeaderHash,
+	ActionHash,
 	DnaHash,
 	AgentPubKey }			= holohash;
 
@@ -50,7 +50,7 @@ module.exports = function ( element_local_name, component_name ) {
 		return {
 		    "bg-primary":	this.holohash instanceof AgentPubKey,
 		    "bg-light":		this.holohash instanceof EntryHash,
-		    "bg-secondary":	this.holohash instanceof HeaderHash,
+		    "bg-secondary":	this.holohash instanceof ActionHash,
 		    "bg-danger":	this.holohash instanceof DnaHash,
 		    "text-dark":	this.holohash instanceof EntryHash,
 		};

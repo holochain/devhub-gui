@@ -1,5 +1,5 @@
 const { EntryHash,
-	HeaderHash,
+	ActionHash,
 	AgentPubKey }			= holohash;
 
 
@@ -49,11 +49,13 @@ module.exports = {
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
 
-	    content.zomes.forEach( (zome_ref, i) => {
-		content.zomes[i].zome		= new EntryHash( zome_ref.zome );
-		content.zomes[i].version	= new EntryHash( zome_ref.version );
-		content.zomes[i].resource	= new EntryHash( zome_ref.resource );
-	    });
+	    if ( content.zomes ) {
+		content.zomes.forEach( (zome_ref, i) => {
+		    content.zomes[i].zome	= new EntryHash( zome_ref.zome );
+		    content.zomes[i].version	= new EntryHash( zome_ref.version );
+		    content.zomes[i].resource	= new EntryHash( zome_ref.resource );
+		});
+	    }
 
 	    return content;
 	},
@@ -94,8 +96,8 @@ module.exports = {
 	    if ( content.reaction_summary )
 		content.reaction_summary = new EntryHash( content.reaction_summary );
 
-	    content.subject_ids.forEach( ([id, header], i) => {
-		content.subject_ids[i]	= [ new EntryHash( id ), new HeaderHash( header ) ];
+	    content.subject_ids.forEach( ([id, action], i) => {
+		content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
 	    });
 
 	    return content;
@@ -109,8 +111,8 @@ module.exports = {
 	    content.author		= new AgentPubKey( content.author );
 	    content.type_name		= content.reaction_type === 1 ? "like" : "dislike";
 
-	    content.subject_ids.forEach( ([id, header], i) => {
-		content.subject_ids[i]	= [ new EntryHash( id ), new HeaderHash( header ) ];
+	    content.subject_ids.forEach( ([id, action], i) => {
+		content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
 	    });
 
 	    return content;

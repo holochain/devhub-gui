@@ -23,11 +23,11 @@ function hash_bytes () {
     return crypto.randomBytes( 32 );
 }
 
-function RandomEntity ( type, model, content, id, address, header ) {
+function RandomEntity ( type, model, content, id, address, action ) {
     return new Entity({
 	"id":			id	|| crypto.randomBytes( 32 ),
 	"address":		address	|| crypto.randomBytes( 32 ),
-	"header":		header	|| crypto.randomBytes( 32 ),
+	"action":		action	|| crypto.randomBytes( 32 ),
 	"type": {
 	    "name": type,
 	    "model": model,

@@ -49,7 +49,7 @@ module.exports = async function () {
 	client				=  new AgentClient( AGENT_PUBKEY, {
 	    "dnarepo":         DNAREPO_HASH,
 	    "happs":           HAPPS_HASH,
-	    "webassets":       WEBASSETS_HASH,
+	    "web_assets":       WEBASSETS_HASH,
 	}, CONDUCTOR_URI );
     }
 

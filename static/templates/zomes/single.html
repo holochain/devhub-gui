@@ -66,6 +66,11 @@
 			<dd class="col-sm-8">
 			    <placeholder :when="!$zome.current"><datetime :datetime="zome.last_updated" format="weekday+date+time"></datetime></placeholder>
 			</dd>
+
+			<dt class="col-sm-4">Type</dt>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$zome.current">{{ zome.zome_type == 0 ? "Integrity" : "Coordination" }}</placeholder>
+			</dd>
 		    </dl>
 		</div>
 	    </div>

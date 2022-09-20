@@ -127,6 +127,7 @@ module.exports = async function ( client ) {
 		    "input": {
 			"name": null,
 			"description": null,
+			"zome_type": null,
 			"tags": new Set(),
 		    },
 		    "validated": false,

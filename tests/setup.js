@@ -43,7 +43,7 @@ function print ( msg, ...args ) {
 	const dna_resources		= {
 	    "dnarepo":		DNAREPO,
 	    "happs":		HAPPS,
-	    "webassets":	WEBASSETS,
+	    "web_assets":	WEBASSETS,
 	};
 	const dna_hashes		= {};
 
