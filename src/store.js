@@ -4,10 +4,19 @@ const log				= new Logger("store");
 const common				= require('./common.js');
 const $filters				= require('./filters.js');
 
+const { createModWC,
+	...ModWC }			= require('@whi/modwc');
+
 const { HoloHash,
+	EntryHash,
+	ActionHash,
 	AgentPubKey }			= holohash;
 const { EntityArchitect }		= CruxPayloadParser;
 const { Entity }			= EntityArchitect;
+
+const md_converter			= new showdown.Converter({
+    "actionLevelStart": 3,
+});
 
 console.log( EntityArchitect );
 
@@ -116,6 +125,330 @@ function fmt_client_args ( dna, zome, func, args ) {
 
 
 module.exports = async function ( client, app ) {
+    const { reactive }			= Vue;
+
+    const modwc				= new createModWC({ reactive });
+
+    modwc.addHandlers({
+	"Agent": {
+	    "path": "agent/:id",
+	    "readonly": true,
+	    async read ({ id }) {
+		if ( id === "me" )
+		    return await client.call("dnarepo", "dna_library", "whoami");
+
+		throw new Error(`Read for any agent is not implemented yet`);
+	    },
+	    adapter ( content ) {
+		content.pubkey		= {
+		    "initial": new AgentPubKey( content.agent_initial_pubkey ),
+		    "current": new AgentPubKey( content.agent_latest_pubkey ),
+		};
+
+		delete content.agent_initial_pubkey;
+		delete content.agent_latest_pubkey;
+	    },
+	},
+	"Reviews for Agent": {
+	    "path": "agent/:id/reviews",
+	    "readonly": true,
+	    async read ({ id }) {
+		let list;
+
+		if ( id === "me" )
+		    list		= await client.call("dnarepo", "reviews", "get_my_reviews");
+		else
+		    throw new Error(`Read for any agent's reviews is not implemented yet`);
+
+		for ( let review of list ) {
+		    const path		= `review/${review.$id}`;
+		    this.state[path]	= review;
+		}
+
+		return list.reduce( (acc, review) => {
+		    for ( let [addr, action] of review.subject_ids ) {
+			// There should not be more than 1 review per subject ID -- WRONG! subject IDs can be a zome which may have reviews for each version
+			// if ( acc[addr] !== undefined )
+			//     console.error("Multiple reviews for subject ID: %s", addr );
+
+			acc[addr]	= review;
+		    }
+		    return acc;
+		}, {});
+	    },
+	},
+	"Zome": {
+	    "path": "zome/:id",
+	    async read ({ id }) {
+		await common.delay( 1_000 );
+
+		return await client.call("dnarepo", "dna_library", "get_zome", { id });
+	    },
+	    adapter ( entity ) {
+		entity.published_at	= new Date( entity.published_at );
+		entity.last_updated	= new Date( entity.last_updated );
+		entity.developer	= new AgentPubKey( entity.developer );
+	    },
+	    toMutable ({ name, display_name, description, zome_type, tags }) {
+		return {
+		    name,
+		    display_name,
+		    description,
+		    zome_type,
+		    tags,
+		};
+	    },
+	    async create ( input ) {
+		const zome		= await client.call("dnarepo", "dna_library", "create_zome", input );
+
+		this.state[`zome/${zome.$id}`] = zome;
+
+		return zome;
+	    },
+	    async update ({ id }, input, entity ) {
+		console.log("Update:", id, input );
+		return await client.call("dnarepo", "dna_library", "update_zome", {
+		    "addr": entity.$action,
+		    "properties": input,
+		});
+	    },
+	    "permissions": {
+		async writable ( zome ) {
+		    const agent_info	= await this.get("agent/me");
+
+		    return common.hashesAreEqual( zome.developer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, errors ) {
+		const hr_names		= {
+		    "name": "Zome Name",
+		    "display_name": "Display Name",
+		    "description": "Zome Description",
+		    "zome_type": "Zome Type",
+		};
+		["name", "display_name", "description", "zome_type"].forEach( key => {
+		    if ( data[key] === undefined )
+			errors.push(`'${hr_names[key]}' is required`);
+		});
+
+		["name"].forEach( key => {
+		    if ( data[key].trim() === "" )
+			errors.push(`'${hr_names[key]}' cannot be blank`);
+		});
+	    },
+	},
+	"Zome Version": {
+	    "path": "zome/version/:id",
+	    async read ({ id }) {
+		return await client.call("dnarepo", "dna_library", "get_zome_version", { id });
+	    },
+	    adapter ( content ) {
+		content.for_zome		= new EntryHash( content.for_zome );
+		content.published_at		= new Date( content.published_at );
+		content.last_updated		= new Date( content.last_updated );
+		content.mere_memory_addr	= new EntryHash( content.mere_memory_addr );
+		content.changelog_html		= md_converter.makeHtml( content.changelog );
+
+		if ( content.review_summary )
+		    content.review_summary	= new EntryHash( content.review_summary );
+	    },
+	    toMutable ( entity ) {
+		return entity.toJSON().content;
+	    },
+	    async create ( input ) {
+		return await client.call("dnarepo", "dna_library", "create_zome_version", input );
+	    },
+	    async update ({ id }, input, entity ) {
+		return await client.call("dnarepo", "dna_library", "update_zome_version", {
+		    "addr": entity.$action,
+		    "properties": input,
+		});
+	    },
+	    "permissions": {
+		async writable ( version ) {
+		    const agent_info	= await this.get("agent/me");
+		    const zome		= await this.get(`zome/${version.for_zome}`);
+
+		    return common.hashesAreEqual( zome.developer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, errors ) {
+	    },
+	    prepInput ( input ) {
+		console.log("Prep input:", input );
+		return {
+		};
+	    },
+	},
+	"Versions for Zome": {
+	    "path": "zome/:id/versions",
+	    "readonly": true,
+	    async read ({ id }) {
+		const list		= await client.call("dnarepo", "dna_library", "get_zome_versions", { "for_zome": id });
+
+		for ( let version of list ) {
+		    const path		= `zome/version/${version.$id}`;
+		    this.state[path]	= version;
+		}
+
+		return list;
+	    },
+	},
+	"Reviews for Zome Version": {
+	    "path": "zome/version/:id/reviews",
+	    "readonly": true,
+	    async read ({ id }) {
+		const list		= await client.call("dnarepo", "reviews", "get_reviews_for_subject", { "id": id });
+
+		for ( let review of list ) {
+		    const path		= `review/${review.$id}`;
+		    this.state[path]	= review;
+		}
+
+		return list;
+	    },
+	},
+	"Review": {
+	    "path": "review/:id",
+	    async read ({ id }) {
+		return await client.call("dnarepo", "reviews", "get_review", { id });
+	    },
+	    adapter ( content ) {
+		content.published_at		= new Date( content.published_at );
+		content.last_updated		= new Date( content.last_updated );
+		content.author			= new AgentPubKey( content.author );
+
+		if ( content.reaction_summary )
+		    content.reaction_summary	= new EntryHash( content.reaction_summary );
+
+		content.subject_ids.forEach( ([id, action], i) => {
+		    content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
+		});
+	    },
+	    defaultMutable () {
+		return {
+		    "subject_ids": [],
+		    "message": "",
+		    "ratings": {},
+		};
+	    },
+	    toMutable ( entity ) {
+		return {
+		    "message": entity.message,
+		    "ratings": entity.ratings,
+		};
+	    },
+	    async create ( input ) {
+		const review			= await client.call("dnarepo", "reviews", "create_review", input );
+
+		this.state[`review/${review.$id}`] = review;
+
+		return review;
+	    },
+	    async update ({ id }, input, entity ) {
+		return await client.call("dnarepo", "reviews", "update_review", {
+		    "addr": entity.$action,
+		    "properties": input,
+		});
+	    },
+	    "permissions": {
+		async writable ( review ) {
+		    const agent_info	= await this.get("agent/me");
+
+		    return common.hashesAreEqual( review.author, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, errors, type ) {
+		const hr_names		= {
+		    "message": "Message",
+		    "subject_ids": "Subject IDs",
+		};
+
+		if ( type === "create" ) {
+		    ["subject_ids"].forEach( key => {
+			if ( data[key] === undefined )
+			    errors.push(`'${hr_names[key]}' is required`);
+		    });
+
+		    if ( !Array.isArray( data.subject_ids ) )
+			errors.push("'subject_ids' must be a list of ID/Action pairs");
+		}
+
+		["message"].forEach( key => {
+		    if ( data[key] === undefined )
+			errors.push(`'${hr_names[key]}' is required`);
+		});
+
+		if ( Object.keys(data.ratings).length === 0 )
+		    errors.push(`There must be at least 1 rating`);
+	    },
+	},
+	"Zome Version Review Summary": {
+	    "path": "zome/version/review/summary/:id",
+	    "readonly": true,
+	    async read ({ id }) {
+		return await client.call("dnarepo", "reviews", "get_review_summary", { id });
+	    },
+	    adapter ( summary ) {
+		const breakdown		= {};
+
+		for ( let review_id in summary.review_refs ) {
+		    // (EntryHash, ActionHash, AgentPubKey, u64, BTreeMap<String,u8>, Option<(ActionHash, u64, BTreeMap<u64,u64>)>)
+		    const [
+			_,
+			latest_action,
+			author,
+			action_count,
+			ratings,
+			reaction_ref,
+		    ]			= summary.review_refs[ review_id ];
+
+		    let weight		= 1;
+
+		    if ( reaction_ref ) {
+			const [
+			    reaction_summary_id,
+			    reaction_count,
+			    reactions,
+			]		= reaction_ref;
+
+			const likes	= ( reactions[1] || 0 ) + 1;
+			const dislikes	= ( reactions[2] || 0 ) + 1;
+			weight	       += ( likes / dislikes ) * .2;
+		    }
+
+		    for ( let rating_name in ratings ) {
+			if ( breakdown[rating_name] === undefined )
+			    breakdown[rating_name]	= [];
+
+			breakdown[rating_name].push( [ ratings[rating_name], weight ] );
+		    }
+		}
+
+		for ( let [key, ratings] of Object.entries(breakdown) ) {
+		    let [ weighted_sum, weight_total ]	= ratings.reduce( (acc, [value, weight]) => {
+			acc[0] += value * weight;
+			acc[1] += weight;
+
+			return acc;
+		    }, [0, 0] );
+
+		    breakdown[key]	= weighted_sum / weight_total;
+		}
+
+		const all_ratings	= Object.values( breakdown );
+		const average		= all_ratings.reduce( (acc, value) => acc + value, 0 ) / all_ratings.length;
+
+		log.info("Aggregated summary:", average, breakdown );
+		summary.average		= average;
+		summary.breakdown	= breakdown;
+	    },
+	},
+    });
+
+    window.modwc			= modwc;
+    app.config.globalProperties.$modwc	= modwc;
+
     return new Vuex.Store({
 	state () {
 	    return {

@@ -190,28 +190,34 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		zome () {
-		    return this.$store.getters.zome( this.id );
+		    return this.$modwc.state[ this.datapath ];
 		},
 		$zome () {
-		    return this.$store.getters.$zome( this.id );
+		    return this.$modwc.metastate[ this.datapath ];
+		},
+		$errors () {
+		    return this.$modwc.errors[ this.datapath ];
 		},
 		form () {
 		    return this.$refs["form"];
 		},
-		tags () {
-		    return this.input.tags || this.zome.tags;
-		},
 	    },
 	    async created () {
 		this.id			= this.getPathId("id");
+		this.datapath		= `zome/${this.id}`;
 
 		if ( !this.zome )
-		    this.fetchZome();
+		    await this.fetchZome();
+
+		this.input		= this.$modwc.mutable[ this.datapath ];
+		this.input.tags.sort();
+
+		window.$input		= this.input;
 	    },
 	    "methods": {
 		async fetchZome () {
 		    try {
-			await this.$store.dispatch("fetchZome", this.id );
+			await this.$modwc.read( this.datapath );
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 
@@ -219,36 +225,29 @@ module.exports = async function ( client ) {
 		    }
 		},
 		addTag ( tag ) {
-		    if ( !this.input.tags )
-			this.input.tags			= new Set(this.zome.tags);
+		    if ( this.input.tags.indexOf( tag ) !== -1 )
+			return;
 
 		    log.info("Adding tag:", tag );
-		    this.input.tags.add( tag );
-		    this.tag_search_text		= "";
+		    this.input.tags.push( tag );
+		    this.input.tags.sort();
+		    this.tag_search_text	= "";
 		},
 		removeTag ( tag ) {
-		    if ( !this.input.tags )
-			this.input.tags			= new Set(this.zome.tags);
-
 		    log.info("Removing tag:", tag );
-		    this.input.tags.delete( tag );
+		    this.input.tags.splice( this.input.tags.indexOf( tag ), 1 );
 		},
 		async update () {
-		    this.validated	= true;
+		    this.validated		= true;
 
 		    if ( this.form.checkValidity() === false )
 			return;
 
-		    const input				= Object.assign({}, this.input );
-
-		    if ( input.tags )
-			input.tags			= [ ...input.tags ];
-
 		    try {
-			await this.$store.dispatch("updateZome", [ this.id, input ] );
+			await this.$modwc.write( this.datapath );
 
-			this.$store.dispatch("fetchZomes", { "agent": "me" });
-			this.$store.dispatch("fetchAllZomes");
+			// this.$store.dispatch("fetchZomes", { "agent": "me" });
+			// this.$store.dispatch("fetchAllZomes");
 
 			this.$router.push( "/zomes/" + this.id );
 		    } catch ( err ) {
@@ -276,8 +275,13 @@ module.exports = async function ( client ) {
 	    async created () {
 		window.View		= this;
 		this.id			= this.getPathId("id");
+		this.datapath		= `zome/${this.id}`;
+		this.versions_datapath	= `zome/${this.id}/versions`;
 
-		this.refresh();
+		if ( !this.zome )
+		    this.fetchZome();
+		if ( !this.versions.length )
+		    this.fetchZomeVersions();
 	    },
 	    "computed": {
 		form () {
@@ -291,19 +295,21 @@ module.exports = async function ( client ) {
 		},
 
 		zome () {
-		    return this.$store.getters.zome( this.id );
+		    return this.$modwc.state[ this.datapath ];
 		},
 		$zome () {
-		    return this.$store.getters.$zome( this.id );
+		    return this.$modwc.metastate[ this.datapath ];
 		},
 
 		versions () {
-		    const versions	= this.$store.getters.zome_versions( this.id );
+		    if ( !this.$modwc.state[ this.versions_datapath ] )
+			return [];
+		    const versions	= this.$modwc.state[ this.versions_datapath ].slice();
 		    versions.sort( this.sort_version( true ) );
 		    return versions;
 		},
 		$versions () {
-		    return this.$store.getters.$zome_versions( this.id );
+		    return this.$modwc.metastate[ this.versions_datapath ];
 		},
 
 		deprecated () {
@@ -312,15 +318,12 @@ module.exports = async function ( client ) {
 	    },
 	    "methods": {
 		refresh () {
-		    if ( !this.zome )
-			this.fetchZome();
-
-		    if ( this.versions.length === 0 )
-			this.fetchZomeVersions();
+		    this.fetchZome();
+		    this.fetchZomeVersions();
 		},
 		async fetchZome () {
 		    try {
-			await this.$store.dispatch("fetchZome", this.id );
+			await this.$modwc.read( this.datapath );
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 
@@ -329,7 +332,7 @@ module.exports = async function ( client ) {
 		},
 		async fetchZomeVersions () {
 		    try {
-			await this.$store.dispatch("fetchVersionsForZome", this.id );
+			await this.$modwc.read( this.versions_datapath );
 		    } catch (err) {
 			log.error("Failed to get versions for zome (%s): %s", String(this.id), err.message, err );
 		    }

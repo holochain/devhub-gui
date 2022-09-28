@@ -19,7 +19,7 @@ setup-%:		dna_packages
 	node tests/setup.js $*
 setup-demo:		setup
 	node tests/add_devhub_to_devhub.js
-	npm run webpack
+	make build-watch
 
 dnas:
 	mkdir $@
@@ -63,9 +63,9 @@ static/dependencies/crux-payload-parser.js:		node_modules/@whi/crux-payload-pars
 static/dependencies/crux-payload-parser.js.map:		node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js.map Makefile
 	cp $< $@
 
-static/dependencies/holo-hash.js:			node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js Makefile
+static/dependencies/holo-hash.js:			node_modules/@whi/holo-hash/dist/holo-hash.js Makefile
 	cp $< $@
-static/dependencies/holo-hash.js.map:			node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js.map Makefile
+static/dependencies/holo-hash.js.map:			node_modules/@whi/holo-hash/dist/holo-hash.js.map Makefile
 	cp $< $@
 
 static/dependencies/sha256.js:				node_modules/js-sha256/src/sha256.js Makefile
@@ -96,6 +96,8 @@ static/dependencies/vue-router.js:			node_modules/vue-router/dist/vue-router.glo
 #
 # Testing
 #
+build-watch:		static-links
+	WEBPACK_MODE=development npx webpack --watch
 test-unit:
 	npx mocha --recursive ./tests/unit
 test-unit-debug:

@@ -8,7 +8,7 @@ const { TimeoutError }			= HolochainClient;
 const { AgentPubKey }			= holohash;
 
 
-log.level.trace && crux.log.setLevel("trace");
+// log.level.trace && crux.log.setLevel("trace");
 
 const client_init			= require('./client.js');
 const store_init			= require('./store.js');
@@ -189,8 +189,9 @@ window.PersistentStorage		= {
 
 		this.agent_id		= agent_info.pubkey.current;
 
-		await this.$store.dispatch("fetchMyReviews");
-		await this.$store.dispatch("fetchMyReactions");
+		this.$modwc.get("agent/me/reviews");
+		// await this.$store.dispatch("fetchMyReviews");
+		// await this.$store.dispatch("fetchMyReactions");
 	    } catch (err) {
 		if ( err instanceof TimeoutError )
 		    return this.showStatusView( 408, {
@@ -217,7 +218,7 @@ window.PersistentStorage		= {
 	},
     });
 
-    const store				= await store_init( client );
+    const store				= await store_init( client, app );
     window.store			= store;
 
     app.mixin({
@@ -229,6 +230,14 @@ window.PersistentStorage		= {
 
 		console,
 	    };
+	},
+	"computed": {
+	    myReviewMap () {
+		return this.$modwc.state["agent/me/reviews"];
+	    },
+	    $myReviewMap () {
+		return this.$modwc.metastate["agent/me/reviews"];
+	    },
 	},
 	"methods": {
 	    $debug ( value ) {
@@ -317,11 +326,11 @@ window.PersistentStorage		= {
 	    },
 
 	    hasReviewForSubject ( id ) {
-		if ( !(this.$root.$reviews.current && this.$root.reviewsMap) )
+		if ( !this.$myReviewMap.present )
 		    return false;
 
 		// console.log("Checking for %s in review map:", id, this.$root.reviewsMap );
-		const review		= this.$root.reviewsMap[ id ];
+		const review		= this.myReviewMap[ id ];
 
 		if ( !review )
 		    return false;

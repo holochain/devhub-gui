@@ -8,20 +8,20 @@
 	    <template v-if="zome">
 		<label class="form-label fw-6">Zome Name</label>
 		<input-feedback>
-		    <input type="text" @change="copy(zome, input, 'name')" v-model="zome.name"
-			   class="form-control" :disabled="$zome.updating" required>
+		    <input type="text" v-model="input.name"
+			   class="form-control" :disabled="$zome.writing" required>
 		</input-feedback>
 
 		<label class="form-label fw-6">Display Name</label>
 		<input-feedback>
-		    <input type="text" @change="copy(zome, input, 'display_name')" v-model="zome.display_name"
-			   class="form-control" :disabled="$zome.updating" required>
+		    <input type="text" v-model="input.display_name"
+			   class="form-control" :disabled="$zome.writing" required>
 		</input-feedback>
 
 		<label class="form-label fw-6">Zome Description</label>
 		<input-feedback>
-		    <textarea @change="copy(zome, input, 'description')" v-model="zome.description"
-			      class="form-control" rows="3" :disabled="$zome.updating" required></textarea>
+		    <textarea v-model="input.description"
+			      class="form-control" rows="3" :disabled="$zome.writing" required></textarea>
 		</input-feedback>
 
 		<label class="form-label fw-6">Zome Type</label>
@@ -29,7 +29,7 @@
 		    <div class="form-check">
 			<input class="form-check-input" type="radio"
 			       name="zome_type" :value="0"
-			       @change="copy(zome, input, 'zome_type')" v-model.number="zome.zome_type">
+			       v-model.number="input.zome_type">
 			<label class="form-check-label">
 			    Integrity Zome
 			</label>
@@ -37,7 +37,7 @@
 		    <div class="form-check">
 			<input class="form-check-input" type="radio"
 			       name="zome_type" :value="1"
-			       @change="copy(zome, input, 'zome_type')" v-model.number="zome.zome_type">
+			       v-model.number="input.zome_type">
 			<label class="form-check-label">
 			    Coordination Zome
 			</label>
@@ -52,7 +52,7 @@
 		    </div>
 
 		    <div class="p-3">
-			<div v-for="tag in tags" class="badge-group ms-2">
+			<div v-for="tag in input.tags" class="badge-group ms-2">
 			    <span class="badge bg-secondary">{{ tag }}</span>
 			    <span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
 				<i class="bi-x-lg"></i>
@@ -61,7 +61,20 @@
 		    </div>
 		</div>
 
-		<display-error class="mt-5" :error="error"></display-error>
+		<div v-if="!$zome.changed" class="alert alert-info d-flex align-items-center" role="alert">
+		    <p class="m-0">Change something to activate the save button</p>
+		</div>
+		<div v-if="$errors.length" class="alert alert-danger d-flex align-items-center" role="alert">
+		    <i class="bi-exclamation-triangle-fill me-3"></i>
+		    <div>
+			<strong>Invalid Content</strong>
+			<br>
+			<p class="m-0"><em>Please correct the following issues</em></p>
+			<ul>
+			    <li v-for="message in $errors">{{ message }}</li>
+			</ul>
+		    </div>
+		</div>
 
 		<div class="row mt-5">
 		    <div class="col-6"></div>
@@ -69,13 +82,15 @@
 			<router-link :to="'/zomes/' + id" class="btn btn-outline-primary w-100">Cancel</router-link>
 		    </div>
 		    <div class="col-3">
-			<a @click="update()" class="btn btn-primary w-100" :class="{ 'disabled': $zome.updating }">
-			    <span v-if="$zome.updating"
+			<a @click="update()" class="btn btn-primary w-100" :class="{ 'disabled': $zome.writing || $zome.invalid || !$zome.changed }">
+			    <span v-if="$zome.writing"
 				  class="spinner-border spinner-border-sm me-3"></span>
 			    Save
 			</a>
 		    </div>
 		</div>
+
+		<display-error class="mt-5" :error="error"></display-error>
 	    </template>
 	    <div v-else class="card">
 		<div class="card-body text-center p-4">

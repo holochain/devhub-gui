@@ -1,20 +1,20 @@
 <page-view id="single-zome-page">
     <breadcrumbs v-if="zome" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="zome.display_name || zome.name">
-	<a v-if="$zome.loaded" @click="fetchZome()" class="ms-2 fs-4">
-	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $zome.loading }"></i>
+	<a v-if="$zome.present" @click="refresh()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $zome.reading }"></i>
 	</a>
     </breadcrumbs>
 
     <hr>
 
-    <deprecation-alert v-if="deprecated && $zome.current"
+    <deprecation-alert v-if="deprecated && $zome.present"
 		       title="This Zome has been deprecated"
 		       :message="zome.deprecation.message"></deprecation-alert>
 
     <page-header class="mb-3">
 	<template #default>
 	    <h1 class="fs-2">
-		<placeholder :when="!$zome.current" size="fill">
+		<placeholder :when="!$zome.present || $zome.reading" size="fill">
 		    {{ zome.display_name || zome.name }}
 		    <small v-if="zome.display_name"
 			   class="fw-2 text-monospace">"{{ zome.name }}"</small>
@@ -36,8 +36,11 @@
     </page-header>
 
     <div class="mb-5">
-	<p><placeholder :when="!$zome.current" size="p">{{ zome.description }}</placeholder></p>
+	<p><placeholder :when="!$zome.present || $zome.reading" size="p">{{ zome.description }}</placeholder></p>
     </div>
+
+    <!-- <pre>{{ $debug( $zome ) }}</pre> -->
+    <!-- <pre>{{ $debug( zome ) }}</pre> -->
 
     <div class="row align-items-stretch">
 	<div class="col-6">
@@ -49,7 +52,7 @@
 		    <dl class="row">
 			<dt class="col-sm-4">Tags</dt>
 			<dd class="col-sm-8">
-			    <loading :when="!$zome.current">
+			    <loading :when="!$zome.present || $zome.reading">
 				<template v-if="zome.tags && zome.tags.length">
 				    <span v-for="tag in zome.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
 				</template>
@@ -59,17 +62,17 @@
 
 			<dt class="col-sm-4">Created</dt>
 			<dd class="col-sm-8">
-			    <placeholder :when="!$zome.current"><datetime :datetime="zome.published_at" format="weekday+date+time"></datetime></placeholder>
+			    <placeholder :when="!$zome.present || $zome.reading"><datetime :datetime="zome.published_at" format="weekday+date+time"></datetime></placeholder>
 			</dd>
 
 			<dt class="col-sm-4">Last Updated</dt>
 			<dd class="col-sm-8">
-			    <placeholder :when="!$zome.current"><datetime :datetime="zome.last_updated" format="weekday+date+time"></datetime></placeholder>
+			    <placeholder :when="!$zome.present || $zome.reading"><datetime :datetime="zome.last_updated" format="weekday+date+time"></datetime></placeholder>
 			</dd>
 
 			<dt class="col-sm-4">Type</dt>
 			<dd class="col-sm-8">
-			    <placeholder :when="!$zome.current">{{ zome.zome_type == 0 ? "Integrity" : "Coordination" }}</placeholder>
+			    <placeholder :when="!$zome.present || $zome.reading">{{ zome.zome_type == 0 ? "Integrity" : "Coordination" }}</placeholder>
 			</dd>
 		    </dl>
 		</div>
@@ -87,7 +90,7 @@
 			    Agent ID
 			</dt>
 			<dd class="col-sm-12">
-			    <placeholder :when="!$zome.current">
+			    <placeholder :when="!$zome.present || $zome.reading">
 				<holo-hash :hash="zome.developer"></holo-hash>
 			    </placeholder>
 			</dd>
@@ -95,7 +98,7 @@
 			<!--     External Links -->
 			<!-- </dt> -->
 			<!-- <dd class="col-sm-12"> -->
-			<!--     <placeholder :when="!$zome.current"> -->
+			<!--     <placeholder :when="!$zome.present || $zome.reading"> -->
 			<!-- 	None -->
 			<!--     </placeholder> -->
 			<!-- </dd> -->
@@ -109,8 +112,8 @@
 	<div class="d-flex mb-4">
 	    <h2 class="fs-4 flex-grow-1">
 		Zome Versions
-		<a v-if="$versions.loaded" @click="fetchZomeVersions()" class="ms-2 fs-4">
-		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.loading }"></i>
+		<a @click="fetchZomeVersions()" class="ms-2 fs-4">
+		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.reading }"></i>
 		</a>
 	    </h2>
 
@@ -122,7 +125,7 @@
             </router-link>
 	</div>
 
-	<list-group :list="versions" no-result-text="No Zome Versions" :loading="$versions.loading">
+	<list-group :list="versions" no-result-text="No Zome Versions" :loading="$versions.reading">
 	    <div class="row px-3">
 		<div class="col-2 fw-7">
 		    Version #

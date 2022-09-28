@@ -2,9 +2,6 @@ const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zome versions");
 
 const { load_html, http_info }		= require('./common.js');
-const md_converter			= new showdown.Converter({
-    "actionLevelStart": 3,
-});
 
 
 module.exports = async function ( client ) {
@@ -250,23 +247,42 @@ module.exports = async function ( client ) {
 	return {
 	    "template": await load_html("/templates/zomes/versions/single.html"),
 	    "data": function() {
+		const id		= this.getPathId("id");
+		const zome_id		= this.getPathId("zome");
+
 		return {
-		    "id": null,
-		    "zome_id": null,
-		    "changelog_html": null,
+		    id,
+		    zome_id,
+		    "my_review": null,
+
+		    "zomepath":			`zome/${zome_id}`,
+		    "versionpath":		`zome/version/${id}`,
+		    "versionreviewspath":	`zome/version/${id}/reviews`,
+		    "reviewinputpath":		`review/${Math.random()}`,
+
 		    "calculating": false,
-		    "review": {
-			"ratings": {},
-			"message": "",
-		    },
 		    "review_summary_error": null,
 		};
 	    },
 	    async created () {
-		this.id			= this.getPathId("id");
-		this.zome_id		= this.getPathId("zome");
+		const zome_p		= this.$modwc.get( this.zomepath );
 
-		this.refresh();
+		if ( !this.version )
+		    await this.fetchVersion();
+
+		await Promise.all([
+		    zome_p,
+		    this.version.review_summary ? this.$modwc.get( this.summarypath ) : Promise.resolve(),
+		    this.$modwc.get( this.versionreviewspath ),
+		]);
+
+		if ( this.myReviewMap[ this.id ] ) {
+		    this.my_review		= this.myReviewMap[ this.id ];
+
+		    this.reviewinputpath	= `review/${this.my_review.$id}`;
+		} else {
+		    this.resetReviewEdit();
+		}
 	    },
 	    "computed": {
 		form_review () {
@@ -280,43 +296,46 @@ module.exports = async function ( client ) {
 		},
 
 		version () {
-		    return this.$store.getters.zome_version( this.id );
+		    return this.$modwc.state[ this.versionpath ];
 		},
 		$version () {
-		    return this.$store.getters.$zome_version( this.id );
+		    return this.$modwc.metastate[ this.versionpath ];
 		},
 
 		zome () {
-		    if ( !this.version )
-			return null;
-
-		    return this.$store.getters.zome( this.version.for_zome );
+		    return this.$modwc.state[ this.zomepath ];
 		},
 		$zome () {
-		    return this.$store.getters.$zome( this.version ? this.version.for_zome : null );
+		    return this.$modwc.metastate[ this.zomepath ];
 		},
 
+		summarypath () {
+		    return this.$version.present && this.version.review_summary
+			? `zome/version/review/summary/${this.version.review_summary}`
+			: this.$modwc.DEADEND;
+		},
 		summary () {
-		    if ( !this.version || !this.version.review_summary )
-			return null;
-
-		    return this.$store.getters.review_summary( this.version.review_summary );
+		    return this.$modwc.state[ this.summarypath ];
 		},
 		$summary () {
-		    return this.$store.getters.$review_summary( this.version ? this.version.review_summary : null );
+		    return this.$modwc.metastate[ this.summarypath ];
 		},
 
-		$review () {
-		    return (id) => {
-			return this.$store.getters.$review( id );
-		    };
+		review_input () {
+		    return this.$modwc.mutable[ this.reviewinputpath ];
+		},
+		$review_input () {
+		    return this.$modwc.metastate[ this.reviewinputpath ];
+		},
+		$review_errors () {
+		    return this.$modwc.errors[ this.reviewinputpath ];
 		},
 
 		reviews () {
-		    return this.$store.getters.reviews( this.id );
+		    return this.$modwc.state[ this.versionreviewspath ] || [];
 		},
 		$reviews () {
-		    return this.$store.getters.$reviews( this.id );
+		    return this.$modwc.metastate[ this.versionreviewspath ];
 		},
 
 		reactions () {
@@ -324,6 +343,12 @@ module.exports = async function ( client ) {
 		},
 		$reactions () {
 		    return this.$store.getters.$reactions;
+		},
+
+		$reviewMap () {
+		    return id => {
+			return this.$modwc.metastate[`review/${id}`];
+		    };
 		},
 
 		$wasmBytes () {
@@ -336,23 +361,20 @@ module.exports = async function ( client ) {
 		    const filename	= this.zome.name.replace(/[/\\?%*:|"<>]/g, '_');
 		    return `${filename}_v${this.version.version}.wasm`;
 		},
-		zome_deprecated () {
-		    return !!( this.zome && this.zome.deprecation );
-		},
 	    },
 	    "methods": {
 		async refresh () {
-		    if ( !this.version )
-			await this.fetchVersion();
-		    else
-			this.updateChangelogMarkdown();
+		    this.$modwc.read( this.zomepath );
+		    await this.fetchVersion();
+		    this.$modwc.read( this.versionreviewspath );
 
 		    if ( this.version.review_summary )
-			await this.$store.dispatch("fetchReviewSummary", this.version.review_summary );
+			this.$modwc.read( this.summarypath );
 
-		    if ( this.reviews.length === 0 )
-			await this.$store.dispatch("fetchReviewsForBase", this.id );
+		    // if ( this.version.review_summary )
+		    // 	await this.$store.dispatch("fetchReviewSummary", this.version.review_summary );
 
+		    return;
 		    // If there is not summary, or the review's length is greater than the review ref
 		    // list, then try to update the summary.
 		    if ( ( !this.version.review_summary && this.reviews.length > 1 )
@@ -364,14 +386,9 @@ module.exports = async function ( client ) {
 			await this.$store.dispatch("fetchReviewSummary", version.review_summary );
 		    }
 		},
-		updateChangelogMarkdown () {
-		    this.changelog_html	= md_converter.makeHtml( this.version.changelog );
-		},
 		async fetchVersion () {
 		    try {
-			let version		= await this.$store.dispatch("fetchZomeVersion", this.id );
-
-			this.updateChangelogMarkdown();
+			await this.$modwc.read( this.versionpath );
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 
@@ -396,36 +413,24 @@ module.exports = async function ( client ) {
 		    this.$router.push( `/zomes/${this.zome_id}` );
 		},
 		async postReview () {
-		    this.review.validated	= true;
+		    this.review_input.validated	= true;
 
 		    if ( this.form_review.checkValidity() === false )
 			return;
 
-		    if ( this.reviewInputMissingRating() )
+		    if ( this.$review_input.invalid )
 			return;
 
-		    if ( this.review.id ) {
-			await this.$store.dispatch("updateReview", [ this.review.id, this.review ]);
-		    }
-		    else {
-			const zome		= await this.$store.dispatch("getZome", this.version.for_zome );
+		    await this.$modwc.write( this.reviewinputpath );
 
-			this.review.subject_ids	= [
-			    [ this.version.$id, this.version.$action ],
-			    [ zome.$id,		zome.$action ],
-			];
+		    this.reviewinputpath	= `review/${this.$modwc.state[ this.reviewinputpath ].$id}`;
 
-			await this.$store.dispatch("createReview", this.review );
-		    }
-
-		    this.resetReviewEdit();
 		    this.reviewModal.hide();
 
-		    await this.$store.dispatch("fetchReviewsForBase", this.id );
+		    await this.$modwc.read( this.versionreviewspath );
 
-		    console.log( this.reviews )
-		    if ( this.reviews.length > 1 )
-			this.updateReviewSummaryReport();
+		    // if ( this.reviews.length > 1 )
+		    // 	this.updateReviewSummaryReport();
 		},
 		async updateReviewSummaryReport ( show_error = false ) {
 		    this.calculating		= true;
@@ -439,66 +444,6 @@ module.exports = async function ( client ) {
 		    }
 
 		    await this.$store.dispatch("fetchReviewSummary", this.version.review_summary );
-		},
-		reviewInputMissingRating () {
-		    return Object.values( this.review.ratings ).filter( rating => typeof rating === "number" ).length == 0;
-		},
-
-		aggregateSummary ( summary ) {
-		    const breakdown		= {};
-
-		    for ( let review_id in summary.review_refs ) {
-			// (EntryHash, ActionHash, AgentPubKey, u64, BTreeMap<String,u8>, Option<(ActionHash, u64, BTreeMap<u64,u64>)>)
-			const [
-			    _,
-			    latest_action,
-			    author,
-			    action_count,
-			    ratings,
-			    reaction_ref,
-			]			= summary.review_refs[ review_id ];
-
-			let weight		= 1;
-
-			if ( reaction_ref ) {
-			    const [
-				reaction_summary_id,
-				reaction_count,
-				reactions,
-			    ]			= reaction_ref;
-
-			    const likes		= ( reactions[1] || 0 ) + 1;
-			    const dislikes	= ( reactions[2] || 0 ) + 1;
-			    weight	       += ( likes / dislikes ) * .2;
-			}
-
-			for ( let rating_name in ratings ) {
-			    if ( breakdown[rating_name] === undefined )
-				breakdown[rating_name]	= [];
-
-			    breakdown[rating_name].push( [ ratings[rating_name], weight ] );
-			}
-		    }
-
-		    for ( let [key, ratings] of Object.entries(breakdown) ) {
-			let [ weighted_sum, weight_total ]	= ratings.reduce( (acc, [value, weight]) => {
-			    acc[0] += value * weight;
-			    acc[1] += weight;
-
-			    return acc;
-			}, [0, 0] );
-
-			breakdown[key]		= weighted_sum / weight_total;
-		    }
-
-		    const all_ratings		= Object.values( breakdown );
-		    const average		= all_ratings.reduce( (acc, value) => acc + value, 0 ) / all_ratings.length;
-
-		    log.info("Aggregated summary:", average, breakdown );
-		    return {
-			average,
-			breakdown,
-		    };
 		},
 
 		async doReaction ( review, reaction_type ) {
@@ -531,30 +476,28 @@ module.exports = async function ( client ) {
 		    // await this.updateReviewSummaryReport();
 		},
 
-		editReview ( review ) {
-		    this.review.ratings		= Object.assign( {}, review.ratings );
-		    this.review.message		= review.message;
-		    this.review.id		= review.$id;
-
+		editReview () {
 		    this.reviewModal.show();
 		},
 		updateReviewRating ( rating_type, value ) {
 		    if ( value === undefined )
-			delete this.review.ratings[rating_type];
+			delete this.review_input.ratings[rating_type];
 		    else
-			this.review.ratings[rating_type] = value;
+			this.review_input.ratings[rating_type] = value;
 		},
 		starClass ( rating_type, i ) {
 		    return {
-			"bi-star-fill":	i*2 <= this.review.ratings[ rating_type ],
-			"bi-star":	i*2 >  this.review.ratings[ rating_type ],
+			"bi-star-fill":	i <= this.review_input.ratings[ rating_type ],
+			"bi-star":	i >  this.review_input.ratings[ rating_type ],
 		    };
 		},
 		resetReviewEdit () {
-		    this.review		= {
-			"ratings": {},
-			"message": "",
-		    };
+		    delete this.$modwc.mutable[ this.reviewinputpath ];
+
+		    this.review_input.subject_ids.push(
+			[ this.version.$id,	this.version.$action ],
+			[ this.zome.$id,	this.zome.$action ],
+		    );
 		},
 	    },
 	};

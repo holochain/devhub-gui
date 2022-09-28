@@ -33,6 +33,7 @@ function fallbackCopyTextToClipboard ( text ) {
 
 const RATING_TERMS = {
     "accuracy": [
+	"Anti-truth",
 	"Inaccurate", // Wrong, False, Untrue
 	"Vague", // Ambiguous, Unclear
 	"Clear", // Factual, Appropriate
@@ -40,6 +41,7 @@ const RATING_TERMS = {
 	"Meticulous", // Detailed, Precise, Exceptional
     ],
     "efficiency": [
+	"Sadistic",
 	"Wasteful", // Wasteful, Heavy
 	"Costly", // Costly, Expensive, Substantial
 	"Expected", // Practical
@@ -234,10 +236,7 @@ const common				= {
     },
 
     snip ( str, length = 4 ) {
-	const snipped			= str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
-
-	log.trace("Snipping string:", str, length, snipped );
-	return snipped;
+	return str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
     },
 
     compareText ( text1, text2, case_sensitive = false ) {
