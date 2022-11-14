@@ -4,7 +4,7 @@
 
     <hr>
 
-    <form ref="form" :class="{ 'was-validated': validated }">
+    <form ref="form" :class="{ 'was-validated': $release.failed }">
 	<div v-if="!input.hdk_version" class="row">
 	    <div class="col-6">
 		<loading :when="!$previous_hdk_versions.current">
@@ -18,8 +18,7 @@
 		</loading>
 	    </div>
 	</div>
-
-	<div v-if="input.hdk_version" class="row">
+	<div v-else class="row">
 	    <div class="col-12">
 		<a class="btn btn-outline-secondary"
 		   @click="input.hdk_version = ''">
@@ -30,86 +29,166 @@
 	    <div class="col-6">
 		<label class="form-label fw-6">Release Name</label>
 		<input-feedback>
-		    <input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
+		    <input type="text" v-model="input.name" class="form-control"
+			   :disabled="$release.writing" required>
 		</input-feedback>
 
 		<label class="form-label fw-6">Ordering</label>
 		<input-feedback>
-		    <input type="number" v-model.number="input.ordering" class="form-control" :disabled="saving" required>
+		    <input type="number" v-model.number="input.ordering" class="form-control"
+			   :disabled="$release.writing" required>
 		</input-feedback>
 
 		<label class="form-label fw-6">Description</label>
 		<input-feedback>
 		    <textarea v-model="input.description" class="form-control" rows="10"
-			      :disabled="saving" required></textarea>
+			      :disabled="$release.writing" required></textarea>
 		</input-feedback>
 
-		<label class="form-label fw-6">DNAs</label>
+		<div class="row mt-3">
+		    <div class="col">
+			<label class="form-label fw-6">DNAs</label>
+		    </div>
+		    <div class="col-auto">
+			<a @click="dna_picker_modal.show()"
+			   class="btn btn-primary">Select DNAs</a>
+		    </div>
+		</div>
 
-		<list-group :list="input.dnas" no-result-text="No Dnas have been added"
+		<list-group :list="input.dnas" no-result-text="No DNAs have been added"
 			    class="mt-0">
 		    <list-group-item v-for="(dna_ref, index) in input.dnas" class="py-3">
-			<input-feedback class="mb-3">
-			    <div class="input-group">
-				<span class="input-group-text">Role ID</span>
-				<input type="text" v-model="dna_ref.role_id" class="form-control" required :disabled="saving">
-			    </div>
-			</input-feedback>
 
-			<dna-version-card :id="dna_ref.version"
-					   :actions="dna_card_actions( index )"></dna-version-card>
+			<div class="card entity-ref dna-version-ref">
+			    <identicon class="position-absolute top-0 end-0"
+				       style="margin: 10px;"
+				       :seed="dna_ref.dna"></identicon>
+			    <div class="d-flex">
+				<strong class="flex-grow">{{ dna_ref.version }}</strong>
+				<a v-if="true" class="btn btn-sm btn-outline-secondary"
+				   @click="changeDnaVersion( index )">
+				    Change Version
+				</a>
+			    </div>
+			    <!-- <span class="fw-small">&mdash; for DNA ({{ dna_ref.dna }})</span> -->
+
+			    <input-feedback class="mt-3">
+				<div class="input-group">
+				    <span class="input-group-text">Role ID</span>
+				    <input type="text" v-model="dna_ref.role_id"
+					   class="form-control" required :disabled="$release.writing">
+				</div>
+			    </input-feedback>
+			</div>
+			<!-- <dna-version-card :id="dna_ref.version" -->
+			<!-- 		  :link="false" -->
+			<!-- 		  :actions="dna_card_actions( index )"></dna-version-card> -->
 		    </list-group-item>
 		</list-group>
-	    </div>
-	    <div class="col-6">
-		<div class="mb-3">
-		    <label class="form-label fw-6">Search DNAs</label>
-		    <div class="form-input-search" :class="{ 'show-results': filtered_dnas.length }">
-			<input type="text" class="form-control no-validate" placeholder="start typing a Dna name"
-			       v-model="dna_search_text" @keyup.enter="addDna( filtered_dnas[0] )">
+
+		<div class="row mt-3">
+		    <div class="col">
+			<label class="form-label fw-6">Official GUI</label>
+		    </div>
+		    <div class="col-auto">
+			<a @click="gui_releases_modal.show()"
+			   class="btn btn-primary ms-3">Select GUI Release</a>
+		    </div>
+		    <div v-if="input.official_gui" class="col-12">
+			<gui-release-ref :id="input.official_gui"></gui-release-ref>
 		    </div>
 		</div>
 
-		<list-group :list="compatible_dnas" :loading="$compatible_dnas.loading" no-result-text="No Dnas" class="mt-0">
-		    <template v-for="dna in compatible_dnas" :key="dna.$id">
-			<list-group-item v-if="!dnaIsAdded( dna.$id )" class="py-3">
-			    <dna-card :id="dna.$id"
-				      :link="false"
-				      :actions="[ addDnaAction( dna ) ]"></dna-card>
-			</list-group-item>
-		    </template>
-		</list-group>
-	    </div>
-	</div>
+		<!-- <div v-if="!input.official_gui"> -->
+		<!--     <div class="text-center"> -->
+		<!-- 	<a @click="input.official_gui = 'create_new'" -->
+		<!-- 	   class="btn btn-secondary">Create new GUI Release</a> -->
+		<!-- 	<a @click="gui_releases_modal.show()" -->
+		<!-- 	   class="btn btn-primary ms-3">Select GUI Release</a> -->
+		<!--     </div> -->
 
-	<div v-if="input.hdk_version" class="row">
-	    <div class="col-6">
-		<label class="form-label fw-6">Drag and drop zipped GUI</label>
-		<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-		    <input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving">
-		</input-feedback>
-	    </div>
-	</div>
+		<!--     <p class="py-3">{{ input.official_gui }}</p> -->
+		<!-- </div> -->
+		<!-- <div v-else> -->
+		<!--     <identicon :seed="input.official_gui"></identicon> -->
+		<!-- </div> -->
 
-	<div v-if="input.hdk_version" class="row">
-	    <div class="col-6">
-		<display-error class="mt-5" :error="error"></display-error>
+		<!-- <div v-if="input.official_gui === 'create_new'"> -->
+		<!--     <div class="text-center"> -->
+		<!-- 	<a @click="input.official_gui = null" -->
+		<!-- 	   class="btn btn-outline-secondary">Cancel</a> -->
+		<!-- 	<br> -->
+		<!-- 	<br> -->
+		<!-- 	<a @click="gui_release$.for_gui = 'create_new'" -->
+		<!-- 	   class="btn btn-secondary">Create new GUI</a> -->
+		<!-- 	<a @click="guis_modal.show()" -->
+		<!-- 	   class="btn btn-primary ms-3">Select GUI</a> -->
+		<!--     </div> -->
 
-		<div class="row mt-5">
-		    <div class="col-6"></div>
-		    <div class="col-3">
-			<router-link :to="'/happs/' + happ_id" class="btn btn-outline-primary w-100">Cancel</router-link>
-		    </div>
-		    <div class="col-3">
-			<a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
-			    <span v-if="saving"
-				  class="spinner-border spinner-border-sm me-3"></span>
-			    Save
-			</a>
+		<!--     <p class="py-3">Upload GUI Release under: {{ gui_release$.for_gui }}</p> -->
+
+		<!--     <label class="form-label fw-6">Drag and drop zipped GUI</label> -->
+		<!--     <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback"> -->
+		<!-- 	<input type="file" @change="file_selected" -->
+		<!-- 	       class="form-control form-input-file" :disabled="$release.writing"> -->
+		<!--     </input-feedback> -->
+		<!-- </div> -->
+
+		<div v-if="rejections.length && $release.failed"
+		     class="alert alert-danger d-flex align-items-center mt-5" role="alert">
+		    <i class="bi-exclamation-triangle-fill me-3"></i>
+		    <div>
+			<strong>Invalid Content</strong>
+			<br>
+			<p class="m-0"><em>Please correct the following issues</em></p>
+			<ul>
+			    <li v-for="message in rejections">{{ message }}</li>
+			</ul>
 		    </div>
 		</div>
+
+		<div>
+		    <display-error class="mt-5" :error="error"></display-error>
+
+		    <div class="row mt-5">
+			<div class="col-6"></div>
+			<div class="col-3">
+			    <router-link :to="'/happs/' + happ_id"
+					 class="btn btn-outline-primary w-100">Cancel</router-link>
+			</div>
+			<div class="col-3">
+			    <a @click="create()" class="btn btn-primary w-100"
+			       :class="{ 'disabled': $release.writing }">
+				<span v-if="$release.writing"
+				      class="spinner-border spinner-border-sm me-3"></span>
+				Save
+			    </a>
+			</div>
+		    </div>
+		</div>
+
+	    </div>
+	    <div class="col-6">
+		<!-- <div class="mb-3"> -->
+		<!--     <label class="form-label fw-6">Search DNAs</label> -->
+		<!--     <div class="form-input-search" :class="{ 'show-results': filtered_dnas.length }"> -->
+		<!-- 	<input type="text" class="form-control no-validate" placeholder="start typing a Dna name" -->
+		<!-- 	       v-model="dna_search_text" @keyup.enter="addDna( filtered_dnas[0] )"> -->
+		<!--     </div> -->
+		<!-- </div> -->
+
+		<!-- <list-group :list="compatible_dnas" :loading="$compatible_dnas.loading" no-result-text="No Dnas" class="mt-0"> -->
+		<!--     <template v-for="dna in compatible_dnas" :key="dna.$id"> -->
+		<!-- 	<list-group-item v-if="!dnaIsAdded( dna.$id )" class="py-3"> -->
+		<!-- 	    <dna-card :id="dna.$id" -->
+		<!-- 		      :link="false" -->
+		<!-- 		      :actions="[ addDnaAction( dna ) ]"></dna-card> -->
+		<!-- 	</list-group-item> -->
+		<!--     </template> -->
+		<!-- </list-group> -->
 	    </div>
 	</div>
+
     </form>
 
     <modal ref="changeVersion"
@@ -124,5 +203,79 @@
 	    </div>
 	</loading>
     </modal>
+
+    <modal title="Select GUI" ref="select_gui"
+	   cancel-text="Finish" data-bs-backdrop="static">
+	<ul>
+	    <li v-for="gui in all_guis">
+		<input type="radio" name="gui_parent"
+		       v-model="gui_release$.for_gui"
+		       :value="String(gui.$id)">
+		{{ gui.name }}
+	    </li>
+	</ul>
+    </modal>
+
+    <modal title="Select GUI Release" ref="select_gui_release"
+	   cancel-text="Finish" data-bs-backdrop="static">
+
+	<div class="accordion">
+	    <div v-for="(gui, i) in all_guis"
+		 class="accordion-item">
+		<h2 class="accordion-header" @click="getGUIReleases( gui.$id )">
+		    <button class="accordion-button collapsed" type="button"
+			    data-bs-toggle="collapse" :data-bs-target="'#collapse-' + i">
+			<strong>{{ gui.name }}</strong>
+		    </button>
+		</h2>
+		<div :id="'collapse-' + i" class="accordion-collapse collapse">
+		    <div class="accordion-body text-start">
+			<p>{{ gui.description }}</p>
+			<loading :when="!$gui_releases( gui.$id ).present">
+			    <div v-for="release in gui_releases( gui.$id )" :key="release.$id"
+				 class="mb-3">
+				<gui-release-ref :id="release.$id.toString()" class="cursor-pointer"
+						 @click="input.official_gui = input.official_gui === String(release.$id) ? null : String(release.$id)">
+				    <template #title>
+					<input class="form-check-input me-2"
+					       type="radio" name="official_gui"
+					       v-model="input.official_gui"
+					       :value="String(release.$id)">
+				    </template>
+
+				    <datetime :datetime="release.last_updated"></datetime>
+				</gui-release-ref>
+				<!-- <div class="card entity-ref gui-release-ref cursor-pointer" -->
+				<!--      @click="input.official_gui = input.official_gui === String(release.$id) ? null : String(release.$id)"> -->
+				<!--     <div class="form-check"> -->
+				<!-- 	<input class="form-check-input" type="radio" -->
+				<!-- 	       name="flexRadioDefault" v-model="input.official_gui" -->
+				<!-- 	       :value="String(release.$id)"> -->
+				<!-- 	<label class="form-check-label"> -->
+				<!-- 	    <span>v{{ release.version }}</span> -->
+				<!-- 	    &mdash; -->
+				<!-- 	    <datetime :datetime="release.last_updated"></datetime> -->
+				<!-- 	</label> -->
+				<!--     </div> -->
+				<!--     <\!-- <span> -\-> -->
+				<!--     <\!-- 	<input type="radio" name="official_gui" -\-> -->
+				<!--     <\!-- 	       v-model="input.official_gui" -\-> -->
+				<!--     <\!-- 	       :value="String(release.$id)"> -\-> -->
+				<!--     <\!-- 	v{{ release.version }} -\-> -->
+				<!--     <\!-- </span> -\-> -->
+				<!--     <\!-- <datetime class="flex-grow-1" :datetime="release.last_updated"></datetime> -\-> -->
+				<!--     <\!-- <identicon :seed="release.$id"></identicon> -\-> -->
+				<!-- </div> -->
+			    </div>
+			</loading>
+		    </div>
+		</div>
+	    </div>
+	</div>
+
+    </modal>
+
+    <dna-picker-modal ref="dna_picker" name="selected_dnas" multiple :onclose="updateDnaList"
+		      v-model="added_dnas" :hdk-version="input.hdk_version"></dna-picker-modal>
 
 </page-view>

@@ -36,6 +36,10 @@
 		Unpublish
             </a>
 	</template>
+
+	<template #controls>
+	    <identicon :seed="id" :size="50"></identicon>
+	</template>
     </page-header>
 
     <div class="row align-items-stretch">
@@ -83,7 +87,7 @@
 		    <loading :when="!$version.present || $version.reading">
 			<div class="mx-3 my-5">
 			    <a class="btn btn-primary w-100" @click="downloadWasmBytes()">
-				<span v-if="$wasmBytes.loading"
+				<span v-if="$wasm_bytes.reading"
 				      class="spinner-border spinner-border-sm me-3"></span>
 				<i v-else class="bi-download"></i>
 				Download {{ wasm_filename }}
@@ -124,6 +128,9 @@
 	    </a>
 	</div>
 
+	<!-- <pre>{{ $debug( $zome ) }}</pre> -->
+	<!-- <pre>{{ $debug( zome ) }}</pre> -->
+
 	<div class="col-8">
 	    <list-group :list="reviews" no-result-text="No Zome Reviews"
 			:loading="$reviews.reading" :border="true">
@@ -133,12 +140,16 @@
 			    <div class="d-flex">
 				<div class="flex-grow-1">
 				    <div class="d-flex align-items-center">
-					<i class="bi-person-circle fs-1 me-3"></i>
-					<holo-hash :hash="review.author"></holo-hash>
-					<span v-if="$zome.current && hashesAreEqual( zome.developer, review.author )"
-					      class="badge bg-light text-dark ms-1">Developer</span>
+					<avatar :agent-id="review.author" :size="40"></avatar>
+					<div>
+					    <p class="mb-1 fw-1">
+						<small>Author's Username</small>
+						<span v-if="zome && hashesAreEqual( zome.developer, review.author )"
+						      class="badge bg-light text-dark ms-1">Developer</span>
+					    </p>
+					    <rating-stars :rating="average( ...Object.values( review.ratings ) )"></rating-stars>
+					</div>
 				    </div>
-				    <rating-stars :rating="average( ...Object.values( review.ratings ) )"></rating-stars>
 				</div>
 				<datetime :datetime="review.published_at"></datetime>
 			    </div>
@@ -207,7 +218,7 @@
 		    {{ version.review_summary ? 'Rec' : 'C' }}alculate Reviews
 		</a>
 
-		<display-error class="my-3" :error="review_summary_error"></display-error>
+		<display-error class="my-3" :error="summary_errors.write"></display-error>
 	    </div>
 	    <!-- 	<p><span class="fw-light">{{ summary.accuracy_average.toFixed(1) }}</span>/10</p> -->
 	    <!-- 	<p><span class="fw-light">{{ summary.efficiency_average.toFixed(1) }}</span>/10</p> -->
@@ -221,11 +232,12 @@
 
     <modal title="Post review" ref="review"
 	   action-text="Post" :action="postReview" data-bs-backdrop="static">
-	<form ref="form_review" :class="{ 'was-validated': review_input.validated }">
+	<form v-if="$review_input.present"
+	      ref="form_review" :class="{ 'was-validated': $review_input.failed }">
 	    <div v-for="rating_type in ['accuracy', 'efficiency']" class="mb-1">
 		<div v-if="review_input.ratings[rating_type] === undefined">
 		    <a @click="updateReviewRating( rating_type, 5 )" class="btn btn-outline-primary text-nowrap"
-		       :class="{ 'border-danger': review_input.validated && $review_input.invalid }">
+		       :class="{ 'border-danger': $review_input.failed && $review_input.invalid }">
 			Add {{ capitalize( rating_type ) }} Rating
 		    </a>
 		</div>
@@ -236,7 +248,7 @@
 			</a>
 		    </div>
 		    <div class="col-7">
-			<label class="form-label">{{ capitalize( rating_type ) }} Rating <i>({{ rating_term( rating_type, review_input.ratings[rating_type] ) }})</i></label>
+			<label class="form-label">{{ capitalize( rating_type ) }} Rating <i>({{ rating_term( rating_type, review_input$.ratings[rating_type] ) }})</i></label>
 			<div class="d-flex justify-content-center">
 			    <a class="pe-2" @click="updateReviewRating( rating_type, 0 )">None</a>
 			    <i v-for="i in 5" class="p-1 cursor-pointer"
@@ -249,11 +261,11 @@
 
 	    <label class="form-label">Message</label>
 	    <input-feedback>
-		<textarea v-model="review_input.message" class="form-control" rows="4"
+		<textarea v-model="review_input$.message" class="form-control" rows="4"
 			  placeholder="Message (optional)"></textarea>
 	    </input-feedback>
 
-	    <div v-if="review_input.validated && $review_input.invalid" class="alert alert-danger d-flex align-items-center" role="alert">
+	    <div v-if="$review_input.failed && $review_input.invalid" class="alert alert-danger d-flex align-items-center" role="alert">
 		<i class="bi-exclamation-triangle-fill me-3"></i>
 		<div>
 		    <strong>Invalid Content</strong>

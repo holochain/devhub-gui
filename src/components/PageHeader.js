@@ -18,10 +18,10 @@ module.exports = function ( element_local_name, component_name ) {
 	},
 	mounted () {
 	    let header_col_size		= 12;
-	    let controls_col_size		= 0;
+	    let controls_col_size	= 0;
 
 	    if ( this.$slots["controls"] ) {
-		controls_col_size		= this.controlsCol || 6;
+		controls_col_size	= this.controlsCol || 3;
 		header_col_size		= 12 - controls_col_size;
 	    }
 

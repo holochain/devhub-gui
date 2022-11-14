@@ -1,0 +1,26 @@
+<modal ref="picker" title="Select DNA(s)"
+       :onclose="onclose"
+       cancel-text="Finish" data-bs-backdrop="static">
+
+    <list-group :list="dnas" :loading="$dnas.loading"
+		no-result-text="No Dnas" class="mt-0">
+	<template v-for="dna in dnas" :key="dna.$id">
+	    <list-group-item class="py-3">
+		<div class="row align-items-center">
+		    <div class="col-1">
+			<input v-if="multiple" :name="name" :value="dna" type="checkbox"
+			       v-model="multi_select"
+			       @change="$emit('update:modelValue', multi_select )">
+			<input v-else          :name="name" :value="dna" type="radio"
+			       @change="$emit('update:modelValue', $event.target.value )">
+		    </div>
+		    <div class="col">
+			<dna-card :id="dna.$id"
+				  :link="false"></dna-card>
+		    </div>
+		</div>
+	    </list-group-item>
+	</template>
+    </list-group>
+
+</modal>

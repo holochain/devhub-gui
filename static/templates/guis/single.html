@@ -1,0 +1,187 @@
+<page-view id="single-gui-page">
+    <breadcrumbs v-if="gui" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="gui.display_name || gui.name">
+	<a v-if="$gui.present" @click="refresh()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $gui.reading }"></i>
+	</a>
+    </breadcrumbs>
+
+    <hr>
+
+    <deprecation-alert v-if="deprecated && $gui.present"
+		       title="This GUI has been deprecated"
+		       :message="gui.deprecation.message"></deprecation-alert>
+
+    <page-header class="mb-3">
+	<template #default>
+	    <h1 class="fs-2">
+		<placeholder :when="!$gui.present || $gui.reading" size="fill">
+		    {{ gui.display_name || gui.name }}
+		    <small v-if="gui.display_name"
+			   class="fw-2 text-monospace">"{{ gui.name }}"</small>
+		</placeholder>
+	    </h1>
+	</template>
+
+	<template #title-extras v-if="!deprecated && $gui.writable">
+            <router-link :to="'/guis/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
+		<i class="bi-pencil"></i>
+		Edit
+            </router-link>
+
+            <a @click="deprecationModal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
+		<i class="bi-x-lg"></i>
+		Deprecate
+            </a>
+	</template>
+
+	<template #controls>
+	    <identicon :seed="id" :size="50"></identicon>
+	</template>
+    </page-header>
+
+    <div class="mb-5">
+	<p><placeholder :when="!$gui.present || $gui.reading" size="p">{{ gui.description }}</placeholder></p>
+    </div>
+
+    <!-- <pre>{{ $debug( $gui ) }}</pre> -->
+    <!-- <pre>{{ $debug( gui ) }}</pre> -->
+
+    <div class="row align-items-stretch">
+	<div class="col-6">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Details
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-4">Tags</dt>
+			<dd class="col-sm-8">
+			    <loading :when="!$gui.present || $gui.reading">
+				<template v-if="gui.tags && gui.tags.length">
+				    <span v-for="tag in gui.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
+				</template>
+				<span v-else>No tags</span>
+			    </loading>
+			</dd>
+
+			<dt class="col-sm-4">Created</dt>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$gui.present || $gui.reading"><datetime :datetime="gui.published_at" format="weekday+date+time"></datetime></placeholder>
+			</dd>
+
+			<dt class="col-sm-4">Last Updated</dt>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$gui.present || $gui.reading"><datetime :datetime="gui.last_updated" format="weekday+date+time"></datetime></placeholder>
+			</dd>
+		    </dl>
+		</div>
+	    </div>
+	</div>
+
+	<div class="col-6">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Developed by
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-12">
+			    Agent ID
+			</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$gui.present || $gui.reading">
+				<identicon :seed="gui.designer" :size="30"></identicon>
+			    </placeholder>
+			</dd>
+		    </dl>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+    <div class="mt-5">
+	<div class="d-flex mb-4">
+	    <h2 class="fs-4 flex-grow-1">
+		GUI Releases
+		<a @click="$openstate.read( releases_datapath )" class="ms-2 fs-4">
+		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $releases.reading }"></i>
+		</a>
+	    </h2>
+
+            <router-link v-if="gui && $gui.writable" :to="'/guis/' + id + '/releases/new'"
+			 class="btn btn-primary text-nowrap"
+			 :class="{ 'disabled': deprecated }">
+		<i class="bi-plus-lg"></i>
+		Create new release
+            </router-link>
+	</div>
+
+	<list-group :list="releases" no-result-text="No GUI Releases" :loading="$releases.reading">
+	    <div class="row px-3">
+		<div class="col-1"></div>
+		<div class="col-1 fw-7">
+		    Release #
+		</div>
+		<div class="col-3 fw-7">
+		    Created
+		</div>
+		<div class="col-2 fw-7">
+		    Last Updated
+		</div>
+		<div class="col"></div>
+	    </div>
+
+	    <hr class="my-1">
+
+	    <list-group-item v-for="release in releases" class="py-3">
+		<div class="row align-items-center">
+		    <div class="col-1">
+			<identicon :seed="release.$id" :size="30"></identicon>
+		    </div>
+		    <div class="col-1">
+			<h3 class="fs-6 m-0">{{ release.version }}</h3>
+		    </div>
+		    <div class="col-3">
+			<datetime :datetime="release.published_at" format="weekday+date+time"></datetime>
+		    </div>
+		    <div class="col-2">
+			<datetime :datetime="release.last_updated"></datetime>
+		    </div>
+		    <div class="col text-end text-nowrap">
+			<a v-if="$gui.writable" @click="promptUnpublish( release )" class="btn btn-secondary text-nowrap">
+			    Unpublish
+			</a>
+
+			<router-link :to="'/guis/' + id + '/releases/' + release.$id" class="btn btn-light ms-5">
+			    More info
+			</router-link>
+		    </div>
+		</div>
+	    </list-group-item>
+	</list-group>
+    </div>
+
+    <modal v-if="gui" title="Deprecate GUI" ref="deprecationModal"
+	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
+	<form ref="form" :class="{ 'was-validated': $gui.failed }">
+	    <div class="mb-4">
+		<p>Are you sure you want to deprecate the <strong>{{ gui.name }}</strong> GUI?</p>
+	    </div>
+	    <input-feedback>
+		<textarea v-model="gui$.deprecation" class="form-control" rows="4"
+			  placeholder="Reason" required :disabled="$gui.writing"></textarea>
+	    </input-feedback>
+
+	    <display-error class="mt-5" :error="gui_errors.deprecation" :debug="true"></display-error>
+	</form>
+    </modal>
+
+    <modal title="Unpublish GUI Release" ref="unpublishModal"
+	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
+	<div v-if="gui && release">
+	    <p>Are you sure you want to unpublish the {{ gui.name }} GUI Release <strong>{{ release.version }}</strong>?</p>
+	</div>
+
+	<display-error class="mt-5" :error="focused_release_errors.unpublish" :debug="true"></display-error>
+    </modal>
+</page-view>

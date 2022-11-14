@@ -1,8 +1,8 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zomes");
 
-const { AgentPubKey }			= holohash;
-const { load_html }			= require('./common.js');
+const { load_html,
+	...common }			= require('./common.js');
 
 
 module.exports = async function ( client ) {
@@ -11,108 +11,75 @@ module.exports = async function ( client ) {
 	return {
 	    "template": await load_html("/templates/zomes/list.html"),
 	    "data": function() {
-		const input_cache	= PersistentStorage.getItem("LIST_FILTER");
-		let agent_input		= input_cache;
+		const agent_filter_cache	= PersistentStorage.getItem("LIST_FILTER");
+		const agent_filter_query	= this.$route.query.agent;
 
-		if ( this.$route.query.agent ) {
-		    log.warn("Overriding stored filter (%s) with filter from URL search:", input_cache, this.$route.query.agent );
-		    agent_input		= this.$route.query.agent;
-		}
+		if ( agent_filter_cache && agent_filter_query )
+		    log.warn("Overriding cached filter (%s) with value from URL search:", agent_filter_cache, agent_filter_query );
 
 		return {
-		    "agent_input_cache": input_cache,
-		    "agent_input": this.$route.query.agent || input_cache || "",
-		    "agent_hash": null,
-		    "order_by": "last_updated",
-		    "reverse_order": true,
-		    "list_filter": "",
+		    agent_filter_cache,
+		    agent_filter_query,
+		    "order_by":		"last_updated",
+		    "reverse_order":	true,
+		    "list_filter":	"",
 		};
 	    },
 	    async created () {
-		this.refresh();
+		this.mustGet(async () => {
+		    this.agent
+			? await this.$openstate.get(`agent/${this.agent}/zomes`)
+			: await this.$openstate.get(`zomes`);
+		});
 	    },
 	    "computed": {
-		title () {
-		    return (
-			this.agent_input.length
-			    ? ( this.agent_input === "me" ? "My" : "Agent" )
-			    : "All"
-		    )  + " Zomes";
-		},
 		agent () {
-		    return this.agent_input.length ? this.agent_input : "me";
+		    return this.agent_filter_query || this.agent_filter_cache || null;
 		},
-		zomes () {
-		    const zomes		= (
-			this.agent_input.length
-			    ? this.$store.getters.zomes( this.agent )
-			    : this.$store.getters.zomes( "all" )
-		    ).filter( entity => {
-			const filter	= this.list_filter.trim();
-
-			if ( filter === "" )
-			    return true;
-
-			let words	= filter.split(/\s+/);
-
-			for ( let word of words ) {
-			    if ( this.compareText( word, entity.name )
-				 || this.compareText( word, entity.description ) )
-				return 1;
-
-			    if ( entity.tags && entity.tags.some( tag => this.compareText( word, tag ) ) )
-				return 1;
-			}
-
-			return 0;
-		    });
-
-		    zomes.sort( this.sort_by_key( this.order_by, this.reverse_order ) );
-
-		    return zomes;
+		title () {
+		    const prefix	= this.agent
+			  ? (this.agent === "me" ? "My" : "Agent")
+			  : "All"
+		    return `${prefix} Zomes`;
 		},
-		$zomes () {
-		    return this.agent_input.length
-			? this.$store.getters.$zomes( this.agent )
-			: this.$store.getters.$zomes( "all" );
+
+		agent_datapath () {
+		    return `agent/${this.agent}/zomes`;
 		},
+		...common.scopedPathComputed( c => c.agent ? c.agent_datapath : "zomes", "zomes", {
+		    "default": [],
+		    state ( list ) {
+			list			= list.filter( entity => {
+			    const filter	= this.list_filter.trim();
+
+			    if ( filter === "" )
+				return true;
+
+			    let words	= filter.split(/\s+/);
+
+			    for ( let word of words ) {
+				if ( this.compareText( word, entity.name )
+				     || this.compareText( word, entity.description ) )
+				    return 1;
+
+				if ( entity.tags && entity.tags.some( tag => this.compareText( word, tag ) ) )
+				    return 1;
+			    }
+
+			    return 0;
+			});
+
+			list.sort( this.sort_by_key( this.order_by, this.reverse_order ) );
+
+			return list;
+		    },
+		}),
 	    },
 	    "methods": {
 		async refresh () {
-		    if ( this.zomes.length === 0 )
-			await this.fetchZomes();
-		},
-		async updateAgent ( input ) {
-		    if ( input === "" )
-			this.agent_filter = null;
-		    else if ( this.isAgentPubKey( input ) )
-			this.agent_filter	= new AgentPubKey( input );
-		    else
-			return;
-
-		    PersistentStorage.setItem("LIST_FILTER", this.agent_filter );
-
-		    await this.fetchZomes();
-		},
-		async fetchZomes () {
-		    if ( this.agent_input.length )
-			await this.fetchAgentZomes();
-		    else
-			await this.fetchAllZomes();
-		},
-		async fetchAgentZomes () {
-		    try {
-			await this.$store.dispatch("fetchZomes", { "agent": this.agent });
-		    } catch (err) {
-			log.error("Failed to get zomes: %s", err.message, err );
-		    }
-		},
-		async fetchAllZomes () {
-		    try {
-			await this.$store.dispatch("fetchAllZomes");
-		    } catch (err) {
-			log.error("Failed to get zomes: %s", err.message, err );
-		    }
+		    this.agent
+			? await this.$openstate.read(`agent/${this.agent}/zomes`)
+			: await this.$openstate.read(`zomes`);
 		},
 	    },
 	};
@@ -123,54 +90,123 @@ module.exports = async function ( client ) {
 	    "template": await load_html("/templates/zomes/create.html"),
 	    "data": function() {
 		return {
-		    "error": null,
-		    "input": {
-			"name": null,
-			"description": null,
-			"zome_type": null,
-			"tags": new Set(),
-		    },
-		    "validated": false,
-		    "saving": false,
-		    "tag_search_text": "",
+		    "datapath":		`zome/new`,
+		    "tag_search_text":	"",
+		    "error":		null,
 		};
 	    },
 	    "computed": {
 		form () {
 		    return this.$refs["form"];
 		},
+
+		...common.scopedPathComputed( c => c.datapath, "zome" ),
 	    },
 	    "methods": {
 		addTag ( tag ) {
+		    if ( this.input.tags.indexOf( tag ) !== -1 )
+			return;
+
 		    log.info("Adding tag:", tag );
-		    this.input.tags.add( tag );
-		    this.tag_search_text		= "";
+		    this.input.tags.push( tag );
+		    this.input.tags.sort();
+		    this.tag_search_text	= "";
 		},
 		removeTag ( tag ) {
 		    log.info("Removing tag:", tag );
-		    this.input.tags.delete( tag );
+		    this.input.tags.splice( this.input.tags.indexOf( tag ), 1 );
 		},
-		async create () {
-		    this.validated	= true;
-
-		    if ( this.form.checkValidity() === false )
-			return;
-
-		    const input				= Object.assign({}, this.input );
-		    input.tags				= [ ...input.tags ];
-
-		    this.saving		= true;
+		async write () {
 		    try {
-			const zome	= await this.$store.dispatch("createZome", input );
+			await this.$openstate.write( this.datapath );
 
-			this.$store.dispatch("fetchAllZomes");
-			this.$router.push( "/zomes/" + zome.$id );
+			const new_id		= this.zome.$id;
+			this.$openstate.purge( this.datapath );
+
+			await this.$openstate.read("zomes");
+
+			this.$router.push( "/zomes/" + new_id );
 		    } catch ( err ) {
 			log.error("Failed to create Zome:", err );
 			this.error	= err;
-		    } finally {
-			this.saving	= false;
 		    }
+		},
+	    },
+	};
+    };
+
+    async function single () {
+	return {
+	    "template": await load_html("/templates/zomes/single.html"),
+	    "data": function() {
+		const id		= this.getPathId("id");
+
+		return {
+		    id,
+		    "datapath":			`zome/${id}`,
+		    "versions_datapath":	`zome/${id}/versions`,
+		    "version": null,
+		};
+	    },
+	    async created () {
+		this.mustGet(async () => {
+		    await this.$openstate.get( this.datapath );
+		    await this.$openstate.get( this.versions_datapath );
+		});
+	    },
+	    "computed": {
+		form () {
+		    return this.$refs["form"];
+		},
+		deprecationModal () {
+		    return this.$refs["modal"].modal;
+		},
+		unpublishModal () {
+		    return this.$refs["unpublishModal"].modal;
+		},
+
+		...common.scopedPathComputed( c => c.datapath, "zome" ),
+		...common.scopedPathComputed( c => c.versions_datapath, "versions", {
+		    "default": [],
+		    state ( list ) {
+			list		= list.slice();
+			list.sort( this.sort_version( true ) );
+			return list;
+		    },
+		}),
+
+		focused_version_datapath () {
+		    return this.version ? `zome/version/${this.version.$id}` : this.$openstate.DEADEND;
+		},
+		...common.scopedPathComputed( c => c.focused_version_datapath, "focused_version" ),
+
+		deprecated () {
+		    return !!( this.zome && this.zome.deprecation );
+		},
+	    },
+	    "methods": {
+		refresh () {
+		    this.$openstate.read( this.datapath );
+		    this.$openstate.read( this.versions_datapath );
+		},
+		async deprecate () {
+		    log.normal("Deprecating Zome %s", this.zome.name );
+		    await this.$openstate.write( this.datapath, "deprecation" );
+
+		    this.deprecationModal.hide();
+
+		    await this.$openstate.read("zomes");
+		    await this.$openstate.read("agent/me/zomes");
+		},
+		promptUnpublish ( version ) {
+		    this.version	= version;
+		    this.unpublishModal.show();
+		},
+		async unpublish () {
+		    await this.$openstate.delete( this.focused_version_datapath, "unpublish" );
+
+		    this.unpublishModal.hide();
+		    await this.refresh();
 		},
 	    },
 	};
@@ -190,13 +226,13 @@ module.exports = async function ( client ) {
 	    },
 	    "computed": {
 		zome () {
-		    return this.$modwc.state[ this.datapath ];
+		    return this.$openstate.state[ this.datapath ];
 		},
 		$zome () {
-		    return this.$modwc.metastate[ this.datapath ];
+		    return this.$openstate.metastate[ this.datapath ];
 		},
 		$errors () {
-		    return this.$modwc.errors[ this.datapath ];
+		    return this.$openstate.errors[ this.datapath ];
 		},
 		form () {
 		    return this.$refs["form"];
@@ -209,15 +245,13 @@ module.exports = async function ( client ) {
 		if ( !this.zome )
 		    await this.fetchZome();
 
-		this.input		= this.$modwc.mutable[ this.datapath ];
+		this.input		= this.$openstate.mutable[ this.datapath ];
 		this.input.tags.sort();
-
-		window.$input		= this.input;
 	    },
 	    "methods": {
 		async fetchZome () {
 		    try {
-			await this.$modwc.read( this.datapath );
+			await this.$openstate.read( this.datapath );
 		    } catch (err) {
 			this.catchStatusCodes([ 404, 500 ], err );
 
@@ -244,125 +278,16 @@ module.exports = async function ( client ) {
 			return;
 
 		    try {
-			await this.$modwc.write( this.datapath );
+			await this.$openstate.write( this.datapath );
 
-			// this.$store.dispatch("fetchZomes", { "agent": "me" });
-			// this.$store.dispatch("fetchAllZomes");
+			await this.$openstate.read("zomes");
+			await this.$openstate.read("agent/me/zomes");
 
 			this.$router.push( "/zomes/" + this.id );
 		    } catch ( err ) {
 			log.error("Failed to update Zome (%s):", String(this.id), err );
 			this.error	= err;
 		    }
-		},
-	    },
-	};
-    };
-
-    async function single () {
-	return {
-	    "template": await load_html("/templates/zomes/single.html"),
-	    "data": function() {
-		return {
-		    "id": null,
-		    "deprecation": {
-			"message": null,
-		    },
-		    "validated": false,
-		    "version": null,
-		};
-	    },
-	    async created () {
-		window.View		= this;
-		this.id			= this.getPathId("id");
-		this.datapath		= `zome/${this.id}`;
-		this.versions_datapath	= `zome/${this.id}/versions`;
-
-		if ( !this.zome )
-		    this.fetchZome();
-		if ( !this.versions.length )
-		    this.fetchZomeVersions();
-	    },
-	    "computed": {
-		form () {
-		    return this.$refs["form"];
-		},
-		modal () {
-		    return this.$refs["modal"].modal;
-		},
-		unpublishModal () {
-		    return this.$refs["unpublishModal"].modal;
-		},
-
-		zome () {
-		    return this.$modwc.state[ this.datapath ];
-		},
-		$zome () {
-		    return this.$modwc.metastate[ this.datapath ];
-		},
-
-		versions () {
-		    if ( !this.$modwc.state[ this.versions_datapath ] )
-			return [];
-		    const versions	= this.$modwc.state[ this.versions_datapath ].slice();
-		    versions.sort( this.sort_version( true ) );
-		    return versions;
-		},
-		$versions () {
-		    return this.$modwc.metastate[ this.versions_datapath ];
-		},
-
-		deprecated () {
-		    return !!( this.zome && this.zome.deprecation );
-		},
-	    },
-	    "methods": {
-		refresh () {
-		    this.fetchZome();
-		    this.fetchZomeVersions();
-		},
-		async fetchZome () {
-		    try {
-			await this.$modwc.read( this.datapath );
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
-
-			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
-		    }
-		},
-		async fetchZomeVersions () {
-		    try {
-			await this.$modwc.read( this.versions_datapath );
-		    } catch (err) {
-			log.error("Failed to get versions for zome (%s): %s", String(this.id), err.message, err );
-		    }
-		},
-		async deprecate () {
-		    this.validated	= true;
-
-		    if ( this.form.checkValidity() === false )
-			return;
-
-		    await this.$store.dispatch("deprecateZome", [ this.id, this.deprecation ] );
-
-		    this.deprecation	= {
-			"message": null,
-		    };
-
-		    this.modal.hide();
-
-		    this.$store.dispatch("fetchAllZomes");
-		    this.$store.dispatch("fetchZomes", { "agent": "me" });
-		},
-		promptUnpublish ( version ) {
-		    this.version	= version;
-		    this.unpublishModal.show();
-		},
-		async unpublish () {
-		    await this.$store.dispatch("unpublishZomeVersion", this.version.$id );
-
-		    this.unpublishModal.hide();
-		    this.fetchZomeVersions();
 		},
 	    },
 	};

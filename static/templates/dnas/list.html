@@ -43,9 +43,12 @@
     <list-group :list="dnas" no-result-text="No DNAs" :loading="$dnas.loading">
 	<list-group-item v-for="dna in dnas">
 	    <div class="row align-items-center">
-		<div class="col pt-3">
-		    <h3 class="fs-6">{{ dna.display_name || dna.name }}</h3>
-		    <p>{{ dna.description }}</p>
+		<div class="col d-flex align-items-center">
+		    <identicon :seed="dna.$id" :size="50"></identicon>
+		    <div>
+			<h3 class="fs-6">{{ dna.display_name || dna.name }}</h3>
+			<p class="m-0">{{ dna.description }}</p>
+		    </div>
 		</div>
 		<div class="col-2 text-center">
 		    <template v-if="dna.tags && dna.tags.length">

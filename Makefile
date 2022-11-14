@@ -207,3 +207,10 @@ web_assets.zip:		Makefile static/* static/*/*
 	cp node_modules/vue/dist/vue.global.js						static/dependencies/vue.js
 	cp node_modules/vuex/dist/vuex.global.js					static/dependencies/vuex.js
 	cp node_modules/vue-router/dist/vue-router.global.js				static/dependencies/vue-router.js
+
+BEFORE_STRING	= modwc
+AFTER_STRING	= openstate
+GG_REPLACE_LOCATIONS = ':(exclude)*.lock' src/
+
+update-string:
+	git grep -l $(BEFORE_STRING) -- $(GG_REPLACE_LOCATIONS) | xargs sed -i 's/$(BEFORE_STRING)/$(AFTER_STRING)/g'

@@ -34,6 +34,10 @@
 		Unpublish
             </a>
 	</template>
+
+	<template #controls>
+	    <identicon :seed="id" :size="50"></identicon>
+	</template>
     </page-header>
 
     <div class="row align-items-stretch">
@@ -76,6 +80,14 @@
 
 			<dt class="col-sm-12">Resource Hash</dt>
 			<dd class="col-sm-12"><placeholder :when="!$release.current"><code>{{ release.dna_hash }}</code></placeholder></dd>
+
+			<dt class="col-sm-12">Official GUI</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$release.current">
+				<identicon v-if="release.official_gui" :seed="release.official_gui"></identicon>
+				<span v-else>None</span>
+			    </placeholder>
+			</dd>
 		    </dl>
 
 		    <list-group v-if="happ" :list="release.dnas" :loading="!$release.current"
@@ -98,7 +110,7 @@
 			    <display-error class="mt-3" :error="download_error"></display-error>
 			</div>
 
-			<div v-if="release.gui && release.gui.asset_group_id" class="mx-3 my-5">
+			<div v-if="release.official_gui" class="mx-3 my-5">
 			    <a class="btn btn-primary w-100" @click="downloadWebhappPackageBytes()">
 				<span v-if="$webhappPackageBytes.loading"
 				      class="spinner-border spinner-border-sm me-3"></span>

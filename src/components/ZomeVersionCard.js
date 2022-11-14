@@ -6,7 +6,7 @@ module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": Uint8Array,
+		// "type": Uint8Array,
 		"required": true,
 	    },
 	    "title": {

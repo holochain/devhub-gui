@@ -25,6 +25,7 @@ module.exports = {
 	    content.for_happ		= new EntryHash( content.for_happ );
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
+	    content.official_gui	= new EntryHash( content.official_gui );
 
 	    content.dnas.forEach( (dna_ref, i) => {
 		content.dnas[i].dna		= new EntryHash( dna_ref.dna );
@@ -86,6 +87,30 @@ module.exports = {
 	    return content;
 	},
     },
+    // GUI
+    "gui": {
+	"*": function ( content ) {
+	    content.published_at	= new Date( content.published_at );
+	    content.last_updated	= new Date( content.last_updated );
+	    content.designer		= new AgentPubKey( content.designer );
+
+	    return content;
+	},
+    },
+    "gui_release": {
+	"*": function ( content ) {
+	    content.for_gui		= new EntryHash( content.for_gui );
+	    content.published_at	= new Date( content.published_at );
+	    content.last_updated	= new Date( content.last_updated );
+	    content.web_asset_id	= new EntryHash( content.web_asset_id );
+
+	    content.for_happ_releases.forEach( (happ_id, i) => {
+		content.for_happ_releases[i]	= new EntryHash( happ_id );
+	    });
+
+	    return content;
+	},
+    },
     // Reviews
     "review": {
 	"*": function ( content ) {
@@ -113,6 +138,17 @@ module.exports = {
 
 	    content.subject_ids.forEach( ([id, action], i) => {
 		content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
+	    });
+
+	    return content;
+	},
+    },
+    "reaction_summary": {
+	"*": function ( content ) {
+	    content.subject_id		= new EntryHash( content.subject_id );
+
+	    content.subject_history.forEach( (id, i) => {
+		content.subject_history[i]	= new ActionHash( id );
 	    });
 
 	    return content;

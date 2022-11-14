@@ -1,0 +1,101 @@
+<page-view id="create-gui-release-page">
+    <breadcrumbs v-if="gui" :skip-base="true" :path-mapping="breadcrumb_mapping"
+		 :sub-1="gui.display_name || gui.name"></breadcrumbs>
+
+    <hr>
+
+    <div class="row">
+	<form ref="form" class="col-6" :class="{ 'was-validated': $input.failed }">
+	    <label class="form-label fw-6">Version</label>
+	    <input-feedback>
+		<div class="input-group">
+		    <span class="input-group-text">v</span>
+		    <input v-model="input.version" class="form-control" :disabled="$input.writing" required>
+		</div>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Changelog</label>
+	    <input-feedback>
+		<textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="$input.writing"></textarea>
+	    </input-feedback>
+
+	    <div class="mt-5">
+		<div class="text-center">
+		    <a @click="happs_modal.show()" class="btn btn-primary">Select hApp Release(s)</a>
+		</div>
+
+		<ul class="mt-3">
+		    <li v-for="release_id in input.for_happ_releases">{{ release_id }}</li>
+		</ul>
+	    </div>
+
+	    <label class="form-label fw-6">Drag and drop GUI here</label>
+	    <input-feedback style="height: 10rem; overflow: hidden;" :valid-message="file_valid_feedback">
+		<input type="file" @change="file_selected" class="form-control form-input-file" :disabled="$input.writing" required>
+	    </input-feedback>
+
+	    <div v-if="$rejections.length && ($input.failed || $webasset.failed)"
+		 class="alert alert-danger d-flex align-items-center mt-5" role="alert">
+		<i class="bi-exclamation-triangle-fill me-3"></i>
+		<div>
+		    <strong>Invalid Content</strong>
+		    <br>
+		    <p class="m-0"><em>Please correct the following issues</em></p>
+		    <ul>
+			<li v-for="message in $rejections">{{ message }}</li>
+		    </ul>
+		</div>
+	    </div>
+
+	    <div class="row mt-5">
+		<div class="col-6"></div>
+		<div class="col-3">
+		    <router-link :to="'/guis/' + gui_id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		</div>
+		<div class="col-3">
+		    <a @click="create()" class="btn btn-primary w-100"
+		       :class="{ 'disabled': $input.writing }">
+			<span v-if="$input.writing"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Save
+		    </a>
+		</div>
+	    </div>
+
+	    <display-error class="mt-5" :error="error" :debug="true"></display-error>
+	</form>
+    </div>
+
+    <modal title="Select hApp Release" ref="select_happ_release"
+	   cancel-text="Finish" data-bs-backdrop="static">
+
+	<div class="accordion">
+	    <div v-for="(happ, i) in happs"
+		 class="accordion-item">
+		<h2 class="accordion-header" @click="getHappReleases( happ.$id )">
+		    <button class="accordion-button collapsed" type="button"
+			    data-bs-toggle="collapse" :data-bs-target="'#collapse-' + i">
+			<span><strong>{{ happ.title }}</strong> - <span class="fw-smaller">{{ happ.subtitle }}</span></span>
+		    </button>
+		</h2>
+		<div :id="'collapse-' + i" class="accordion-collapse collapse">
+		    <div class="accordion-body text-start">
+			<p>{{ happ.description }}</p>
+			<loading :when="!$happ_releases( happ.$id ).present">
+			    <ul>
+				<li v-for="release in happ_releases( happ.$id )">
+				    <input type="checkbox" name="happ_releases"
+					   v-model="input.for_happ_releases"
+					   :value="String(release.$id)">
+				    {{ release.name }}
+				</li>
+			    </ul>
+			</loading>
+		    </div>
+		</div>
+	    </div>
+	</div>
+
+    </modal>
+
+</page-view>

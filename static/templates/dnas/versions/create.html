@@ -82,7 +82,8 @@
 
 			<label class="form-label fw-6">Dependency Zome(s)</label>
 			<input-feedback class="mb-3">
-			    <select class="form-select" multiple required>
+			    <select class="form-select" multiple required
+				    v-model="zome_ref.dependencies">
 				<option v-for="izome_ref in input.integrity_zomes"
 					:value="izome_ref.name">{{ izome_ref.name }}</option>
 			    </select>

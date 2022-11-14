@@ -4,10 +4,6 @@ const log				= new Logger("happ releases");
 const { load_html,
 	...common }			= require('./common.js');
 
-const md_converter			= new showdown.Converter({
-    "headerLevelStart": 3,
-});
-
 
 module.exports = async function ( client ) {
 
@@ -15,74 +11,86 @@ module.exports = async function ( client ) {
 	return {
 	    "template": await load_html("/templates/happs/releases/create.html"),
 	    "data": function() {
+		const happ_id		= this.getPathId("happ");
+
 		return {
-		    "happ_id": null,
+		    happ_id,
 		    "error": null,
-		    "input": {
-			"gui": null,
-			"ordering": 1,
-			"manifest": {
-			    "manifest_version": "1",
-			    "roles": [],
-			},
-			"hdk_version": null,
-			"dnas": [],
-		    },
+		    "gui_release_datapath":	`gui/release/new`,
 		    "added_dnas": [],
 		    "dna_search_text": "",
-		    "validated": false,
-		    "saving": false,
 		    "lock_hdk_version_input": false,
 		    "change_version_context": null,
-		    "gui_file": null,
-		    "gui_bytes": null,
 		};
 	    },
+	    async created () {
+		await this.$openstate.get(`happ/${this.happ_id}/latest_release`);
+		const release		= this.$openstate.state[`happ/${this.happ_id}/latest_release`];
+
+		this.input.ordering	= release ? release.ordering + 1 : 1;
+		this.input.for_happ	= this.happ_id;
+		this.gui_release$.version	= "1";
+	    },
 	    "computed": {
+		...common.scopedPathComputed( c => `happ/${c.happ_id}`,	"happ", { "get": true } ),
+		...common.scopedPathComputed( `happ/release/new`,	"release" ),
+		...common.scopedPathComputed( `gui/release/new`,	"gui_release" ),
+		...common.scopedPathComputed( `all/guis`,		"all_guis", { "get": true }),
+		...common.scopedPathComputed( `dnarepo/hdk/versions`,	"previous_hdk_versions", { "get": true }),
+
 		form () {
 		    return this.$refs["form"];
 		},
 		change_version_modal () {
 		    return this.$refs["changeVersion"].modal;
 		},
-
-		happ () {
-		    return this.$store.getters.happ( this.happ_id );
+		dna_picker_modal () {
+		    return this.$refs["dna_picker"].modal;
 		},
-		$happ () {
-		    return this.$store.getters.$happ( this.happ_id );
+		guis_modal () {
+		    return this.$refs["select_gui"].modal;
 		},
-
-		compatible_dnas () {
-		    return this.$store.getters.dnas( this.input.hdk_version || "all" );
-		},
-		$compatible_dnas () {
-		    return this.$store.getters.$dnas( this.input.hdk_version || "all" );
+		gui_releases_modal () {
+		    return this.$refs["select_gui_release"].modal;
 		},
 
-		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions;
+		input () {
+		    return this.release$;
 		},
-		$previous_hdk_versions () {
-		    return this.$store.getters.$hdk_versions;
+		rejections () {
+		    return [
+			...this.release_rejections,
+			...(
+			    this.input.official_gui === "create_new"
+				? this.gui_release_rejections
+				: []
+			),
+		    ];
 		},
 
+		gui_releases () {
+		    return ( gui_id ) => {
+			return this.$openstate.state[ `gui/${gui_id}/releases` ] || [];
+		    }
+		},
+		$gui_releases () {
+		    return ( gui_id ) => {
+			return this.$openstate.metastate[ `gui/${gui_id}/releases` ];
+		    }
+		},
+
+		relative_dna_versions_path () {
+		    return this.change_version_context
+			? `dna/${this.change_version_context[1].$id}/versions`
+			: this.$openstate.DEADEND;
+		},
 		alternative_versions () {
-		    if ( !this.change_version_context )
-			return [];
-		    return this.$store.getters.dna_versions( this.change_version_context[1].$id );
+		    return this.$openstate.state[ this.relative_dna_versions_path ] || [];
 		},
 		$alternative_versions () {
-		    return this.$store.getters.$dna_versions( this.change_version_context ? this.change_version_context[1].$id : "" );
+		    return this.$openstate.metastate[ this.relative_dna_versions_path ];
 		},
 
-		filtered_dnas () {
-		    return this.compatible_dnas.filter( dna => {
-			return dna.name.toLowerCase()
-			    .includes( this.dna_search_text.toLowerCase() )
-			    && !this.added_dnas.find( z => z.$id === dna.$id );
-		    });
-		},
 		dna_card_actions () {
 		    return ( index ) => {
 			return [
@@ -91,46 +99,66 @@ module.exports = async function ( client ) {
 			];
 		    };
 		},
-		file_valid_feedback () {
-		    const file		= this.gui_file;
-
-		    if ( !file )
-			return "";
-
-		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
-		},
-	    },
-	    async created () {
-		this.happ_id		= this.getPathId("happ");
-
-		this.$store.dispatch("fetchHDKVersions");
-		this.$store.dispatch("fetchHapp", this.happ_id );
-
-		const release		= await this.$store.dispatch("getLatestReleaseForHapp", [ this.happ_id, null ] );
-		this.input.ordering	= release ? release.ordering + 1 : 1;
 	    },
 	    "methods": {
+		async updateDnaList () {
+		    log.info("Configure added DNAs:", this.added_dnas );
+		    this.added_dnas.forEach( dna => {
+			this.$openstate.get(`dna/${dna.$id}/versions`);
+		    });
+		    const prev_dnas			= new Set( this.input.dnas.map( dna_ref => dna_ref.dna ) );
+		    const new_dnas			= new Set( this.added_dnas.map( dna => String(dna.$id) ) );
+
+		    for ( let dna of this.added_dnas ) {
+			log.info("Check exisitng list:", prev_dnas, String(dna.$id) );
+			if ( prev_dnas.has( String(dna.$id) ) ) {
+			    prev_dnas.delete( String(dna.$id) );
+			    continue;
+			}
+
+			const latest_version	= await this.$openstate.get(`dna/${dna.$id}/latest_version`);
+
+			log.info("Push dna:", dna );
+			this.input.dnas.push({
+			    "role_id":		dna.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
+			    "dna":		String( dna.$id ),
+			    "version":		String( latest_version.$id ),
+			    "wasm_hash":	latest_version.wasm_hash,
+			});
+		    }
+
+		    log.info("Remove DNAs:", prev_dnas );
+		    prev_dnas.forEach( id => {
+			log.debug("Remove DNA:", id, this.input.dnas );
+			const index		= this.input.dnas.findIndex( dna => {
+			    return String(dna.$id) === id;
+			});
+			this.input.dnas.splice( index, 1 );
+		    });
+		},
+
+		async getGUIReleases ( gui_id ) {
+		    await this.$openstate.get(`gui/${gui_id}/releases`);
+		},
+
 		async create () {
 		    log.info("Form was submitted");
-		    this.validated		= true;
 
-		    if ( this.form.checkValidity() === false )
-			return;
-
-		    this.saving			= true;
 		    try {
 			const input		= Object.assign({}, this.input );
 
-			if ( this.gui_bytes ) {
-			    const web_asset	= await this.$store.dispatch("createWebAsset", this.gui_bytes );
+			// if ( this.input.official_gui === "create_new" ) {
+			//     if ( !this.gui_bytes )
+			// 	throw new Error(`Requires stuff for uploading GUI`);
 
-			    input.gui		= {
-				"asset_group_id": web_asset.$id,
-				"uses_web_sdk": false,
-			    };
-			}
+			//     const web_asset	= await this.$store.dispatch("createWebAsset", this.gui_bytes );
 
-			input.manifest				= Object.assign({}, input.manifest );
+			//     input.gui		= {
+			// 	"asset_group_id": web_asset.$id,
+			// 	"uses_web_sdk": false,
+			//     };
+			// }
+
 			input.manifest.name			= this.happ.title;
 			input.manifest.description		= this.happ.description;
 			input.manifest.roles			= [];
@@ -149,10 +177,14 @@ module.exports = async function ( client ) {
 			    });
 			}
 
-			const release	= await this.$store.dispatch("createHappRelease", [ this.happ_id, input ] );
+			await this.$openstate.write(`happ/release/new`);
 
-			this.$store.dispatch("fetchReleasesForHapp", this.happ_id );
-			this.$router.push( `/happs/${this.happ_id}/releases/${release.$id}` );
+			const new_id		= this.release.$id;
+
+			this.$openstate.purge(`happ/release/new`);
+			this.$openstate.read(`happ/${this.happ_id}/releases`);
+
+			this.$router.push( `/happs/${this.happ_id}/releases/${new_id}` );
 		    } catch ( err ) {
 			log.error("Failed to create hApp Release:", err, err.data );
 			this.error	= err;
@@ -170,97 +202,38 @@ module.exports = async function ( client ) {
 		    this.change_version_context			= null;
 		    this.change_version_modal.hide();
 		},
+		changeDnaVersion ( index ) {
+		    const dna				= this.added_dnas[ index ];
+		    this.change_version_context		= [ index, dna ];
+		    this.change_version_modal.show();
+		},
 		changeDnaVersionAction ( index ) {
 		    const dna			= this.added_dnas[ index ];
-		    const versions		= this.$store.getters.dna_versions( dna.$id )
-			  .filter( version => version.hdk_version === this.input.hdk_version );
+
+		    // const versions_path		= `dna/${dna.$id}/versions`;
+		    // const versions		= this.$openstate.state[ versions_path ]
+		    // 	  .filter( version => version.hdk_version === this.input.hdk_version );
 
 		    return {
-			"hide": versions.length < 2,
+			"hide": 1 < 2, // versions.length < 2,
 			"title": "Select a different version",
 			"icon": "layers-half",
 			"method": () => {
-			    const dna				= this.added_dnas[index];
-			    this.change_version_context		= [ index, dna ];
-			    this.change_version_modal.show();
+			    // const dna				= this.added_dnas[index];
+			    // this.change_version_context		= [ index, dna ];
+			    // this.change_version_modal.show();
 			},
 		    };
-		},
-		removeDnaAction ( i ) {
-		    return {
-			"icon": "x-lg",
-			"title": "Remove DNA Version",
-			"method": () => {
-			    this.removeDna( i );
-			},
-		    };
-		},
-		addDnaAction ( dna ) {
-		    return {
-			"icon": "plus-lg",
-			"title": "Add DNA",
-			"method": () => {
-			    this.addDna( dna );
-			},
-		    };
-		},
-
-		removeDna ( i ) {
-		    this.added_dnas.splice( i, 1 );
-		    this.input.dnas.splice( i, 1 );
-		},
-		async addDna ( dna ) {
-		    log.debug("Adding DNA:", dna );
-		    if ( dna === undefined )
-			return;
-
-		    log.info("Reset search");
-		    this.dna_search_text = "";
-
-		    if ( this.added_dnas.find( z => z.$id === dna.$id ) )
-			return;
-
-		    const latest_version	= await this.$store.dispatch("getLatestVersionForDna", [ dna.$id, this.input.hdk_version ] );
-
-		    if ( !this.input.hdk_version ) {
-			this.input.hdk_version		= latest_version.hdk_version;
-		    }
-
-		    this.lock_hdk_version_input		= true;
-
-		    this.added_dnas.push( dna );
-		    this.input.dnas.push({
-			"role_id":	dna.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
-			"dna":		dna.$id,
-			"version":	latest_version.$id,
-			"wasm_hash":	latest_version.wasm_hash,
-		    });
-		},
-		dnaIsAdded ( dna_id ) {
-		    return !!this.added_dnas.find( d => d.$id === dna_id );
 		},
 		selectHDKVersion ( hdk_version ) {
 		    this.input.hdk_version		= hdk_version || null;
 
-		    if ( this.compatible_dnas.length === 0 ) {
-			if ( hdk_version )
-			    this.$store.dispatch("fetchDnasWithHDKVersion", hdk_version );
-			else
-			    this.$store.dispatch("fetchAllDnas");
-		    }
-		},
-		async file_selected ( event ) {
-		    const files			= event.target.files;
-		    const file			= files[0];
-
-		    if ( file === undefined ) {
-			this.gui_bytes		= null;
-			this.gui_file		= null;
-			return;
-		    }
-
-		    this.gui_file		= file;
-		    this.gui_bytes		= await this.load_file( file );
+		    // if ( this.compatible_dnas.length === 0 ) {
+		    // 	if ( hdk_version )
+		    // 	    this.$store.dispatch("fetchDnasWithHDKVersion", hdk_version );
+		    // 	else
+		    // 	    this.$store.dispatch("fetchAllDnas");
+		    // }
 		},
 	    },
 	};
@@ -270,113 +243,82 @@ module.exports = async function ( client ) {
 	return {
 	    "template": await load_html("/templates/happs/releases/update.html"),
 	    "data": function() {
+		const id			= this.getPathId("id");
+		const happ_id			= this.getPathId("happ");
+
 		return {
-		    "id": null,
-		    "happ_id": null,
+		    id,
+		    happ_id,
 		    "error": null,
-		    "_release": null,
-		    "input": {},
-		    "validated": false,
-		    "gui_file": null,
-		    "gui_bytes": null,
-		    "saving_gui": false,
 		    "show_preview": false,
 		};
 	    },
 	    "computed": {
-		release () {
-		    if ( this.$store.getters.happ_release( this.id ) )
-			this._release	= this.copy( this.$store.getters.happ_release( this.id ) );
+		...common.scopedPathComputed( c => `happ/release/${c.id}`,	"release", { "get": true }),
+		...common.scopedPathComputed( c => `happ/${c.happ_id}`,		"happ", { "get": true } ),
+		...common.scopedPathComputed( `all/guis`,			"all_guis", { "get": true }),
 
-		    return this._release;
+		input () {
+		    return this.release$;
 		},
-		$release () {
-		    return this.$store.getters.$happ_release( this.id );
-		},
-		happ () {
-		    if ( !this.release )
-			return null;
 
-		    return this.$store.getters.happ( this.release.for_happ );
+		gui_releases () {
+		    return ( gui_id ) => {
+			return this.$openstate.state[ `gui/${gui_id}/releases` ] || [];
+		    }
 		},
-		$happ () {
-		    return this.$store.getters.$happ( this.release ? this.release.for_happ : null );
+		$gui_releases () {
+		    return ( gui_id ) => {
+			return this.$openstate.metastate[ `gui/${gui_id}/releases` ];
+		    }
 		},
+
 		form () {
 		    return this.$refs["form"];
+		},
+		guis_modal () {
+		    return this.$refs["select_gui_release"].modal;
 		},
 		preview_toggle_text () {
 		    return this.show_preview ? "editor" : "preview";
 		},
-		file_valid_feedback () {
-		    const file		= this.gui_file;
-
-		    if ( !file )
-			return "";
-
-		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
-		},
 	    },
 	    async created () {
-		this.id			= this.getPathId("id");
-		this.happ_id		= this.getPathId("happ");
-
-		if ( !this.release )
-		    await this.fetchRelease();
+		this.mustGet(async () => {
+		    await this.$openstate.get(`happ/release/${this.id}`);
+		});
 	    },
 	    "methods": {
+		async getGUIReleases ( gui_id ) {
+		    await this.$openstate.get(`gui/${gui_id}/releases`);
+		},
 		togglePreview () {
 		    this.show_preview		= !this.show_preview;
 		},
-		async fetchRelease () {
-		    try {
-			await this.$store.dispatch("fetchHappRelease", this.id );
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
-
-			log.error("Failed to get happ release (%s): %s", String(this.id), err.message, err );
-		    }
-		},
 		async update () {
-		    this.validated	= true;
-
-		    if ( this.form.checkValidity() === false )
-			return;
-
 		    try {
-			if ( this.gui_bytes ) {
-			    this.saving_gui			= true;
-			    const web_asset			= await this.$store.dispatch("createWebAsset", this.gui_bytes );
+			// if ( this.gui_bytes ) {
+			//     this.saving_gui			= true;
+			//     const web_asset			= await this.$store.dispatch("createWebAsset", this.gui_bytes );
 
-			    this.input.gui	= {
-				"asset_group_id": web_asset.$id,
-				"holo_hosting_settings": {
-				    "uses_web_sdk": false,
-				},
-			    };
-			    this.saving_gui			= false;
-			}
+			//     this.input.gui	= {
+			// 	"asset_group_id": web_asset.$id,
+			// 	"holo_hosting_settings": {
+			// 	    "uses_web_sdk": false,
+			// 	},
+			//     };
+			//     this.saving_gui			= false;
+			// }
 
-			await this.$store.dispatch("updateHappRelease", [ this.id, this.input ] );
+			await this.$openstate.write(`happ/release/${this.id}`);
+
+			this.$openstate.read(`happ/${this.happ_id}/releases`);
 
 			this.$router.push( `/happs/${this.happ_id}/releases/${this.id}` );
 		    } catch ( err ) {
 			log.error("Failed to update hApp Release (%s):", String(this.id), err );
 			this.error	= err;
 		    }
-		},
-		async file_selected ( event ) {
-		    const files			= event.target.files;
-		    const file			= files[0];
-
-		    if ( file === undefined ) {
-			this.gui_bytes		= null;
-			this.gui_file		= null;
-			return;
-		    }
-
-		    this.gui_file		= file;
-		    this.gui_bytes		= await this.load_file( file );
 		},
 	    },
 	};
@@ -473,9 +415,11 @@ module.exports = async function ( client ) {
 		},
 		async downloadWebhappPackageBytes () {
 		    try {
+			log.normal("Download Webhapp package:", this.happ, this.release );
 			const package_bytes	= await this.$store.dispatch("fetchWebhappReleasePackage", {
 			    "name": this.happ.title,
-			    "id": this.release.$id,
+			    "happ_release_id": this.release.$id,
+			    "gui_release_id": this.release.official_gui,
 			});
 
 			this.download( this.package_webhapp_filename, package_bytes );

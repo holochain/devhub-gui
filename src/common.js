@@ -337,7 +337,8 @@ const common				= {
 
     async http_info( url ) {
 	log.info("Fetching URL info for: {}", url );
-	const resp		= await fetch(`https://api.codetabs.com/v1/proxy/?quest=${url}`);
+	const resp		= await fetch(`https://api.codetabs.com/v1/proxy/?quest=${url}`, {
+	});
 
 	const parser		= new DOMParser();
 	const doc		= parser.parseFromString( await resp.text(), "text/html" );
@@ -415,6 +416,130 @@ const common				= {
     //
     pastTime ( hours_ago ) {
 	return Date.now() - (1000 * 60 * 60 * hours_ago);
+    },
+
+    scopedPath ( openstate, path, name = null ) {
+	const state_name		= name ? `${name}`		: "state";
+	const metastate_name		= name ? `$${name}`		: "metastate";
+	const errors_name		= name ? `${name}_errors`	: "errors";
+	const mutable_name		= name ? `${name}$`		: "mutable";
+	const rejections_name		= name ? `${name}_rejections`	: "rejections";
+
+	const scoped_obj		= {
+	    get [state_name] () {
+		return openstate.state[ path ];
+	    },
+	    get [metastate_name] () {
+		return openstate.metastate[ path ];
+	    },
+	    get [errors_name] () {
+		return openstate.errors[ path ];
+	    },
+	};
+
+	const handler			= openstate.getPathHandler( path );
+
+	console.log( handler, handler.readonly );
+	if ( !handler.readonly ) {
+	    Object.defineProperties( scoped_obj, {
+		[mutable_name]: {
+		    "enumerable": true,
+		    get () {
+			return openstate.mutable[ path ];
+		    },
+		},
+		[rejections_name]: {
+		    "enumerable": true,
+		    get () {
+			return openstate.rejections[ path ];
+		    },
+		},
+	    });
+	}
+
+	return scoped_obj;
+    },
+
+    scopedPathComputed ( path, name, opts = {} ) {
+	const state_name		= name ? `${name}`		: "state";
+	const metastate_name		= name ? `$${name}`		: "metastate";
+	const errors_name		= name ? `${name}_errors`	: "errors";
+	const mutable_name		= name ? `${name}$`		: "mutable";
+	const rejections_name		= name ? `${name}_rejections`	: "rejections";
+
+	if ( opts.state && typeof opts.state !== "function" )
+	    throw new Error(`scopedPathComputed 'options.state' value must be a function; not type ${typeof opts.state}`);
+
+	function resolvePath ( ctx ) {
+	    const computed_path		= typeof path === "function"
+		? path( ctx )
+		: path;
+
+	    if ( opts.get === true )
+		ctx.$openstate.get( computed_path );
+
+	    return computed_path;
+	}
+
+	return {
+	    [state_name] () {
+		try {
+		    const state		= this.$openstate.state[ resolvePath( this ) ] || opts.default || null;
+		    if ( opts.state )
+			return opts.state.call( this, state ) || state;
+		    else
+			return state;
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	    [metastate_name] () {
+		try {
+		    return this.$openstate.metastate[ resolvePath( this ) ];
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	    [errors_name] () {
+		try {
+		    return this.$openstate.errors[ resolvePath( this ) ];
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	    [mutable_name] () {
+		try {
+		    return this.$openstate.mutable[ resolvePath( this ) ];
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	    [rejections_name] () {
+		try {
+		    return this.$openstate.rejections[ resolvePath( this ) ];
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	};
+    },
+
+    isEmpty ( value ) {
+	if ( [null,undefined].includes( value ) )
+	    return true;
+	else if ( Array.isArray( value ) )
+	    return value.length === 0;
+	else if ( typeof value === "string" )
+	    return value.trim().length === 0;
+	else if ( typeof value === "object" )
+	    return Object.keys(value).length === 0;
+	else
+	    throw new Error(`Emptiness of type '${typeof value}' cannot be determined`);
     },
 };
 

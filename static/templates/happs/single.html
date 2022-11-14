@@ -38,6 +38,10 @@
 		Deprecate
             </a>
 	</template>
+
+	<template #controls>
+	    <identicon :seed="id" :size="50"></identicon>
+	</template>
     </page-header>
 
     <div class="mb-5">
@@ -88,17 +92,9 @@
 			</dt>
 			<dd class="col-sm-12">
 			    <placeholder :when="!$happ.current">
-				<holo-hash :hash="happ.designer"></holo-hash>
+				<identicon :seed="happ.designer"></identicon>
 			    </placeholder>
 			</dd>
-			<!-- <dt class="col-sm-12"> -->
-			<!--     External Links -->
-			<!-- </dt> -->
-			<!-- <dd class="col-sm-12"> -->
-			<!--     <placeholder :when="!$happ.current"> -->
-			<!-- 	None -->
-			<!--     </placeholder> -->
-			<!-- </dd> -->
 		    </dl>
 		</div>
 	    </div>
@@ -131,7 +127,8 @@
 
 	<list-group :list="releases" no-result-text="No hApp Releases" :loading="$releases.loading">
 	    <div class="row px-3">
-		<div class="col-2 fw-7">
+		<div class="col-1"></div>
+		<div class="col-1 fw-7">
 		    Release #
 		</div>
 		<div class="col-3 fw-7">
@@ -150,7 +147,10 @@
 
 	    <list-group-item v-for="release in releases" class="py-3">
 		<div class="row align-items-center">
-		    <div class="col-2">
+		    <div class="col-1">
+			<identicon :seed="release.$id" :size="30"></identicon>
+		    </div>
+		    <div class="col-1">
 			<h3 class="fs-6 m-0">{{ release.name }}</h3>
 		    </div>
 		    <div class="col-3">
