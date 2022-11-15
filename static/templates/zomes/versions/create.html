@@ -40,7 +40,7 @@
 			<label class="form-label">Versions on DevHub</label>
 			<select class="form-select" v-model="version$.hdk_version"
 				:disabled="$version.writing || previous_hdk_versions.length === 0">
-			    <option selected>Choose an HDK version</option>
+			    <option selected :value="null">Choose an HDK version</option>
 			    <option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
 			</select>
 		    </loading>

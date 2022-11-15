@@ -470,13 +470,18 @@ const common				= {
 	if ( opts.state && typeof opts.state !== "function" )
 	    throw new Error(`scopedPathComputed 'options.state' value must be a function; not type ${typeof opts.state}`);
 
+	let __getting			= false; // ensure 'get' is only triggered once
 	function resolvePath ( ctx ) {
 	    const computed_path		= typeof path === "function"
 		? path( ctx )
 		: path;
 
-	    if ( opts.get === true )
-		ctx.$openstate.get( computed_path );
+	    if ( opts.get === true && __getting === false ) {
+		__getting		= true;
+		ctx.$openstate.get( computed_path ).catch(err => {
+		    console.error("Failed to read for scoped path '%s': %s", name, String(err) );
+		});
+	    }
 
 	    return computed_path;
 	}

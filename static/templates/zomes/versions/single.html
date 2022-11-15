@@ -143,9 +143,9 @@
 					<avatar :agent-id="review.author" :size="40"></avatar>
 					<div>
 					    <p class="mb-1 fw-1">
-						<small>Author's Username</small>
+						<small>Username</small>
 						<span v-if="zome && hashesAreEqual( zome.developer, review.author )"
-						      class="badge bg-light text-dark ms-1">Developer</span>
+						      class="badge bg-light text-dark ms-1">Author</span>
 					    </p>
 					    <rating-stars :rating="average( ...Object.values( review.ratings ) )"></rating-stars>
 					</div>
@@ -211,9 +211,11 @@
 		</li>
 	    </ul>
 
-	    <div v-if="$version.writable && $reviews.current && reviews.length > 1" class="my-3 text-end">
-		<a @click="updateReviewSummaryReport( true )" class="btn btn-outline-primary text-nowrap ms-2">
-		    <span v-if="calculating"
+	    <div v-if="$version.writable && $summary.writable && $reviews.present && reviews.length > 1"
+		 class="my-3 text-end">
+		<a @click="updateReviewSummaryReport( true )"
+		   class="btn btn-outline-primary text-nowrap ms-2">
+		    <span v-if="$summary.writing"
 			  class="spinner-border spinner-border-sm me-3"></span>
 		    {{ version.review_summary ? 'Rec' : 'C' }}alculate Reviews
 		</a>
@@ -232,11 +234,10 @@
 
     <modal title="Post review" ref="review"
 	   action-text="Post" :action="postReview" data-bs-backdrop="static">
-	<form v-if="$review_input.present"
-	      ref="form_review" :class="{ 'was-validated': $review_input.failed }">
+	<form ref="form_review" :class="{ 'was-validated': $review_input.failed }">
 	    <div v-for="rating_type in ['accuracy', 'efficiency']" class="mb-1">
-		<div v-if="review_input.ratings[rating_type] === undefined">
-		    <a @click="updateReviewRating( rating_type, 5 )" class="btn btn-outline-primary text-nowrap"
+		<div v-if="review_input$.ratings[rating_type] === undefined">
+		    <a @click="updateReviewRating( rating_type, 0 )" class="btn btn-outline-primary text-nowrap"
 		       :class="{ 'border-danger': $review_input.failed && $review_input.invalid }">
 			Add {{ capitalize( rating_type ) }} Rating
 		    </a>
@@ -248,7 +249,10 @@
 			</a>
 		    </div>
 		    <div class="col-7">
-			<label class="form-label">{{ capitalize( rating_type ) }} Rating <i>({{ rating_term( rating_type, review_input$.ratings[rating_type] ) }})</i></label>
+			<label class="form-label">
+			    {{ capitalize( rating_type ) }} Rating
+			    <i>({{ rating_term( rating_type, review_input$.ratings[rating_type] ) }})</i>
+			</label>
 			<div class="d-flex justify-content-center">
 			    <a class="pe-2" @click="updateReviewRating( rating_type, 0 )">None</a>
 			    <i v-for="i in 5" class="p-1 cursor-pointer"

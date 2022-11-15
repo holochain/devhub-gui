@@ -837,7 +837,6 @@ module.exports = async function ( client, app ) {
 		return await client.call("dnarepo", "dna_library", "get_zome_version", { id });
 	    },
 	    adapter ( content ) {
-		console.log( content );
 		content.for_zome		= new EntryHash( content.for_zome );
 		content.mere_memory_addr	= new EntryHash( content.mere_memory_addr );
 		content.changelog_html		= common.mdHTML( content.changelog );
@@ -865,6 +864,9 @@ module.exports = async function ( client, app ) {
 		    "properties": changed,
 		});
 	    },
+	    async delete ({ id }) {
+		return await client.call("dnarepo", "dna_library", "delete_zome_version", { id });
+	    },
 	    "permissions": {
 		async writable ( version ) {
 		    const agent_info	= await this.get("agent/me");
@@ -873,7 +875,7 @@ module.exports = async function ( client, app ) {
 		    return common.hashesAreEqual( zome.developer, agent_info.pubkey.initial );
 		},
 	    },
-	    validation ( data, rejections ) {
+	    validation ( data, rejections, intent ) {
 		const hr_names		= {
 		    "for_zome": "For Zome",
 		    "version": "Version",
@@ -882,8 +884,12 @@ module.exports = async function ( client, app ) {
 		    "hdk_version": "HDK Version",
 		    "zome_bytes": "Zome Bytes",
 		};
+		const required_props	= ["for_zome", "version", "ordering", "hdk_version"];
 
-		["for_zome", "version", "ordering", "hdk_version", "zome_bytes"].forEach( key => {
+		if ( intent === "create" )
+		    required_props.push("zome_bytes");
+
+		required_props.forEach( key => {
 		    if ( [null, undefined].includes( data[key] ) )
 			rejections.push(`'${hr_names[key]}' is required`);
 		});
@@ -909,9 +915,9 @@ module.exports = async function ( client, app ) {
 	"WASM for Zome Version": {
 	    "path": "zome/version/:id/wasm",
 	    "readonly": true,
-	    async read ({ id }) {
+	    async read ({ id }, opts ) {
 		const version		= await this.openstate.get(`zome/version/${id}`);
-		return await this.openstate.get(`dnarepo/mere_memory/${version.mere_memory_addr}`);
+		return await this.openstate.get(`dnarepo/mere_memory/${version.mere_memory_addr}`, opts );
 	    },
 	},
 	"Reviews for Zome Version": {
@@ -928,17 +934,37 @@ module.exports = async function ( client, app ) {
 		return list;
 	    },
 	},
-	"Zome Version Review Summary by Zome Version ID": {
+	"Review Summary by Zome Version ID": {
 	    "path": "zome/version/:id/review/summary",
-	    "readonly": true,
 	    async read ({ id }) {
 		const version		= await this.openstate.get(`zome/version/${id}`);
+
+		if ( !version.review_summary )
+		    throw new Error(`Zome Version ${id} has no review summary`);
+
 		return await this.openstate.get(`zome/version/review/summary/${version.review_summary}`);
+	    },
+	    "permissions": {
+		async writable ( summary ) {
+		    return summary.last_updated < common.pastTime( 24 );
+		},
+	    },
+	    async create () {
+		const summarypath	= `zome/version/review/summary/new`;
+		const version		= await this.openstate.get(`zome/version/${this.params.id}`);
+		const mutable		= this.openstate.mutable[ summarypath ];
+
+		mutable.subject_action	= version.$action;
+
+		return await this.openstate.write( summarypath );
+	    },
+	    async update ({ id }, changed ) {
+		const version		= await this.openstate.get(`zome/version/${id}`);
+		return await this.openstate.write(`zome/version/review/summary/${version.review_summary}`);
 	    },
 	},
 	"Zome Version Review Summary": {
 	    "path": "zome/version/review/summary/:id",
-	    "readonly": true,
 	    async read ({ id }) {
 		return await client.call("dnarepo", "reviews", "get_review_summary", { id });
 	    },
@@ -995,6 +1021,38 @@ module.exports = async function ( client, app ) {
 		log.info("Aggregated summary:", average, breakdown );
 		summary.average		= average;
 		summary.breakdown	= breakdown;
+	    },
+	    "permissions": {
+		async writable ( summary ) {
+		    return summary.last_updated < common.pastTime( 24 );
+		},
+	    },
+	    defaultMutable () {
+		return {
+		    "subject_action": null,
+		};
+	    },
+	    async create ( input ) {
+		const version		= await client.call("dnarepo", "dna_library", "create_zome_version_review_summary", {
+		    "subject_action": input.subject_action,
+		    "addr": input.subject_action,
+		});
+
+		this.openstate.state[`zome/version/${version.$id}`] = version;
+
+		return await this.openstate.read(`zome/version/review/summary/${version.review_summary}`);
+	    },
+	    async update ({ id }, changed ) {
+		if ( this.state.last_updated > common.pastTime( 24 ) )
+		    throw new Error(`Not updating review summary because it was updated within the last 24 hours: ${$filters.time(this.state.last_updated)}`);
+
+		return await client.call("dnarepo", "reviews", "update_review_summary", {
+		    id,
+		});
+	    },
+	    validation ( data, rejections, type ) {
+		if ( type === "create" && !data.subject_action )
+		    rejections.push("'Subject Action' is required");
 	    },
 	},
 	"Review": {
@@ -1068,43 +1126,6 @@ module.exports = async function ( client, app ) {
 
 		if ( Object.keys(data.ratings).length === 0 )
 		    rejections.push(`There must be at least 1 rating`);
-	    },
-	},
-	"Subject Review Summary": {
-	    "path": "subject/:addr/review/summary",
-	    async read ({ addr }) {
-		throw new Error(`Review Summaries cannot be read here; try 'review/summary/:id'`);
-	    },
-	    defaultMutable () {
-		return {
-		    "subject_action": null,
-		};
-	    },
-	    async create ( input ) {
-		const summary		= await client.call("dnarepo", "reviews", "create_review_summary", {
-		    "subject_action": input.subject_action,
-		    "addr": input.subject_action,
-		});
-
-		this.openstate.state[`review/summary/${summary.$id}`] = summary;
-
-		return summary;
-	    },
-	    async update ( _, changed ) {
-		if ( this.state.last_updated > common.pastTime( 24 ) )
-		    throw new Error(`Not updating review summary because it was updated within the last 24 hours: ${$filters.time(this.state.last_updated)}`);
-
-		const summary		= await client.call("dnarepo", "reviews", "update_review_summary", {
-		    "id": this.state.$id,
-		});
-
-		this.openstate.state[`review/summary/${summary.$id}`] = summary;
-
-		return summary;
-	    },
-	    validation ( data, rejections, type ) {
-		if ( type === "create" && !data.subject_action )
-		    rejections.push("'Subject Action' is required");
 	    },
 	},
 	"Reaction": {

@@ -25,7 +25,9 @@ module.exports = {
 	    content.for_happ		= new EntryHash( content.for_happ );
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
-	    content.official_gui	= new EntryHash( content.official_gui );
+
+	    if ( content.official_gui )
+		content.official_gui	= new EntryHash( content.official_gui );
 
 	    content.dnas.forEach( (dna_ref, i) => {
 		content.dnas[i].dna		= new EntryHash( dna_ref.dna );
