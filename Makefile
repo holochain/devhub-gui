@@ -63,9 +63,9 @@ static/dependencies/crux-payload-parser.js:		node_modules/@whi/crux-payload-pars
 static/dependencies/crux-payload-parser.js.map:		node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js.map Makefile
 	cp $< $@
 
-static/dependencies/holo-hash.js:			node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js Makefile
+static/dependencies/holo-hash.js:			node_modules/@whi/holo-hash/dist/holo-hash.js Makefile
 	cp $< $@
-static/dependencies/holo-hash.js.map:			node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js.map Makefile
+static/dependencies/holo-hash.js.map:			node_modules/@whi/holo-hash/dist/holo-hash.js.map Makefile
 	cp $< $@
 
 static/dependencies/sha256.js:				node_modules/js-sha256/src/sha256.js Makefile
