@@ -1,169 +1,127 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dna versions");
 
-const { load_html,
-	...common }			= require('./common.js');
-
-const md_converter			= new showdown.Converter({
-    "headerLevelStart": 3,
-});
+const common				= require('./common.js');
 
 
 module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": await load_html("/templates/dnas/versions/create.html"),
+	    "template": await common.load_html("/templates/dnas/versions/create.html"),
 	    "data": function() {
+		const dna_id		= this.getPathId("dna");
+
 		return {
-		    "dna_id": null,
-		    "error": null,
-		    "input": {
-			"version": null,
-			"changelog": null,
-			"hdk_version": null,
-			"integrity_zomes": [],
-			"zomes": [],
-		    },
-		    "added_zomes": [],
-		    "zome_search_text": "",
-		    "validated": false,
-		    "saving": false,
-		    "lock_hdk_version_input": false,
-		    "change_version_context": null,
+		    dna_id,
+		    "dna_datapath":		`dna/${dna_id}`,
+		    "dna_version_datapath":	`dna/version/new`,
+		    "dna_file":			null,
+		    "error":			null,
+		    "added_zomes":		[],
+		    "zome_search_text":		"",
+		    "change_version_context":	null,
+		    "hdk_version_cache":	{},
 		};
 	    },
-	    "computed": {
-		form () {
-		    return this.$refs["form"];
+	    "watch": {
+		"version$.hdk_version" ( new_hdk_version, old_hdk_version ) {
+		    console.log("Changed HDK Version from %s to %s", old_hdk_version, new_hdk_version );
+
+		    if ( old_hdk_version ) {
+			this.hdk_version_cache[ old_hdk_version ] = {
+			    "added_zomes":		this.added_zomes,
+			    "integrity_versions":	this.version$.integrity_zomes,
+			    "coordinator_versions":	this.version$.zomes,
+			};
+		    }
+
+		    if ( new_hdk_version ) {
+			const cache			= this.hdk_version_cache[ new_hdk_version ];
+
+			if ( cache ) {
+			    this.added_zomes			= cache.added_zomes;
+			    this.version$.integrity_zomes	= cache.integrity_versions;
+			    this.version$.zomes			= cache.coordinator_versions;
+			    return;
+			}
+		    }
+
+		    this.added_zomes			= [];
+		    this.version$.integrity_zomes	= [];
+		    this.version$.zomes			= [];
 		},
+	    },
+	    "computed": {
+		...common.scopedPathComputed( c => c.dna_datapath,		"dna", { "get": true } ),
+		...common.scopedPathComputed( c => c.dna_version_datapath,	"version" ),
+		...common.scopedPathComputed( `dnarepo/hdk/versions`,		"previous_hdk_versions", { "get": true }),
+
+		hdkzomes_datapath () {
+		    return `hdk/${this.version$.hdk_version}/zomes`;
+		},
+		...common.scopedPathComputed( c => `${c.hdkzomes_datapath}/integrity`,		"compatible_integrity_zomes", {
+		    "default": [],
+		    state ( list ) {
+			return list
+			    .filter( this.nameFilter( this.zome_search_text ) )
+			    .filter( this.addedFilter );
+		    },
+		}),
+		...common.scopedPathComputed( c => `${c.hdkzomes_datapath}/coordinator`,	"compatible_coordinator_zomes", {
+		    "default": [],
+		    state ( list ) {
+			return list
+			    .filter( this.nameFilter( this.zome_search_text ) )
+			    .filter( this.addedFilter );
+		    },
+		}),
+		altversions_path () {
+		    if ( this.change_version_context ) {
+			const [ index, zome_list ]	= this.change_version_context;
+			const zome_ref			= zome_list[ index ];
+			return `zome/${zome_ref.zome}/versions/hdk/${this.version$.hdk_version}`;
+		    }
+			return this.$openstate.DEADEND;
+		},
+		...common.scopedPathComputed( c => c.altversions_path,		"alternative_versions", {
+		    "default": [],
+		    state ( list ) {
+			console.log("alternative_versions", list );
+			return list
+		    },
+		}),
+
 		change_version_modal () {
 		    return this.$refs["changeVersion"].modal;
 		},
-
-		dna () {
-		    return this.$store.getters.dna( this.dna_id );
-		},
-		$dna () {
-		    return this.$store.getters.$dna( this.dna_id );
-		},
-
-		compatible_zomes () {
-		    const zomes				= this.$store.getters.zomes( this.input.hdk_version || "all" );
-		    return zomes.filter( zome => zome.zome_type === 1 );
-		},
-		compatible_integrity_zomes () {
-		    const zomes				= this.$store.getters.zomes( this.input.hdk_version || "all" );
-		    return zomes.filter( zome => zome.zome_type === 0 );
-		},
-		$compatible_zomes () {
-		    return this.$store.getters.$zomes( this.input.hdk_version || "all" );
-		},
-
-		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions;
-		},
-		$previous_hdk_versions () {
-		    return this.$store.getters.$hdk_versions;
-		},
-
-		alternative_versions () {
-		    if ( !this.change_version_context )
-			return [];
-		    return this.$store.getters.zome_versions( this.change_version_context[1].$id );
-		},
-		$alternative_versions () {
-		    return this.$store.getters.$zome_versions( this.change_version_context ? this.change_version_context[1].$id : "" );
-		},
-
-		filtered_integrity_zomes () {
-		    return this.compatible_integrity_zomes.filter( zome => {
-			return zome.name.toLowerCase()
-			    .includes( this.zome_search_text.toLowerCase() )
-			    && !this.added_zomes.find( z => z.$id === zome.$id );
-		    });
-		},
-		filtered_zomes () {
-		    return this.compatible_zomes.filter( zome => {
-			return zome.name.toLowerCase()
-			    .includes( this.zome_search_text.toLowerCase() )
-			    && !this.added_zomes.find( z => z.$id === zome.$id );
-		    });
-		},
-		zome_card_actions () {
-		    return ( index ) => {
-			return [
-			    this.changeZomeVersionAction( index ),
-			    this.removeZomeAction( index ),
-			];
-		    };
-		},
 	    },
 	    async created () {
-		this.dna_id		= this.getPathId("dna");
+		window.DnaVersionCreate = this;
+		this.mustGet(async () => {
+		    await this.$openstate.get( this.dna_datapath );
+		});
+		this.version$.for_dna	= this.dna_id;
 
-		this.$store.dispatch("fetchHDKVersions");
-		this.$store.dispatch("fetchDna", this.dna_id );
-
-		const version		= await this.$store.dispatch("getLatestVersionForDna", [ this.dna_id, null ] );
-		this.input.ordering	= version ? version.ordering + 1 : 1;
+		const version		= await this.$openstate.get(`dna/${this.dna_id}/versions/latest`);
+		this.version$.ordering	= version ? version.ordering + 1 : 1;
 	    },
 	    "methods": {
-		async create () {
-		    this.validated	= true;
-
-		    if ( this.form.checkValidity() === false )
-			return;
-
-		    this.saving		= true;
-		    try {
-			const version	= await this.$store.dispatch("createDnaVersion", [ this.dna_id, this.input ] );
-
-			this.$store.dispatch("fetchVersionsForDna", this.dna_id );
-			this.$router.push( `/dnas/${this.dna_id}/versions/${version.$id}` );
-		    } catch ( err ) {
-			log.error("Failed to create DNA Version:", err );
-			this.error	= err;
-		    } finally {
-			this.saving	= false;
-		    }
-		},
-
-		selectNewVersion ( version ) {
-		    const [ index, zome ]		= this.change_version_context;
-
-		    this.input.zomes[index].version		= version.$id;
-		    this.input.zomes[index].resource		= version.mere_memory_addr;
-		    this.input.zomes[index].resource_hash	= version.mere_memory_hash;
-
-		    this.change_version_context			= null;
-		    this.change_version_modal.hide();
-		},
-		changeZomeVersionAction ( index ) {
-		    const zome			= this.added_zomes[ index ];
-		    const versions		= this.$store.getters.zome_versions( zome.$id )
-			  .filter( version => version.hdk_version === this.input.hdk_version );
-
-		    return {
-			"hide": versions.length < 2,
-			"title": "Select a different version",
-			"icon": "layers-half",
-			"method": () => {
-			    const zome				= this.added_zomes[index];
-			    this.change_version_context		= [ index, zome ];
-			    this.change_version_modal.show();
-			},
+		nameFilter ( search_text ) {
+		    return ( item ) => {
+			if ( !search_text )
+			    return true;
+			return item.name.toLowerCase().includes( search_text.toLowerCase() );
 		    };
 		},
-		removeZomeAction ( i ) {
-		    return {
-			"icon": "x-lg",
-			"title": "Remove Zome Version",
-			"method": () => {
-			    this.removeZome( i );
-			},
-		    };
+		addedFilter ( item ) {
+		    return !this.added_zomes.find( id => id === String(item.$id) );
 		},
+		async getZomesByHDKVersion ( hdk_version ) {
+		    this.$openstate.get(`hdk/${hdk_version}/zomes/integrity`);
+		    this.$openstate.get(`hdk/${hdk_version}/zomes/coordinator`);
+		},
+
 		addZomeAction ( zome, zome_list ) {
 		    return {
 			"icon": "plus-lg",
@@ -173,55 +131,161 @@ module.exports = async function ( client ) {
 			},
 		    };
 		},
-
-		removeZome ( i ) {
-		    this.added_zomes.splice( i, 1 );
-		    this.input.zomes.splice( i, 1 );
-
-		    if ( this.added_zomes.length === 0 )
-			this.lock_hdk_version_input = false;
-		},
 		async addZome ( zome, zome_list ) {
-		    log.normal("Adding zome:", zome );
-		    if ( zome === undefined )
-			return;
-
 		    log.info("Reset search");
-		    this.zome_search_text = "";
+		    this.zome_search_text	= "";
 
-		    if ( this.added_zomes.find( z => z.$id === zome.$id ) )
+		    if ( this.zomeIsAdded( zome.$id ) )
 			return;
 
 		    // Get latest version for a specific HDK Version
-		    const latest_version	= await this.$store.dispatch("getLatestVersionForZome", [ zome.$id, this.input.hdk_version ] );
+		    const latest_version	= await this.$openstate.get(`zome/${zome.$id}/versions/hdk/${this.version$.hdk_version}/latest`);
 
-		    if ( !this.input.hdk_version ) {
-			this.input.hdk_version		= latest_version.hdk_version;
-		    }
+		    log.normal("Adding zome version:", zome, latest_version );
+		    this.added_zomes.push( String(zome.$id) );
 
-		    this.lock_hdk_version_input		= true;
-
-		    this.added_zomes.push( zome );
 		    zome_list.push({
 			"name":		zome.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
 			"zome":		zome.$id,
 			"version":	latest_version.$id,
 			"resource":	latest_version.mere_memory_addr,
 			"resource_hash":latest_version.mere_memory_hash,
+			"dependencies":	[],
 		    });
 		},
 		zomeIsAdded ( zome_id ) {
-		    return !!this.added_zomes.find( z => z.$id === zome_id );
+		    return !!this.added_zomes.find( id => id === String(zome_id) );
 		},
-		selectHDKVersion ( hdk_version ) {
-		    this.input.hdk_version		= hdk_version || null;
 
-		    if ( this.compatible_zomes.length === 0 ) {
-			if ( hdk_version )
-			    this.$store.dispatch("fetchZomesWithHDKVersion", hdk_version );
-			else
-			    this.$store.dispatch("fetchAllZomes");
+		zomeCardActions ( index, zome_list ) {
+		    log.info("Configuring zome card actions for:", index );
+		    return [
+			this.changeZomeVersionAction( index, zome_list ),
+			this.removeZomeAction( index, zome_list ),
+		    ];
+		},
+		changeZomeVersionAction ( index, zome_list ) {
+		    const zome_ref		= zome_list[ index ];
+		    const versions		= this.$openstate.state[`zome/${zome_ref.zome}/versions/hdk/${this.version$.hdk_version}`];
+
+		    return {
+			"hide": versions.length < 2,
+			"title": "Select a different version",
+			"icon": "layers-half",
+			"method": () => {
+			    this.change_version_context		= [ index, zome_list, zome_ref.name ];
+			    this.change_version_modal.show();
+			},
+		    };
+		},
+		selectNewVersion ( version ) {
+		    const [ index, zome_list ]		= this.change_version_context;
+
+		    zome_list[ index ].version		= version.$id;
+		    zome_list[ index ].resource		= version.mere_memory_addr;
+		    zome_list[ index ].resource_hash	= version.mere_memory_hash;
+
+		    this.change_version_context		= null;
+		    this.change_version_modal.hide();
+		},
+		removeZomeAction ( i, zome_list ) {
+		    return {
+			"icon": "x-lg",
+			"title": "Remove Zome Version",
+			"method": () => {
+			    this.removeZome( i, zome_list );
+			},
+		    };
+		},
+		removeZome ( i, zome_list ) {
+		    const zome_ref		= zome_list[ i ];
+		    const zome_i		= this.added_zomes.indexOf( String(zome_ref.zome) );
+
+		    this.added_zomes.splice( zome_i, 1 );
+		    zome_list.splice( i, 1 );
+		},
+
+		async create () {
+		    try {
+			await this.$openstate.write( this.dna_version_datapath );
+
+			const new_id		= this.version.$id;
+
+			this.$openstate.read(`dnas/${this.dna_id}/versions`);
+			this.$openstate.purge( this.dna_version_datapath );
+
+			this.$router.push( `/dnas/${this.dna_id}/versions/${new_id}` );
+		    } catch ( err ) {
+			log.error("Failed to create DNA Version:", err );
+			this.error	= err;
 		    }
+		},
+	    },
+	};
+    };
+
+    async function single () {
+	return {
+	    "template": await common.load_html("/templates/dnas/versions/single.html"),
+	    "data": function() {
+		const id		= this.getPathId("id");
+		const dna_id		= this.getPathId("dna");
+		return {
+		    id,
+		    dna_id,
+		    "datapath":			`dna/version/${id}`,
+		    "dna_datapath":		`dna/${dna_id}`,
+		    "bundle_datapath":		`dna/version/${id}/bundle`,
+		};
+	    },
+	    async created () {
+		this.mustGet(async () => {
+		    await Promise.all([
+			this.$openstate.get( this.datapath ),
+			this.$openstate.get( this.dna_datapath ),
+		    ]);
+		});
+	    },
+	    "computed": {
+		...common.scopedPathComputed( c => c.datapath,		"version", { "get": true } ),
+		...common.scopedPathComputed( c => c.dna_datapath,	"dna", { "get": true } ),
+		...common.scopedPathComputed( c => c.bundle_datapath,	"package_bytes" ),
+
+		modal () {
+		    return this.$refs["modal"].modal;
+		},
+
+		package_filename () {
+		    if ( !this.dna )
+			return "DNA Package";
+
+		    const filename	= this.dna.name.replace(/[/\\?%*:|"<>]/g, '_');
+		    return `${filename}_v${this.version.version}.dna`;
+		},
+	    },
+	    "methods": {
+		refresh () {
+		    this.$openstate.read( this.datapath );
+		    this.$openstate.read( this.dna_datapath );
+		},
+		async downloadPackageBytes () {
+		    try {
+			const bytes		= await this.$openstate.get( this.bundle_datapath, {
+			    "rememberState": false,
+			});
+
+			this.download( this.package_filename, bytes );
+		    } catch (err) {
+			log.error("Failed to get wasm bytes for zome version(%s): %s", String(this.id), err.message, err );
+		    }
+		},
+		async unpublish () {
+		    await this.$openstate.delete( this.datapath );
+
+		    this.modal.hide();
+
+		    this.$openstate.read(`dna/${this.dna_id}/versions`);
+		    this.$router.push( `/dnas/${this.dna_id}` );
 		},
 	    },
 	};
@@ -229,50 +293,36 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": await load_html("/templates/dnas/versions/update.html"),
+	    "template": await common.load_html("/templates/dnas/versions/update.html"),
 	    "data": function() {
+		const id		= this.getPathId("id");
+		const dna_id		= this.getPathId("dna");
+
 		return {
-		    "id": null,
-		    "dna_id": null,
+		    id,
+		    dna_id,
 		    "error": null,
-		    "_version": null,
-		    "input": {},
-		    "validated": false,
-		    "changelog_html": null,
 		    "show_changelog_preview": false,
+
+		    "dnapath":			`dna/${dna_id}`,
+		    "versionpath":		`dna/version/${id}`,
 		};
 	    },
 	    "computed": {
-		version () {
-		    if ( this._version === null && this.$store.getters.dna_version( this.id ) )
-			this._version	= this.copy( this.$store.getters.dna_version( this.id ) );
+		...common.scopedPathComputed( c => c.dnapath,			"dna", { "get": true } ),
+		...common.scopedPathComputed( c => c.versionpath,		"version", { "get": true } ),
 
-		    return this._version;
-		},
-		$version () {
-		    return this.$store.getters.$dna_version( this.id );
-		},
-
-		dna () {
-		    return this.$store.getters.dna( this.version.for_dna );
-		},
-		$dna () {
-		    return this.$store.getters.$dna( this.version ? this.version.for_dna : null );
-		},
-
-		form () {
-		    return this.$refs["form"];
-		},
 		preview_toggle_text () {
 		    return this.show_changelog_preview ? "editor" : "preview";
 		}
 	    },
 	    async created () {
-		this.id			= this.getPathId("id");
-		this.dna_id		= this.getPathId("dna");
-
-		if ( !this.version )
-		    await this.fetchVersion();
+		await this.mustGet(async () => {
+		    await Promise.all([
+			this.$openstate.get( this.versionpath ),
+			this.$openstate.get( this.dnapath ),
+		    ]);
+		});
 	    },
 	    "methods": {
 		toggleChangelogPreview () {
@@ -280,28 +330,13 @@ module.exports = async function ( client ) {
 		    this.updateChangelogMarkdown();
 		},
 		updateChangelogMarkdown () {
-		    this.changelog_html	= md_converter.makeHtml( this.version.changelog );
-		},
-		async fetchVersion () {
-		    try {
-			await this.$store.dispatch("fetchDnaVersion", this.id );
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
-
-			log.error("Failed to get dna version (%s): %s", String(this.id), err.message, err );
-		    }
+		    this.version$.changelog_html = common.mdHTML( this.version$.changelog );
 		},
 		async update () {
-		    this.validated	= true;
-
-		    if ( this.form.checkValidity() === false )
-			return;
-
 		    try {
-			await this.$store.dispatch("updateDnaVersion", [ this.id, this.input ] );
+			await this.$openstate.write( this.versionpath );
 
-			this.$store.dispatch("fetchVersionsForDna", this.dna_id );
-
+			this.$openstate.read(`dna/${this.dna_id}/versions`);
 			this.$router.push( `/dnas/${this.dna_id}/versions/${this.id}` );
 		    } catch ( err ) {
 			log.error("Failed to update DNA Version (%s):", String(this.id), err );
@@ -312,104 +347,9 @@ module.exports = async function ( client ) {
 	};
     };
 
-    async function single () {
-	return {
-	    "template": await load_html("/templates/dnas/versions/single.html"),
-	    "data": function() {
-		return {
-		    "id": null,
-		    "dna_id": null,
-		    "changelog_html": null,
-		    "download_error": null,
-		};
-	    },
-	    async created () {
-		this.id			= this.getPathId("id");
-		this.dna_id		= this.getPathId("dna");
-
-		this.refresh();
-	    },
-	    "computed": {
-		version () {
-		    return this.$store.getters.dna_version( this.id );
-		},
-		$version () {
-		    return this.$store.getters.$dna_version( this.id );
-		},
-
-		dna () {
-		    if ( !this.version )
-			return null;
-
-		    return this.$store.getters.dna( this.version.for_dna );
-		},
-		$dna () {
-		    return this.$store.getters.$dna( this.version ? this.version.for_dna : null );
-		},
-
-		$packageBytes () {
-		    return this.$store.getters.$dna_version_package( this.version ? this.version.$id : null );
-		},
-		modal () {
-		    return this.$refs["modal"].modal;
-		},
-		package_filename () {
-		    if ( !this.dna )
-			return "DNA Package";
-
-		    const filename	= this.dna.name.replace(/[/\\?%*:|"<>]/g, '_');
-		    return `${filename}_v${this.version.version}.dna`;
-		},
-		dna_deprecated () {
-		    return !!( this.dna && this.dna.deprecation );
-		},
-	    },
-	    "methods": {
-		refresh () {
-		    if ( !this.version )
-			this.fetchVersion();
-		    else
-			this.updateChangelogMarkdown();
-		},
-		updateChangelogMarkdown () {
-		    this.changelog_html	= md_converter.makeHtml( this.version.changelog );
-		},
-		async fetchVersion () {
-		    try {
-			let version	= await this.$store.dispatch("fetchDnaVersion", this.id );
-
-			this.updateChangelogMarkdown();
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
-
-			log.error("Failed to get dna version (%s): %s", String(this.id), err.message, err );
-		    }
-		},
-		async downloadPackageBytes () {
-		    try {
-			const dna_package	= await this.$store.dispatch("fetchDnaVersionPackage", this.version.$id );
-
-			this.download( this.package_filename, dna_package.bytes );
-		    } catch (err) {
-			this.download_error	= err;
-			log.error("Failed to get package bytes for dna version(%s): %s", String(this.id), err.message, err );
-		    }
-		},
-		async unpublish () {
-		    await this.$store.dispatch("unpublishDnaVersion", this.id );
-
-		    this.modal.hide();
-
-		    this.$store.dispatch("fetchVersionsForDna", this.dna_id );
-		    this.$router.push( `/dnas/${this.dna_id}` );
-		},
-	    },
-	};
-    };
-
     async function upload () {
 	return {
-	    "template": await load_html("/templates/dnas/versions/upload.html"),
+	    "template": await common.load_html("/templates/dnas/versions/upload.html"),
 	    "data": function() {
 		return {
 		    "id": null,

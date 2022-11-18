@@ -1,7 +1,7 @@
 <page-view id="single-dna-page">
     <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.display_name || dna.name">
-	<a v-if="$dna.loaded" @click="fetchDna()" class="ms-2 fs-4">
-	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.loading }"></i>
+	<a v-if="$dna.present" @click="fetchDna()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.reading }"></i>
 	</a>
     </breadcrumbs>
 
@@ -28,7 +28,7 @@
 		Edit
             </router-link>
 
-            <a @click="modal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
+            <a @click="deprecationModal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
 		<i class="bi-x-lg"></i>
 		Deprecate
             </a>
@@ -177,14 +177,19 @@
 
     <modal v-if="dna" title="Deprecate DNA" ref="modal"
 	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
-	<form ref="form" :class="{ 'was-validated': validated }">
+	<form :class="{ 'was-validated': $dna.failed }">
 	    <div class="mb-4">
 		<p>Are you sure you want to deprecate the <strong>{{ dna.name }}</strong> DNA?</p>
 	    </div>
 	    <input-feedback>
-		<textarea v-model="deprecation.message" class="form-control" rows="4"
-			  placeholder="Reason" required :disabled="$dna.deprecating"></textarea>
+		<textarea v-model="dna$.deprecation" class="form-control" rows="4"
+			  placeholder="Reason" required :disabled="$dna.writing"></textarea>
 	    </input-feedback>
+
+	    <input-rejections v-if="$dna.failed" class="mt-5"
+			      :rejections="dna_rejections"></input-rejections>
+
+	    <display-error class="mt-5" :error="dna_errors.deprecation" :debug="true"></display-error>
 	</form>
     </modal>
 

@@ -24,8 +24,7 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    async created () {
-		await this.$openstate.get(`happ/${this.happ_id}/latest_release`);
-		const release		= this.$openstate.state[`happ/${this.happ_id}/latest_release`];
+		const release		= await this.$openstate.get(`happ/${this.happ_id}/releases/latest`);
 
 		this.input.ordering	= release ? release.ordering + 1 : 1;
 		this.input.for_happ	= this.happ_id;
@@ -35,7 +34,7 @@ module.exports = async function ( client ) {
 		...common.scopedPathComputed( c => `happ/${c.happ_id}`,	"happ", { "get": true } ),
 		...common.scopedPathComputed( `happ/release/new`,	"release" ),
 		...common.scopedPathComputed( `gui/release/new`,	"gui_release" ),
-		...common.scopedPathComputed( `all/guis`,		"all_guis", { "get": true }),
+		...common.scopedPathComputed( `guis`,			"all_guis", { "get": true }),
 		...common.scopedPathComputed( `dnarepo/hdk/versions`,	"previous_hdk_versions", { "get": true }),
 
 		form () {
@@ -116,7 +115,7 @@ module.exports = async function ( client ) {
 			    continue;
 			}
 
-			const latest_version	= await this.$openstate.get(`dna/${dna.$id}/latest_version`);
+			const latest_version		= await this.$openstate.get(`dna/${dna.$id}/versions/latest`);
 
 			log.info("Push dna:", dna );
 			this.input.dnas.push({
@@ -256,7 +255,7 @@ module.exports = async function ( client ) {
 	    "computed": {
 		...common.scopedPathComputed( c => `happ/release/${c.id}`,	"release", { "get": true }),
 		...common.scopedPathComputed( c => `happ/${c.happ_id}`,		"happ", { "get": true } ),
-		...common.scopedPathComputed( `all/guis`,			"all_guis", { "get": true }),
+		...common.scopedPathComputed( `guis`,				"all_guis", { "get": true }),
 
 		input () {
 		    return this.release$;

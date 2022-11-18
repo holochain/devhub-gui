@@ -22,9 +22,6 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		form () {
-		    return this.$refs["form"];
-		},
 		happs_modal () {
 		    return this.$refs["select_happ_release"].modal;
 		},
@@ -37,10 +34,10 @@ module.exports = async function ( client ) {
 		},
 
 		happs () {
-		    return this.$openstate.state[ `all/happs` ] || [];
+		    return this.$openstate.state[ `happs` ] || [];
 		},
 		$happs () {
-		    return this.$openstate.metastate[ `all/happs` ];
+		    return this.$openstate.metastate[ `happs` ];
 		},
 
 		happ_releases () {
@@ -99,7 +96,7 @@ module.exports = async function ( client ) {
 		if ( !this.gui )
 		    this.fetchGUI();
 
-		this.$openstate.get(`all/happs`);
+		this.$openstate.get(`happs`);
 
 		this.input.for_gui	= String( this.gui_id );
 		this.input.web_asset_id	= "temporary value";
@@ -180,10 +177,6 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		form () {
-		    return this.$refs["form"];
-		},
-
 		release () {
 		    return this.$openstate.state[ this.datapath ];
 		},
@@ -289,9 +282,6 @@ module.exports = async function ( client ) {
 		    return this.$openstate.errors[ this.datapath ].unpublish;
 		},
 
-		form () {
-		    return this.$refs["form"];
-		},
 		unpublish_modal () {
 		    return this.$refs["unpublish_modal"].modal;
 		},

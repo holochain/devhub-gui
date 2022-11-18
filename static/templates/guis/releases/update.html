@@ -6,7 +6,7 @@
 
     <display-error class="mt-5" :error="error" :debug="true"></display-error>
 
-    <form ref="form" :class="{ 'was-validated': $release.failed }"
+    <form :class="{ 'was-validated': $release.failed }"
 	  class="flex-grow-1 d-flex flex-column">
 
 	<div v-if="$rejections.length && $release.failed"

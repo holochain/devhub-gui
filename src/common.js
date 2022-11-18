@@ -517,7 +517,17 @@ const common				= {
 	    },
 	    [mutable_name] () {
 		try {
-		    return this.$openstate.mutable[ resolvePath( this ) ];
+		    const path			= resolvePath( this );
+		    if ( path === this.$openstate.DEADEND )
+			return null;
+
+		    const metastate		= this.$openstate.metastate[ path ];
+		    const handler		= this.$openstate.getPathHandler( path );
+
+		    if ( handler.readonly || !metastate.writable )
+			return null;
+
+		    return this.$openstate.mutable[ path ];
 		} catch ( err ) {
 		    console.error(err);
 		    throw err;
@@ -536,7 +546,7 @@ const common				= {
 
     isEmpty ( value ) {
 	if ( [null,undefined].includes( value ) )
-	    return true;
+	    return false;
 	else if ( Array.isArray( value ) )
 	    return value.length === 0;
 	else if ( typeof value === "string" )

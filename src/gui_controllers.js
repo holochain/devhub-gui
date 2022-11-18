@@ -97,10 +97,6 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		form () {
-		    return this.$refs["form"];
-		},
-
 		...common.scopedPathComputed( c => c.datapath, "gui" ),
 	    },
 	    "methods": {
@@ -157,9 +153,6 @@ module.exports = async function ( client ) {
 		});
 	    },
 	    "computed": {
-		form () {
-		    return this.$refs["form"];
-		},
 		deprecationModal () {
 		    return this.$refs["deprecationModal"].modal;
 		},
@@ -239,9 +232,6 @@ module.exports = async function ( client ) {
 		},
 		$rejections () {
 		    return this.$openstate.rejections[ this.datapath ];
-		},
-		form () {
-		    return this.$refs["form"];
 		},
 	    },
 	    async created () {

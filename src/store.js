@@ -118,6 +118,32 @@ function fmt_client_args ( dna, zome, func, args ) {
 
 // Perhaps we want to completely ignore summary models and only car about full info models?
 
+function reduceLatestVersionKey ( key ) {
+    return ( acc, entity, i ) => {
+	if ( !acc )
+	    return entity;
+
+	if ( entity[ key ] > acc[ key ] )
+	    return entity;
+
+	if ( entity[ key ] === acc[ key ]
+	     && entity.published_at > acc.published_at )
+	    return entity;
+
+	return acc;
+    };
+}
+
+const stdLatestVersionReducer		= reduceLatestVersionKey( "version" );
+
+function reduceLatestVersion ( key ) {
+    if ( arguments.length === 1 )
+	return reduceLatestVersionKey( key );
+    else
+	return stdLatestVersionReducer( ...arguments );
+}
+
+
 
 module.exports = async function ( client, app ) {
     const { reactive }			= Vue;
@@ -181,6 +207,27 @@ module.exports = async function ( client, app ) {
 		for ( let gui of list ) {
 		    const path		= `gui/${gui.$id}`;
 		    this.openstate.state[path]	= gui;
+		}
+
+		return list;
+	    },
+	},
+	"DNAs for Agent": {
+	    "path": "agent/:id/dnas",
+	    "readonly": true,
+	    async read ({ id }) {
+		let list;
+
+		if ( id === "me" )
+		    list		= await client.call("dnarepo", "dna_library", "get_my_dnas");
+		else
+		    list		= await client.call("dnarepo", "dna_library", "get_dnas", {
+			"agent": id,
+		    });
+
+		for ( let dna of list ) {
+		    const path		= `dna/${dna.$id}`;
+		    this.openstate.state[path]	= dna;
 		}
 
 		return list;
@@ -478,7 +525,7 @@ module.exports = async function ( client, app ) {
 	    },
 	},
 	"All hApps": {
-	    "path": "all/happs",
+	    "path": "happs",
 	    "readonly": true,
 	    async read () {
 		const list		= await client.call("happs", "happ_library", "get_all_happs");
@@ -562,7 +609,7 @@ module.exports = async function ( client, app ) {
 	    },
 	},
 	"Latest Release for hApp": {
-	    "path": "happ/:id/latest_release",
+	    "path": "happ/:id/releases/latest",
 	    "readonly": true,
 	    async read ({ id }) {
 		const releases		= await this.openstate.get(`happ/${id}/releases`);
@@ -579,7 +626,7 @@ module.exports = async function ( client, app ) {
 	    },
 	},
 	"All DNAs": {
-	    "path": "all/dnas",
+	    "path": "dnas",
 	    "readonly": true,
 	    async read () {
 		const list		= await client.call("dnarepo", "dna_library", "get_all_dnas");
@@ -602,12 +649,11 @@ module.exports = async function ( client, app ) {
 	    adapter ( entity ) {
 		entity.developer	= new AgentPubKey( entity.developer );
 	    },
-	    toMutable ({ name, display_name, description, dna_type, tags }) {
+	    defaultMutable () {
 		return {
-		    name,
-		    display_name,
-		    description,
-		    tags,
+		    "name": "",
+		    "description": "",
+		    "tags": [],
 		};
 	    },
 	    async create ( input ) {
@@ -617,7 +663,22 @@ module.exports = async function ( client, app ) {
 
 		return dna;
 	    },
-	    async update ({ id }, changed ) {
+	    toMutable ({ name, display_name, description, dna_type, tags }) {
+		return {
+		    name,
+		    display_name,
+		    description,
+		    tags,
+		};
+	    },
+	    async update ({ id }, changed, intent ) {
+		if ( intent === "deprecation" ) {
+		    return await client.call("dnarepo", "dna_library", "deprecate_dna", {
+			"addr": this.state.$action,
+			"message": changed.deprecation,
+		    });
+		}
+
 		console.log("Update:", id, changed );
 		return await client.call("dnarepo", "dna_library", "update_dna", {
 		    "addr": this.state.$action,
@@ -631,13 +692,25 @@ module.exports = async function ( client, app ) {
 		    return common.hashesAreEqual( dna.developer, agent_info.pubkey.initial );
 		},
 	    },
-	    validation ( data, rejections ) {
+	    validation ( data, rejections, intent ) {
 		const hr_names		= {
 		    "name": "DNA Name",
 		    "display_name": "Display Name",
 		    "description": "DNA Description",
 		};
-		["name", "display_name", "description"].forEach( key => {
+
+		if ( intent === "deprecation" ) {
+		    console.log("Validate deprecation input", data );
+		    if ( data.deprecation === undefined )
+			rejections.push(`'Deprecation Reason' is required`);
+		    else if ( typeof data.deprecation !== "string")
+			rejections.push(`'Deprecation Reason' must be a string`);
+		    else if ( data.deprecation.trim() === "" )
+			rejections.push(`'Deprecation Reason' cannot be blank`);
+		    return;
+		}
+
+		["name", "description"].forEach( key => {
 		    if ( [null, undefined].includes( data[key] ) )
 			rejections.push(`'${hr_names[key]}' is required`);
 		});
@@ -663,23 +736,12 @@ module.exports = async function ( client, app ) {
 	    },
 	},
 	"Latest Version for DNA": {
-	    "path": "dna/:id/latest_version",
+	    "path": "dna/:id/versions/latest",
 	    "readonly": true,
 	    async read ({ id }) {
 		const versions		= await this.openstate.get(`dna/${id}/versions`);
 
-		return versions.reduce( (acc, version, i) => {
-		    // if ( hdk_version && hdk_version !== version.hdk_version )
-		    // 	return acc;
-
-		    if ( acc === null )
-			return version;
-
-		    if ( version.version > acc.version )
-			return version;
-
-		    return acc;
-		}, null );
+		return versions.reduce( reduceLatestVersion, null );
 	    },
 	},
 	"DNA Version": {
@@ -691,6 +753,17 @@ module.exports = async function ( client, app ) {
 		content.for_dna			= new EntryHash( content.for_dna );
 		content.changelog_html		= common.mdHTML( content.changelog );
 	    },
+	    defaultMutable () {
+		return {
+		    "version": null,
+		    "ordering": null,
+		    "changelog": null,
+		    "hdk_version": null,
+		    "integrity_zomes": [],
+		    "zomes": [],
+		    "metadata": {},
+		};
+	    },
 	    async create ( input ) {
 		return await client.call("dnarepo", "dna_library", "create_dna_version", input );
 	    },
@@ -700,6 +773,9 @@ module.exports = async function ( client, app ) {
 		    "properties": changed,
 		});
 	    },
+	    async delete ({ id }) {
+		return await client.call("dnarepo", "dna_library", "delete_dna_version", { id });
+	    },
 	    "permissions": {
 		async writable ( version ) {
 		    const agent_info	= await this.get("agent/me");
@@ -708,12 +784,50 @@ module.exports = async function ( client, app ) {
 		    return common.hashesAreEqual( dna.developer, agent_info.pubkey.initial );
 		},
 	    },
-	    validation ( data, rejections ) {
-	    },
-	    prepInput ( input ) {
-		console.log("Prep input:", input );
-		return {
+	    validation ( data, rejections, intent ) {
+		const hr_names		= {
+		    "for_dna": "For DNA",
+		    "version": "Version",
+		    "ordering": "Ordering",
+		    "changelog": "Changelog",
+		    "hdk_version": "HDK Version",
+		    "integrity_zomes": "Integrity Zomes",
+		    "zomes": "Coordinator Zomes",
 		};
+		const required_props	= ["for_dna", "version", "ordering", "hdk_version"];
+		const nonempty_props	= ["hdk_version"];
+
+		if ( intent === "create" ) {
+		    required_props.push("integrity_zomes");
+		    nonempty_props.push("integrity_zomes");
+		}
+
+		required_props.forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		nonempty_props.forEach( key => {
+		    if ( common.isEmpty( data[key] ) )
+			rejections.push(`'${hr_names[key]}' cannot be blank`);
+		});
+
+		if ( intent === "create" ) {
+		    data.zomes.forEach( zome_ref => {
+			if ( common.isEmpty( zome_ref.dependencies ) )
+			    rejections.push(`Dependencies for Zome '${zome_ref.name}' cannot be empty`);
+		    });
+		}
+	    },
+	},
+	"Bundle for DNA Version": {
+	    "path": "dna/version/:id/bundle",
+	    "readonly": true,
+	    async read ({ id }, opts ) {
+		return await client.call( "dnarepo", "dna_library", "get_dna_package", { id });
+	    },
+	    adapter ( bytes ) {
+		return new Uint8Array( bytes );
 	    },
 	},
 	"All Zomes": {
@@ -723,11 +837,26 @@ module.exports = async function ( client, app ) {
 		const list		= await client.call("dnarepo", "dna_library", "get_all_zomes");
 
 		for ( let zome of list ) {
-		    const path			= `zome/${zome.$id}`;
-		    this.openstate.state[path]	= zome;
+		    this.openstate.state[ `zome/${zome.$id}` ]	= zome;
 		}
 
 		return list;
+	    },
+	},
+	"All Integrity Zomes": {
+	    "path": "zomes/integrity",
+	    "readonly": true,
+	    async read () {
+		return (await this.openstate.get("zomes"))
+		    .filter( zome => zome.zome_type === 0 );
+	    },
+	},
+	"All Coordinator Zomes": {
+	    "path": "zomes/coordinator",
+	    "readonly": true,
+	    async read () {
+		return (await this.openstate.get("zomes"))
+		    .filter( zome => zome.zome_type === 1 );
 	    },
 	},
 	"Zome": {
@@ -745,6 +874,7 @@ module.exports = async function ( client, app ) {
 		    "name": "",
 		    "description": "",
 		    "zome_type": null,
+		    "tags": [],
 		};
 	    },
 	    toMutable ({ name, display_name, description, zome_type, tags }) {
@@ -815,20 +945,31 @@ module.exports = async function ( client, app ) {
 	    },
 	},
 	"Latest Version for Zome": {
-	    "path": "zome/:id/latest_version",
+	    "path": "zome/:id/versions/latest",
 	    "readonly": true,
 	    async read ({ id }) {
 		const versions		= await this.openstate.get(`zome/${id}/versions`);
 
-		return versions.reduce( (acc, version, i) => {
-		    if ( acc === null )
-			return version;
+		return versions.reduce( reduceLatestVersion, null );
+	    },
+	},
+	"Versions for Zome with HDK Version": {
+	    "path": "zome/:id/versions/hdk/:hdk_version",
+	    "readonly": true,
+	    async read ({ id, hdk_version }) {
+		const versions		= (await this.openstate.get(`zome/${id}/versions`))
+		      .filter( zome_version => zome_version.hdk_version === hdk_version );
 
-		    if ( version.version > acc.version )
-			return version;
+		return versions;
+	    },
+	},
+	"Latest Version for Zome with HDK Version": {
+	    "path": "zome/:id/versions/hdk/:hdk_version/latest",
+	    "readonly": true,
+	    async read ({ id, hdk_version }) {
+		const versions		= await this.openstate.get(`zome/${id}/versions/hdk/${hdk_version}`);
 
-		    return acc;
-		}, null );
+		return versions.reduce( reduceLatestVersion, null );
 	    },
 	},
 	"Zome Version": {
@@ -1331,6 +1472,36 @@ module.exports = async function ( client, app ) {
 	    "readonly": true,
 	    async read () {
 		return await client.call("dnarepo", "dna_library", "get_hdk_versions");
+	    },
+	},
+	"Zomes by HDK Version": {
+	    "path": "hdk/:version/zomes",
+	    "readonly": true,
+	    async read ({ version }) {
+		const list		= await client.call("dnarepo", "dna_library", "get_zomes_with_an_hdk_version", version );
+
+		for ( let zome of list ) {
+		    const path		= `zome/${zome.$id}`;
+		    this.openstate.state[path]	= zome;
+		}
+
+		return list;
+	    },
+	},
+	"Integrity Zomes by HDK Version": {
+	    "path": "hdk/:version/zomes/integrity",
+	    "readonly": true,
+	    async read ({ version }) {
+		return (await this.openstate.get(`hdk/${version}/zomes`))
+		    .filter( zome => zome.zome_type === 0 );
+	    },
+	},
+	"Coordinator Zomes by HDK Version": {
+	    "path": "hdk/:version/zomes/coordinator",
+	    "readonly": true,
+	    async read ({ version }) {
+		return (await this.openstate.get(`hdk/${version}/zomes`))
+		    .filter( zome => zome.zome_type === 1 );
 	    },
 	},
 	"URL Info": {

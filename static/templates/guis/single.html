@@ -163,7 +163,7 @@
 
     <modal v-if="gui" title="Deprecate GUI" ref="deprecationModal"
 	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
-	<form ref="form" :class="{ 'was-validated': $gui.failed }">
+	<form :class="{ 'was-validated': $gui.failed }">
 	    <div class="mb-4">
 		<p>Are you sure you want to deprecate the <strong>{{ gui.name }}</strong> GUI?</p>
 	    </div>

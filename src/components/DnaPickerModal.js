@@ -31,7 +31,7 @@ module.exports = function ( element_local_name, component_name ) {
 	    };
 	},
 	"computed": {
-	    ...common.scopedPathComputed( "all/dnas", "dnas", {
+	    ...common.scopedPathComputed( "dnas", "dnas", {
 		"default": [],
 		"get": true,
 		"filter": ( dnas ) => {

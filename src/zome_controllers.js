@@ -28,7 +28,7 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.mustGet(async () => {
 		    this.agent
-			? await this.$openstate.get(`agent/${this.agent}/zomes`)
+			? await this.$openstate.get( this.agent_datapath )
 			: await this.$openstate.get(`zomes`);
 		});
 	    },
@@ -55,7 +55,7 @@ module.exports = async function ( client ) {
 			    if ( filter === "" )
 				return true;
 
-			    let words	= filter.split(/\s+/);
+			    let words		= filter.split(/\s+/);
 
 			    for ( let word of words ) {
 				if ( this.compareText( word, entity.name )
@@ -78,7 +78,7 @@ module.exports = async function ( client ) {
 	    "methods": {
 		async refresh () {
 		    this.agent
-			? await this.$openstate.read(`agent/${this.agent}/zomes`)
+			? await this.$openstate.read( this.agent_datapath )
 			: await this.$openstate.read(`zomes`);
 		},
 	    },
@@ -96,25 +96,21 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    "computed": {
-		form () {
-		    return this.$refs["form"];
-		},
-
 		...common.scopedPathComputed( c => c.datapath, "zome" ),
 	    },
 	    "methods": {
 		addTag ( tag ) {
-		    if ( this.input.tags.indexOf( tag ) !== -1 )
+		    if ( this.zome$.tags.indexOf( tag ) !== -1 )
 			return;
 
 		    log.info("Adding tag:", tag );
-		    this.input.tags.push( tag );
-		    this.input.tags.sort();
+		    this.zome$.tags.push( tag );
+		    this.zome$.tags.sort();
 		    this.tag_search_text	= "";
 		},
 		removeTag ( tag ) {
 		    log.info("Removing tag:", tag );
-		    this.input.tags.splice( this.input.tags.indexOf( tag ), 1 );
+		    this.zome$.tags.splice( this.zome$.tags.indexOf( tag ), 1 );
 		},
 		async write () {
 		    try {
@@ -155,16 +151,6 @@ module.exports = async function ( client ) {
 		});
 	    },
 	    "computed": {
-		form () {
-		    return this.$refs["form"];
-		},
-		deprecationModal () {
-		    return this.$refs["modal"].modal;
-		},
-		unpublishModal () {
-		    return this.$refs["unpublishModal"].modal;
-		},
-
 		...common.scopedPathComputed( c => c.datapath, "zome" ),
 		...common.scopedPathComputed( c => c.versions_datapath, "versions", {
 		    "default": [],
@@ -174,6 +160,13 @@ module.exports = async function ( client ) {
 			return list;
 		    },
 		}),
+
+		deprecationModal () {
+		    return this.$refs["modal"].modal;
+		},
+		unpublishModal () {
+		    return this.$refs["unpublishModal"].modal;
+		},
 
 		focused_version_datapath () {
 		    return this.version ? `zome/version/${this.version.$id}` : this.$openstate.DEADEND;
@@ -216,67 +209,40 @@ module.exports = async function ( client ) {
 	return {
 	    "template": await load_html("/templates/zomes/update.html"),
 	    "data": function() {
+		const id		= this.getPathId("id");
+
 		return {
-		    "id": null,
-		    "error": null,
-		    "input": {},
-		    "validated": false,
-		    "tag_search_text": "",
+		    id,
+		    "datapath":		`zome/${id}`,
+		    "tag_search_text":	"",
+		    "error":		null,
 		};
 	    },
 	    "computed": {
-		zome () {
-		    return this.$openstate.state[ this.datapath ];
-		},
-		$zome () {
-		    return this.$openstate.metastate[ this.datapath ];
-		},
-		$errors () {
-		    return this.$openstate.errors[ this.datapath ];
-		},
-		form () {
-		    return this.$refs["form"];
-		},
+		...common.scopedPathComputed( c => c.datapath, "zome" ),
 	    },
 	    async created () {
-		this.id			= this.getPathId("id");
-		this.datapath		= `zome/${this.id}`;
-
-		if ( !this.zome )
-		    await this.fetchZome();
-
-		this.input		= this.$openstate.mutable[ this.datapath ];
-		this.input.tags.sort();
+		this.mustGet(async () => {
+		    await this.$openstate.get( this.datapath );
+		});
 	    },
 	    "methods": {
-		async fetchZome () {
-		    try {
-			await this.$openstate.read( this.datapath );
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
-
-			log.error("Failed to get zome (%s): %s", String(this.id), err.message, err );
-		    }
-		},
 		addTag ( tag ) {
-		    if ( this.input.tags.indexOf( tag ) !== -1 )
+		    if ( !Array.isArray( this.zome$.tags ) )
+			this.zome$.tags		= [];
+		    if ( this.zome$.tags.indexOf( tag ) !== -1 )
 			return;
 
 		    log.info("Adding tag:", tag );
-		    this.input.tags.push( tag );
-		    this.input.tags.sort();
+		    this.zome$.tags.push( tag );
+		    this.zome$.tags.sort();
 		    this.tag_search_text	= "";
 		},
 		removeTag ( tag ) {
 		    log.info("Removing tag:", tag );
-		    this.input.tags.splice( this.input.tags.indexOf( tag ), 1 );
+		    this.zome$.tags.splice( this.zome$.tags.indexOf( tag ), 1 );
 		},
-		async update () {
-		    this.validated		= true;
-
-		    if ( this.form.checkValidity() === false )
-			return;
-
+		async write () {
 		    try {
 			await this.$openstate.write( this.datapath );
 

@@ -182,7 +182,7 @@
 
     <modal v-if="zome" title="Deprecate Zome" ref="modal"
 	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
-	<form ref="form" :class="{ 'was-validated': $zome.failed }">
+	<form :class="{ 'was-validated': $zome.failed }">
 	    <div class="mb-4">
 		<p>Are you sure you want to deprecate the <strong>{{ zome.name }}</strong> Zome?</p>
 	    </div>

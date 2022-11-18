@@ -156,32 +156,7 @@ window.PersistentStorage		= {
 	    };
 	},
 	"computed": {
-	    agent () {
-		return this.$store.getters.agent;
-	    },
-	    $agent () {
-		return this.$store.getters.$agent;
-	    },
-
-	    reviews () {
-		return this.$store.getters.reviews;
-	    },
-	    reviewsMap () {
-		return this.$store.getters.reviews_by_subject;
-	    },
-	    $reviews () {
-		return this.$store.getters.$my_reviews;
-	    },
-
-	    reactions () {
-		return this.$store.getters.reactions;
-	    },
-	    reactionsMap () {
-		return this.$store.getters.reactions_by_subject;
-	    },
-	    $reactions () {
-		return this.$store.getters.$my_reactions;
-	    },
+	    ...common.scopedPathComputed( "agent/me", "agent" ),
 	},
 	async created () {
 	    this.$router.afterEach( (to, from, failure) => {
@@ -197,7 +172,7 @@ window.PersistentStorage		= {
 	    });
 
 	    try {
-		let agent_info		= await this.$store.dispatch("fetchAgent");
+		const agent_info		= await this.$openstate.get("agent/me");
 
 		this.agent_id		= agent_info.pubkey.current;
 

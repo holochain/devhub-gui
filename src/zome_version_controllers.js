@@ -31,10 +31,6 @@ module.exports = async function ( client ) {
 		},
 		...common.scopedPathComputed( c => c.sc_url_datapath,		"sc_url_preview" ),
 
-		form () {
-		    return this.$refs["form"];
-		},
-
 		file_valid_feedback () {
 		    const file		= this.zome_file;
 
@@ -47,7 +43,7 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.version$.for_zome	= this.zome_id;
 
-		const version			= await this.$openstate.get(`zome/${this.zome_id}/latest_version`);
+		const version			= await this.$openstate.get(`zome/${this.zome_id}/versions/latest`);
 		this.version$.ordering	= version ? version.ordering + 1 : 1;
 	    },
 	    "methods": {
@@ -159,9 +155,6 @@ module.exports = async function ( client ) {
 		...common.scopedPathComputed( c => c.reviewsummarypath,		"summary" ),
 		...common.scopedPathComputed( c => c.reviewinputpath,		"review_input" ),
 
-		form_review () {
-		    return this.$refs["form_review"];
-		},
 		modal () {
 		    return this.$refs["modal"].modal;
 		},
@@ -323,10 +316,6 @@ module.exports = async function ( client ) {
 	    "computed": {
 		...common.scopedPathComputed( c => c.zomepath,			"zome", { "get": true } ),
 		...common.scopedPathComputed( c => c.versionpath,		"version", { "get": true } ),
-
-		form () {
-		    return this.$refs["form"];
-		},
 
 		sc_url_datapath () {
 		    return this.version$.source_code_commit_url
