@@ -1,15 +1,14 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happ releases");
 
-const { load_html,
-	...common }			= require('./common.js');
+const common				= require('./common.js');
 
 
 module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": await load_html("/templates/happs/releases/create.html"),
+	    "template": await common.load_html("/templates/happs/releases/create.html"),
 	    "data": function() {
 		const happ_id		= this.getPathId("happ");
 
@@ -240,7 +239,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": await load_html("/templates/happs/releases/update.html"),
+	    "template": await common.load_html("/templates/happs/releases/update.html"),
 	    "data": function() {
 		const id			= this.getPathId("id");
 		const happ_id			= this.getPathId("happ");
@@ -325,7 +324,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": await load_html("/templates/happs/releases/single.html"),
+	    "template": await common.load_html("/templates/happs/releases/single.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -441,7 +440,7 @@ module.exports = async function ( client ) {
 
     async function upload () {
 	return {
-	    "template": await load_html("/templates/happs/releases/upload.html"),
+	    "template": await common.load_html("/templates/happs/releases/upload.html"),
 	    "data": function() {
 		return {
 		    "id": null,

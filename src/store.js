@@ -368,8 +368,10 @@ module.exports = async function ( client, app ) {
 	    },
 	    "permissions": {
 		async writable ( gui ) {
-		    const agent_info	= await this.get("agent/me");
+		    if ( gui.deprecation )
+			return false;
 
+		    const agent_info	= await this.get("agent/me");
 		    return common.hashesAreEqual( gui.designer, agent_info.pubkey.initial );
 		},
 	    },
@@ -543,6 +545,81 @@ module.exports = async function ( client, app ) {
 	    async read ({ id }) {
 		return await client.call("happs", "happ_library", "get_happ", { id });
 	    },
+	    defaultMutable () {
+		return {
+		    "title": "",
+		    "subtitle": "",
+		    "description": "",
+		    "tags": [],
+		};
+	    },
+	    async create ( input ) {
+		const happ		= await client.call("happs", "happ_library", "create_happ", input );
+
+		this.openstate.state[`happ/${happ.$id}`] = happ;
+
+		return happ;
+	    },
+	    toMutable ({ title, subtitle, description, tags }) {
+		return {
+		    title,
+		    subtitle,
+		    description,
+		    tags,
+		};
+	    },
+	    async update ({ id }, changed, intent ) {
+		if ( intent === "deprecation" ) {
+		    return await client.call("happs", "happ_library", "deprecate_happ", {
+			"addr": this.state.$action,
+			"message": changed.deprecation,
+		    });
+		}
+
+		console.log("Update:", id, changed );
+		return await client.call("happs", "happ_library", "update_happ", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    "permissions": {
+		async writable ( happ ) {
+		    if ( happ.deprecation )
+			return false;
+
+		    const agent_info	= await this.get("agent/me");
+		    return common.hashesAreEqual( happ.designer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, intent ) {
+		const hr_names		= {
+		    "title": "hApp Title",
+		    "subtitle": "hApp Subtitle",
+		    "display_name": "Display Name",
+		    "description": "hApp Description",
+		};
+
+		if ( intent === "deprecation" ) {
+		    console.log("Validate deprecation input", data );
+		    if ( data.deprecation === undefined )
+			rejections.push(`'Deprecation Reason' is required`);
+		    else if ( typeof data.deprecation !== "string")
+			rejections.push(`'Deprecation Reason' must be a string`);
+		    else if ( data.deprecation.trim() === "" )
+			rejections.push(`'Deprecation Reason' cannot be blank`);
+		    return;
+		}
+
+		["title", "subtitle", "description"].forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		["title", "subtitle"].forEach( key => {
+		    if ( common.isEmpty( data[key] ) )
+			rejections.push(`'${hr_names[key]}' cannot be blank`);
+		});
+	    },
 	},
 	"hApp Release": {
 	    "path": "happ/release/:id",
@@ -663,7 +740,7 @@ module.exports = async function ( client, app ) {
 
 		return dna;
 	    },
-	    toMutable ({ name, display_name, description, dna_type, tags }) {
+	    toMutable ({ name, display_name, description, tags }) {
 		return {
 		    name,
 		    display_name,
@@ -687,8 +764,10 @@ module.exports = async function ( client, app ) {
 	    },
 	    "permissions": {
 		async writable ( dna ) {
-		    const agent_info	= await this.get("agent/me");
+		    if ( dna.deprecation )
+			return false;
 
+		    const agent_info	= await this.get("agent/me");
 		    return common.hashesAreEqual( dna.developer, agent_info.pubkey.initial );
 		},
 	    },
@@ -909,8 +988,10 @@ module.exports = async function ( client, app ) {
 	    },
 	    "permissions": {
 		async writable ( zome ) {
-		    const agent_info	= await this.get("agent/me");
+		    if ( zome.deprecation )
+			return false;
 
+		    const agent_info	= await this.get("agent/me");
 		    return common.hashesAreEqual( zome.developer, agent_info.pubkey.initial );
 		},
 	    },

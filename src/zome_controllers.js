@@ -1,15 +1,14 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zomes");
 
-const { load_html,
-	...common }			= require('./common.js');
+const common				= require('./common.js');
 
 
 module.exports = async function ( client ) {
 
     async function list () {
 	return {
-	    "template": await load_html("/templates/zomes/list.html"),
+	    "template": await common.load_html("/templates/zomes/list.html"),
 	    "data": function() {
 		const agent_filter_cache	= PersistentStorage.getItem("LIST_FILTER");
 		const agent_filter_query	= this.$route.query.agent;
@@ -87,7 +86,7 @@ module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": await load_html("/templates/zomes/create.html"),
+	    "template": await common.load_html("/templates/zomes/create.html"),
 	    "data": function() {
 		return {
 		    "datapath":		`zome/new`,
@@ -133,7 +132,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": await load_html("/templates/zomes/single.html"),
+	    "template": await common.load_html("/templates/zomes/single.html"),
 	    "data": function() {
 		const id		= this.getPathId("id");
 
@@ -207,7 +206,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": await load_html("/templates/zomes/update.html"),
+	    "template": await common.load_html("/templates/zomes/update.html"),
 	    "data": function() {
 		const id		= this.getPathId("id");
 

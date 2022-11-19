@@ -7,6 +7,8 @@ const { EntityArchitect,
 const { TimeoutError }			= HolochainClient;
 const { AgentPubKey }			= holohash;
 
+Error.stackTraceLimit = Infinity;
+
 
 // log.level.trace && crux.log.setLevel("trace");
 

@@ -1,16 +1,13 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("gui releases");
 
-const { load_html, http_info,
-	...common }			= require('./common.js');
-
-Error.stackTraceLimit = Infinity;
+const common				= require('./common.js');
 
 module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": await load_html("/templates/guis/releases/create.html"),
+	    "template": await common.load_html("/templates/guis/releases/create.html"),
 	    "data": function() {
 		window.gr_controller = this;
 		return {
@@ -160,7 +157,7 @@ module.exports = async function ( client ) {
 
     async function update () {
 	return {
-	    "template": await load_html("/templates/guis/releases/update.html"),
+	    "template": await common.load_html("/templates/guis/releases/update.html"),
 	    "data": function() {
 		const id		= this.getPathId("id");
 		const gui_id		= this.getPathId("gui");
@@ -233,7 +230,7 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": await load_html("/templates/guis/releases/single.html"),
+	    "template": await common.load_html("/templates/guis/releases/single.html"),
 	    "data": function() {
 		const id		= this.getPathId("id");
 		const gui_id		= this.getPathId("gui");
