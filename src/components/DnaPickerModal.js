@@ -25,23 +25,27 @@ module.exports = function ( element_local_name, component_name ) {
 		"default": false,
 	    },
 	},
+	"watch": {
+	    "hdkVersion" ( new_hdk_version, old_hdk_version ) {
+		if ( new_hdk_version )
+		    this.$openstate.get(`hdk/${new_hdk_version}/dnas`);
+	    },
+	},
 	data () {
 	    return {
 		"multi_select": [],
 	    };
 	},
 	"computed": {
-	    ...common.scopedPathComputed( "dnas", "dnas", {
+	    hdkdnas_datapath () {
+		return this.hdkVersion
+		    ? `hdk/${this.hdkVersion}/dnas`
+		    : this.$openstate.DEADEND;
+	    },
+	    ...common.scopedPathComputed( c => c.hdkdnas_datapath, "dnas", {
 		"default": [],
-		"get": true,
-		"filter": ( dnas ) => {
-		    return dnas.filter( dna => {
-			return !this.hdk_version || dna.hdk_version === this.hdk_version;
-		    });
-		},
 	    }),
 	    modal () {
-		console.log("DNA Picker modal:", this.$refs.picker );
 		return this.$refs["picker"].modal;
 	    },
 	},

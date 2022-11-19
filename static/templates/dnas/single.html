@@ -1,13 +1,13 @@
 <page-view id="single-dna-page">
     <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.display_name || dna.name">
-	<a v-if="$dna.present" @click="fetchDna()" class="ms-2 fs-4">
+	<a v-if="$dna.present" @click="refresh()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.reading }"></i>
 	</a>
     </breadcrumbs>
 
     <hr>
 
-    <deprecation-alert v-if="deprecated && $dna.current"
+    <deprecation-alert v-if="dna?.deprecation"
 		       title="This DNA has been deprecated"
 		       :message="dna.deprecation.message"></deprecation-alert>
 
@@ -22,7 +22,7 @@
 	    </h1>
 	</template>
 
-	<template #title-extras v-if="!deprecated && $dna.writable">
+	<template #title-extras v-if="$dna.writable">
             <router-link :to="'/dnas/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
 		<i class="bi-pencil"></i>
 		Edit
@@ -108,27 +108,27 @@
 	<div class="d-flex mb-4">
 	    <h2 class="fs-4 flex-grow-1">
 		DNA Versions
-		<a v-if="$versions.loaded" @click="fetchDnaVersions()" class="ms-2 fs-4">
-		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.loading }"></i>
+		<a v-if="$versions.present" @click="$openstate.read( versions_datapath )" class="ms-2 fs-4">
+		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.reading }"></i>
 		</a>
 	    </h2>
 
             <router-link v-if="dna && $dna.writable" :to="'/dnas/' + id + '/upload'"
 			 class="btn btn-primary text-nowrap me-3"
-			 :class="{ 'disabled': deprecated }">
+			 :class="{ 'disabled': dna?.deprecation }">
 		<i class="bi-upload"></i>
 		Upload Bundle
             </router-link>
 
             <router-link v-if="dna && $dna.writable" :to="'/dnas/' + id + '/versions/new'"
 			 class="btn btn-primary text-nowrap"
-			 :class="{ 'disabled': deprecated }">
+			 :class="{ 'disabled': dna?.deprecation }">
 		<i class="bi-plus-lg"></i>
 		Create new version
             </router-link>
 	</div>
 
-	<list-group :list="versions" no-result-text="No DNA Versions" :loading="$versions.loading">
+	<list-group :list="versions" no-result-text="No DNA Versions" :loading="$versions.reading">
 	    <div class="row px-3">
 		<div class="col-2 fw-7">
 		    Version #

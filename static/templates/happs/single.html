@@ -1,6 +1,6 @@
 <page-view id="single-happ-page">
     <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="happ.title">
-	<a v-if="$happ.present" @click="fetchHapp()" class="ms-2 fs-4">
+	<a v-if="$happ.present" @click="refresh()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $happ.reading }"></i>
 	</a>
     </breadcrumbs>
@@ -105,7 +105,7 @@
 	<div class="d-flex mb-4">
 	    <h2 class="fs-4 flex-grow-1">
 		hApp Releases
-		<a v-if="$releases.present" @click="fetchHappReleases()" class="ms-2 fs-4">
+		<a v-if="$releases.present" @click="$openstate.read( releases_datapath )" class="ms-2 fs-4">
 		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $releases.reading }"></i>
 		</a>
 	    </h2>

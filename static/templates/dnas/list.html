@@ -2,8 +2,8 @@
     <page-header controls-col="7">
 	<template #default>
 	    <h1 class="fs-2">{{ title }}</h1>
-	    <a v-if="$dnas.loaded" @click="fetchDnas()" class="ms-2 fs-4">
-		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $dnas.loading }"></i>
+	    <a v-if="$dnas.present" @click="refresh()" class="ms-2 fs-4">
+		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $dnas.reading }"></i>
 	    </a>
 	</template>
 
@@ -40,7 +40,7 @@
 
     <hr>
 
-    <list-group :list="dnas" no-result-text="No DNAs" :loading="$dnas.loading">
+    <list-group :list="dnas" no-result-text="No DNAs" :loading="$dnas.reading">
 	<list-group-item v-for="dna in dnas">
 	    <div class="row align-items-center">
 		<div class="col d-flex align-items-center">

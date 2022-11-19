@@ -2,8 +2,8 @@
     <page-header controls-col="7">
 	<template #default>
 	    <h1 class="fs-2">{{ title }}</h1>
-	    <a v-if="$happs.loaded" @click="fetchHapps()" class="ms-2 fs-4">
-		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $happs.loading }"></i>
+	    <a v-if="$happs.present" @click="refresh()" class="ms-2 fs-4">
+		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $happs.reading }"></i>
 	    </a>
 	</template>
 
@@ -40,7 +40,7 @@
 
     <hr>
 
-    <list-group :list="happs" no-result-text="No hApps" :loading="$happs.loading">
+    <list-group :list="happs" no-result-text="No hApps" :loading="$happs.reading">
 	<list-group-item v-for="happ in happs">
 	    <div class="row align-items-center pt-3">
 		<div class="col d-flex align-items-center">

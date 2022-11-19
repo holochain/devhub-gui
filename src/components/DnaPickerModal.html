@@ -2,7 +2,7 @@
        :onclose="onclose"
        cancel-text="Finish" data-bs-backdrop="static">
 
-    <list-group :list="dnas" :loading="$dnas.loading"
+    <list-group :list="dnas" :loading="$dnas.reading"
 		no-result-text="No Dnas" class="mt-0">
 	<template v-for="dna in dnas" :key="dna.$id">
 	    <list-group-item class="py-3">

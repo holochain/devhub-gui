@@ -1,7 +1,6 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("dnas");
 
-const { AgentPubKey }			= holohash;
 const common				= require('./common.js');
 
 
@@ -162,20 +161,16 @@ module.exports = async function ( client ) {
 		    },
 		}),
 
-		deprecationModal () {
-		    return this.$refs["modal"].modal;
-		},
-		unpublishModal () {
-		    return this.$refs["unpublishModal"].modal;
-		},
-
 		focused_version_datapath () {
 		    return this.version ? `dna/version/${this.version.$id}` : this.$openstate.DEADEND;
 		},
 		...common.scopedPathComputed( c => c.focused_version_datapath, "focused_version" ),
 
-		deprecated () {
-		    return !!( this.dna && this.dna.deprecation );
+		deprecationModal () {
+		    return this.$refs["modal"].modal;
+		},
+		unpublishModal () {
+		    return this.$refs["unpublishModal"].modal;
 		},
 	    },
 	    "methods": {

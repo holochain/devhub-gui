@@ -1,7 +1,7 @@
 <page-view id="single-dna version-page">
     <breadcrumbs v-if="version && dna" :skip-base="true" :path-mapping="breadcrumb_mapping"
 		 :sub-1="dna.display_name || dna.name" :sub-3="'v' + version.version">
-	<a v-if="$version.present" @click="fetchVersion()" class="ms-2 fs-4">
+	<a v-if="$version.present" @click="refresh()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $version.reading }"></i>
 	</a>
     </breadcrumbs>

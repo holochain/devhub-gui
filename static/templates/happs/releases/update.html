@@ -6,7 +6,7 @@
 
     <display-error class="mt-5" :error="error"></display-error>
 
-    <form ref="form" v-if="release"
+    <form v-if="release"
 	  :class="{ 'was-validated': $release.failed }"
 	  class="flex-grow-1 d-flex flex-column">
 	<div class="mb-4">
@@ -89,17 +89,22 @@
 			    </input-feedback>
 			</placeholder>
 
-			<label class="form-label fw-6">Official GUI</label>
-			<div class="row">
-			    <div class="col-auto">
-				<identicon v-if="release$.official_gui"
-					   :seed="release$.official_gui"></identicon>
+			<div class="row mt-3">
+			    <div class="col">
+				<label class="form-label fw-6 flex-grow-1">Official GUI</label>
 			    </div>
 			    <div class="col text-end">
-				<a @click="guis_modal.show()" class="btn btn-primary">Select GUI Release</a>
+				<a @click="guis_modal.show()"
+				   class="btn btn-primary btn-sm">Select GUI Release</a>
 			    </div>
 			</div>
-
+			<gui-release-ref v-if="release$.official_gui"
+					 :id="release$.official_gui.toString()"></gui-release-ref>
+			<div v-else class="card">
+			    <div class="card-body text-center">
+				No GUI Selected
+			    </div>
+			</div>
 		    </div>
 		</div>
 	    </div>
@@ -122,14 +127,20 @@
 		    <div class="accordion-body text-start">
 			<p>{{ gui.description }}</p>
 			<loading :when="!$gui_releases( gui.$id ).present">
-			    <ul>
-				<li v-for="release in gui_releases( gui.$id )">
-				    <input type="radio" name="official_gui"
-					   v-model="release$.official_gui"
-					   :value="String(release.$id)">
-				    {{ release.version }}
-				</li>
-			    </ul>
+			    <div v-for="release in gui_releases( gui.$id )" :key="release.$id"
+				 class="mb-3">
+				<gui-release-ref :id="release.$id.toString()" class="cursor-pointer"
+						 @click="release$.official_gui = String(release$.official_gui) === String(release.$id) ? null : release.$id">
+				    <template #title>
+					<input class="form-check-input me-2"
+					       type="radio" name="official_gui"
+					       v-model="release$.official_gui"
+					       :value="release.$id">
+				    </template>
+
+				    <datetime :datetime="release.last_updated"></datetime>
+				</gui-release-ref>
+			    </div>
 			</loading>
 		    </div>
 		</div>

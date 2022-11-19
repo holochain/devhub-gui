@@ -16,7 +16,6 @@ module.exports = async function ( client ) {
 		    dna_id,
 		    "dna_datapath":		`dna/${dna_id}`,
 		    "dna_version_datapath":	`dna/version/new`,
-		    "dna_file":			null,
 		    "error":			null,
 		    "added_zomes":		[],
 		    "zome_search_text":		"",
@@ -82,7 +81,8 @@ module.exports = async function ( client ) {
 			const zome_ref			= zome_list[ index ];
 			return `zome/${zome_ref.zome}/versions/hdk/${this.version$.hdk_version}`;
 		    }
-			return this.$openstate.DEADEND;
+
+		    return this.$openstate.DEADEND;
 		},
 		...common.scopedPathComputed( c => c.altversions_path,		"alternative_versions", {
 		    "default": [],
@@ -211,7 +211,7 @@ module.exports = async function ( client ) {
 
 			const new_id		= this.version.$id;
 
-			this.$openstate.read(`dnas/${this.dna_id}/versions`);
+			this.$openstate.read(`dna/${this.dna_id}/versions`);
 			this.$openstate.purge( this.dna_version_datapath );
 
 			this.$router.push( `/dnas/${this.dna_id}/versions/${new_id}` );
@@ -230,6 +230,7 @@ module.exports = async function ( client ) {
 	    "data": function() {
 		const id		= this.getPathId("id");
 		const dna_id		= this.getPathId("dna");
+
 		return {
 		    id,
 		    dna_id,

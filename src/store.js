@@ -652,6 +652,9 @@ module.exports = async function ( client, app ) {
 		    "properties": changed,
 		});
 	    },
+	    async delete ({ id }) {
+		return await client.call("happs", "happ_library", "delete_happ_release", { id });
+	    },
 	    validation ( data, rejections ) {
 		if ( data.name === undefined )
 		    rejections.push(`Missing Name`);
@@ -669,6 +672,33 @@ module.exports = async function ( client, app ) {
 		    rejections.push(`Name cannot be empty`);
 	    },
 	},
+	"Bundle for hApp Release": {
+	    "path": "happ/release/:id/bundle",
+	    "readonly": true,
+	    async read ({ id }, opts ) {
+		return await client.call( "happs", "happ_library", "get_release_package", { id }, 300_000 );
+	    },
+	    adapter ( bytes ) {
+		return new Uint8Array( bytes );
+	    },
+	},
+	"Webhapp Bundle for hApp Release": {
+	    "path": "happ/release/:id/webhapp/:gui/bundle",
+	    "readonly": true,
+	    async read ({ id, gui }, opts ) {
+		const release		= await this.openstate.get(`happ/release/${id}`);
+		const happ		= await this.openstate.get(`happ/${release.for_happ}`);
+
+		return await client.call( "happs", "happ_library", "get_webhapp_package", {
+		    "name": happ.title,
+		    "happ_release_id": new EntryHash( id ),
+		    "gui_release_id": new EntryHash( gui ),
+		}, 300_000 );
+	    },
+	    adapter ( bytes ) {
+		return new Uint8Array( bytes );
+	    },
+	},
 	"Releases for hApp": {
 	    "path": "happ/:id/releases",
 	    "readonly": true,
@@ -677,10 +707,10 @@ module.exports = async function ( client, app ) {
 		    "for_happ": id,
 		});
 
-		// for ( let release of list ) {
-		//     const path		= `happ/release/${release.$id}`;
-		//     this.openstate.state[path]	= release;
-		// }
+		for ( let release of list ) {
+		    const path		= `happ/release/${release.$id}`;
+		    this.openstate.state[path]	= release;
+		}
 
 		return list;
 	    },
@@ -819,6 +849,25 @@ module.exports = async function ( client, app ) {
 	    "readonly": true,
 	    async read ({ id }) {
 		const versions		= await this.openstate.get(`dna/${id}/versions`);
+
+		return versions.reduce( reduceLatestVersion, null );
+	    },
+	},
+	"Versions for DNA with HDK Version": {
+	    "path": "dna/:id/versions/hdk/:hdk_version",
+	    "readonly": true,
+	    async read ({ id, hdk_version }) {
+		const versions		= (await this.openstate.get(`dna/${id}/versions`))
+		      .filter( dna_version => dna_version.hdk_version === hdk_version );
+
+		return versions;
+	    },
+	},
+	"Latest Version for DNA with HDK Version": {
+	    "path": "dna/:id/versions/hdk/:hdk_version/latest",
+	    "readonly": true,
+	    async read ({ id, hdk_version }) {
+		const versions		= await this.openstate.get(`dna/${id}/versions/hdk/${hdk_version}`);
 
 		return versions.reduce( reduceLatestVersion, null );
 	    },
@@ -1553,6 +1602,20 @@ module.exports = async function ( client, app ) {
 	    "readonly": true,
 	    async read () {
 		return await client.call("dnarepo", "dna_library", "get_hdk_versions");
+	    },
+	},
+	"DNAs by HDK Version": {
+	    "path": "hdk/:version/dnas",
+	    "readonly": true,
+	    async read ({ version }) {
+		const list		= await client.call("dnarepo", "dna_library", "get_dnas_with_an_hdk_version", version );
+
+		for ( let dna of list ) {
+		    const path		= `dna/${dna.$id}`;
+		    this.openstate.state[path]	= dna;
+		}
+
+		return list;
 	    },
 	},
 	"Zomes by HDK Version": {
