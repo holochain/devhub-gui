@@ -112,7 +112,7 @@
 
 					<label class="form-label fw-6">Description</label>
 					<input-feedback>
-					    <textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving" required></textarea>
+					    <textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving"></textarea>
 					</input-feedback>
 				    </template>
 				</div>
@@ -175,14 +175,6 @@
 					    </div>
 					    <div class="col text-end">
 						<div class="row g-2">
-						    <div class="col-12">
-							<span v-if="zome.saving"
-							      class="spinner-border spinner-border-sm me-3"></span>
-							<a @click="create_zome_version( zome, 0 )"
-							   title="Upload new Zome Version">
-							    <i class="bi-upload"></i>
-							</a>
-						    </div>
 						    <template v-if="!zome.selected_zome">
 							<div v-if="!$zome_versions(zome.hash).current || zome_versions(zome.hash).length > 0" class="col-12">
 							    <a class="btn btn-outline-secondary btn-sm position-relative"
@@ -215,6 +207,17 @@
 					</dl>
 				    </div>
 				</div>
+			    </div>
+
+			    <div class="d-flex justify-content-end mb-3">
+				<a @click="create_zome_version( zome, 0 )"
+				   class="btn btn-outline-primary"
+				   title="Upload new Zome Version">
+				    <span v-if="zome.saving"
+					  class="spinner-border spinner-border-sm me-3"></span>
+				    <i v-else class="bi-upload"></i>
+				    Create Zome Version
+				</a>
 			    </div>
 			</div>
 		    </div>
@@ -261,7 +264,7 @@
 
 					<label class="form-label fw-6">Description</label>
 					<input-feedback>
-					    <textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving" required></textarea>
+					    <textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving"></textarea>
 					</input-feedback>
 				    </template>
 				</div>
@@ -324,14 +327,6 @@
 					    </div>
 					    <div class="col text-end">
 						<div class="row g-2">
-						    <div class="col-12">
-							<span v-if="zome.saving"
-							      class="spinner-border spinner-border-sm me-3"></span>
-							<a @click="create_zome_version( zome, 1 )"
-							   title="Upload new Zome Version">
-							    <i class="bi-upload"></i>
-							</a>
-						    </div>
 						    <template v-if="!zome.selected_zome">
 							<div v-if="!$zome_versions(zome.hash).current || zome_versions(zome.hash).length > 0" class="col-12">
 							    <a class="btn btn-outline-secondary btn-sm position-relative"
@@ -365,6 +360,17 @@
 				    </div>
 				</div>
 			    </div>
+
+			    <div class="d-flex justify-content-end mb-3">
+				<a @click="create_zome_version( zome, 1 )"
+				   class="btn btn-outline-primary"
+				   title="Upload new Zome Version">
+				    <span v-if="zome.saving"
+					  class="spinner-border spinner-border-sm me-3"></span>
+				    <i v-else class="bi-upload"></i>
+				    Create Zome Version
+				</a>
+			    </div>
 			</div>
 		    </div>
 		</form>
@@ -375,11 +381,17 @@
 
 	<div class="row">
 	    <div class="col-6">
+		<div v-if="missingZomes()" class="alert alert-info" role="alert">
+		    <p class="m-0">Finish selecting or creating zomes to continue</p>
+		</div>
+
 		<div class="row">
 		    <div class="col-6">
 		    </div>
 		    <div class="col-6 text-end">
-			<a @click="zome_selection_confirmed = true" class="btn btn-outline-primary" :class="{ 'disabled': missingZomes() }">
+			<a @click="zome_selection_confirmed = true"
+			   class="btn btn-outline-primary"
+			   :class="{ 'disabled': missingZomes() }">
 			    Continue
 			    <i class="bi-chevron-right"></i>
 			</a>
@@ -389,7 +401,7 @@
 	</div>
     </div>
 
-    <form ref="form" :class="{ 'was-validated': validated }">
+    <form :class="{ 'was-validated': validated }">
 	<div v-if="step === 2">
 	    <div class="row mb-5">
 		<div class="col-6">
@@ -400,7 +412,7 @@
 			<input-feedback>
 			    <div class="input-group">
 				<span class="input-group-text">v</span>
-				<input type="text" v-model="input.version" class="form-control" required>
+				<input type="number" v-model="input.version" class="form-control" required>
 			    </div>
 			</input-feedback>
 

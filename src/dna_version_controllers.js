@@ -749,7 +749,7 @@ module.exports = async function ( client ) {
 			    zome_info.selected_zome	= await this.$client.call(
 				"dnarepo", "dna_library", "create_zome", {
 				    "name": zome_info.name,
-				    "description": zome_info.description,
+				    "description": zome_info.description || "",
 				    zome_type,
 				}
 			    );
@@ -789,7 +789,7 @@ module.exports = async function ( client ) {
 
 			log.debug("Create DNA version #%s: (%s zomes):", this.input.version, this.bundle.integrity.zomes.length + this.bundle.coordinator.zomes.length, this.input );
 			const input			= {
-			    "version": this.input.version,
+			    "version": String( this.input.version ),
 			    "ordering":	this.input.ordering,
 			    "hdk_version": this.input.hdk_version,
 			    "properties": this.input.properties,
