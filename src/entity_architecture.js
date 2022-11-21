@@ -26,6 +26,9 @@ module.exports = {
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
 
+	    if ( content.official_gui )
+		content.official_gui	= new EntryHash( content.official_gui );
+
 	    content.dnas.forEach( (dna_ref, i) => {
 		content.dnas[i].dna		= new EntryHash( dna_ref.dna );
 		content.dnas[i].version		= new EntryHash( dna_ref.version );
@@ -48,6 +51,14 @@ module.exports = {
 	    content.for_dna		= new EntryHash( content.for_dna );
 	    content.published_at	= new Date( content.published_at );
 	    content.last_updated	= new Date( content.last_updated );
+
+	    if ( content.integrity_zomes ) {
+		content.integrity_zomes.forEach( (zome_ref, i) => {
+		    content.integrity_zomes[i].zome	= new EntryHash( zome_ref.zome );
+		    content.integrity_zomes[i].version	= new EntryHash( zome_ref.version );
+		    content.integrity_zomes[i].resource	= new EntryHash( zome_ref.resource );
+		});
+	    }
 
 	    if ( content.zomes ) {
 		content.zomes.forEach( (zome_ref, i) => {
@@ -86,6 +97,30 @@ module.exports = {
 	    return content;
 	},
     },
+    // GUI
+    "gui": {
+	"*": function ( content ) {
+	    content.published_at	= new Date( content.published_at );
+	    content.last_updated	= new Date( content.last_updated );
+	    content.designer		= new AgentPubKey( content.designer );
+
+	    return content;
+	},
+    },
+    "gui_release": {
+	"*": function ( content ) {
+	    content.for_gui		= new EntryHash( content.for_gui );
+	    content.published_at	= new Date( content.published_at );
+	    content.last_updated	= new Date( content.last_updated );
+	    content.web_asset_id	= new EntryHash( content.web_asset_id );
+
+	    content.for_happ_releases.forEach( (happ_id, i) => {
+		content.for_happ_releases[i]	= new EntryHash( happ_id );
+	    });
+
+	    return content;
+	},
+    },
     // Reviews
     "review": {
 	"*": function ( content ) {
@@ -113,6 +148,17 @@ module.exports = {
 
 	    content.subject_ids.forEach( ([id, action], i) => {
 		content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
+	    });
+
+	    return content;
+	},
+    },
+    "reaction_summary": {
+	"*": function ( content ) {
+	    content.subject_id		= new EntryHash( content.subject_id );
+
+	    content.subject_history.forEach( (id, i) => {
+		content.subject_history[i]	= new ActionHash( id );
 	    });
 
 	    return content;

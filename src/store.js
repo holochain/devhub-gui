@@ -4,7 +4,11 @@ const log				= new Logger("store");
 const common				= require('./common.js');
 const $filters				= require('./filters.js');
 
+const OpenState				= require('openstate');
+
 const { HoloHash,
+	EntryHash,
+	ActionHash,
 	AgentPubKey }			= holohash;
 const { EntityArchitect }		= CruxPayloadParser;
 const { Entity }			= EntityArchitect;
@@ -114,8 +118,1548 @@ function fmt_client_args ( dna, zome, func, args ) {
 
 // Perhaps we want to completely ignore summary models and only car about full info models?
 
+function reduceLatestVersionKey ( key ) {
+    return ( acc, entity, i ) => {
+	if ( !acc )
+	    return entity;
+
+	if ( entity[ key ] > acc[ key ] )
+	    return entity;
+
+	if ( entity[ key ] === acc[ key ]
+	     && entity.published_at > acc.published_at )
+	    return entity;
+
+	return acc;
+    };
+}
+
+const stdLatestVersionReducer		= reduceLatestVersionKey( "version" );
+
+function reduceLatestVersion ( key ) {
+    if ( arguments.length === 1 )
+	return reduceLatestVersionKey( key );
+    else
+	return stdLatestVersionReducer( ...arguments );
+}
+
+
 
 module.exports = async function ( client, app ) {
+    const { reactive }			= Vue;
+
+    const openstate			= new OpenState.create({
+	reactive,
+	"globalDefaults": {
+	    adapter ( value ) {
+		if ( value instanceof Entity ) {
+		    if ( value.published_at )
+			value.published_at	= new Date( value.published_at );
+		    if ( value.last_updated )
+			value.last_updated	= new Date( value.last_updated );
+		}
+	    },
+	    toMutable ( value ) {
+		if ( value instanceof Entity ) {
+		    value		= value.toJSON().content;
+		    value.published_at	= value.published_at.toISOString();
+		    value.last_updated	= value.last_updated.toISOString();
+		}
+
+		return value;
+	    },
+	},
+    });
+
+    openstate.addHandlers({
+	"Agent": {
+	    "path": "agent/:id",
+	    "readonly": true,
+	    async read ({ id }) {
+		if ( id === "me" )
+		    return await client.call("dnarepo", "dna_library", "whoami");
+
+		throw new Error(`Read for any agent is not implemented yet`);
+	    },
+	    adapter ( content ) {
+		content.pubkey		= {
+		    "initial": new AgentPubKey( content.agent_initial_pubkey ),
+		    "current": new AgentPubKey( content.agent_latest_pubkey ),
+		};
+
+		delete content.agent_initial_pubkey;
+		delete content.agent_latest_pubkey;
+	    },
+	},
+	"GUIs for Agent": {
+	    "path": "agent/:id/guis",
+	    "readonly": true,
+	    async read ({ id }) {
+		let list;
+
+		if ( id === "me" )
+		    list		= await client.call("happs", "happ_library", "get_my_guis");
+		else
+		    list		= await client.call("happs", "happ_library", "get_guis", {
+			"agent": id,
+		    });
+
+		for ( let gui of list ) {
+		    const path		= `gui/${gui.$id}`;
+		    this.openstate.state[path]	= gui;
+		}
+
+		return list;
+	    },
+	},
+	"DNAs for Agent": {
+	    "path": "agent/:id/dnas",
+	    "readonly": true,
+	    async read ({ id }) {
+		let list;
+
+		if ( id === "me" )
+		    list		= await client.call("dnarepo", "dna_library", "get_my_dnas");
+		else
+		    list		= await client.call("dnarepo", "dna_library", "get_dnas", {
+			"agent": id,
+		    });
+
+		for ( let dna of list ) {
+		    const path		= `dna/${dna.$id}`;
+		    this.openstate.state[path]	= dna;
+		}
+
+		return list;
+	    },
+	},
+	"Zomes for Agent": {
+	    "path": "agent/:id/zomes",
+	    "readonly": true,
+	    async read ({ id }) {
+		let list;
+
+		if ( id === "me" )
+		    list		= await client.call("dnarepo", "dna_library", "get_my_zomes");
+		else
+		    list		= await client.call("dnarepo", "dna_library", "get_zomes", {
+			"agent": id,
+		    });
+
+		for ( let zome of list ) {
+		    const path		= `zome/${zome.$id}`;
+		    this.openstate.state[path]	= zome;
+		}
+
+		return list;
+	    },
+	},
+	"Reviews for Agent": {
+	    "path": "agent/:id/reviews",
+	    "readonly": true,
+	    async read ({ id }) {
+		let list;
+
+		if ( id === "me" )
+		    list		= await client.call("dnarepo", "reviews", "get_my_reviews");
+		else
+		    throw new Error(`Read for any agent's reviews is not implemented yet`);
+
+		for ( let review of list ) {
+		    const path		= `review/${review.$id}`;
+		    this.openstate.state[path]	= review;
+		}
+
+		return list.reduce( (acc, review) => {
+		    for ( let [addr, action] of review.subject_ids ) {
+			// There should not be more than 1 review per subject ID -- WRONG! subject IDs can be a zome which may have reviews for each version
+			// if ( acc[addr] !== undefined )
+			//     console.error("Multiple reviews for subject ID: %s", addr );
+
+			acc[addr]	= review;
+		    }
+		    return acc;
+		}, {});
+	    },
+	},
+	"Reactions for Agent": {
+	    "path": "agent/:id/reactions",
+	    "readonly": true,
+	    async read ({ id }) {
+		let list;
+
+		if ( id === "me" )
+		    list		= await client.call("dnarepo", "reviews", "get_my_reactions");
+		else
+		    throw new Error(`Read for any agent's reactions is not implemented yet`);
+
+		return list.reduce( (acc, reaction) => {
+		    this.openstate.state[`reaction/${reaction.$id}`]		= reaction;
+
+		    for ( let [addr, action] of reaction.subject_ids ) {
+			acc[ addr ]	= reaction;
+			this.openstate.state[`subject/${addr}/reaction`]	= reaction;
+		    }
+
+		    return acc;
+		}, {});
+	    },
+	},
+	"All GUIs": {
+	    "path": "guis",
+	    "readonly": true,
+	    async read () {
+		const list		= await client.call("happs", "happ_library", "get_all_guis");
+
+		for ( let gui of list ) {
+		    const path		= `gui/${gui.$id}`;
+		    this.openstate.state[path]	= gui;
+		}
+
+		return list;
+	    },
+	},
+	"GUI": {
+	    "path": "gui/:id",
+	    async read ({ id }) {
+		await common.delay( 1_000 );
+
+		return await client.call("happs", "happ_library", "get_gui", { id });
+	    },
+	    adapter ( entity ) {
+		entity.designer		= new AgentPubKey( entity.designer );
+	    },
+	    defaultMutable () {
+		return {
+		    "name": "",
+		    "description": "",
+		    "tags": [],
+		};
+	    },
+	    toMutable ({ name, description, holo_hosting_settings, tags, screenshots, metadata }) {
+		return {
+		    name,
+		    description,
+		    holo_hosting_settings,
+		    tags,
+		    screenshots,
+		    metadata,
+		};
+	    },
+	    async create ( input ) {
+		const gui		= await client.call("happs", "happ_library", "create_gui", input );
+
+		this.openstate.state[`gui/${gui.$id}`] = gui;
+
+		return gui;
+	    },
+	    async update ({ id }, changed, intent ) {
+		if ( intent === "deprecation" ) {
+		    return await client.call("happs", "happ_library", "deprecate_gui", {
+			"addr": this.state.$action,
+			"message": changed.deprecation,
+		    });
+		}
+
+		return await client.call("happs", "happ_library", "update_gui", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    "permissions": {
+		async writable ( gui ) {
+		    if ( gui.deprecation )
+			return false;
+
+		    const agent_info	= await this.get("agent/me");
+		    return common.hashesAreEqual( gui.designer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, intent ) {
+		const hr_names		= {
+		    "name": "GUI Name",
+		    "description": "GUI Description",
+		};
+
+		if ( intent === "deprecation" ) {
+		    console.log("Validate deprecation input", data );
+		    if ( data.deprecation === undefined )
+			rejections.push(`'Deprecation Reason' is required`);
+		    else if ( typeof data.deprecation !== "string")
+			rejections.push(`'Deprecation Reason' must be a string`);
+		    else if ( data.deprecation.trim() === "" )
+			rejections.push(`'Deprecation Reason' cannot be blank`);
+
+		    return;
+		}
+
+		["name", "description"].forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		["name"].forEach( key => {
+		    if ( common.isEmpty( data[key] ) )
+			rejections.push(`'${hr_names[key]}' cannot be blank`);
+		});
+	    },
+	},
+	"Latest Release for GUI": {
+	    "path": "gui/:id/releases/latest",
+	    "readonly": true,
+	    async read ({ id }) {
+		await this.read(`gui/${id}/releases`);
+	    },
+	},
+	"Releases for GUI": {
+	    "path": "gui/:id/releases",
+	    "readonly": true,
+	    async read ({ id }) {
+		const list		= await client.call("happs", "happ_library", "get_gui_releases", { "for_gui": id });
+
+		for ( let release of list ) {
+		    const path		= `gui/release/${release.$id}`;
+		    this.openstate.state[path]	= release;
+		}
+
+		const latest		= list.reduce( (acc, release, i) => {
+		    if ( acc === null )
+			return release;
+
+		    if ( release.published_at > acc.published_at )
+			return release;
+
+		    return acc;
+		}, null );
+
+		if ( list.length ) {
+		    if ( !latest )
+			log.warn("Failed to determing latest GUI release from list:", list );
+		    this.openstate.state[`gui/${id}/releases/latest`]	= latest;
+		}
+
+		return list;
+	    },
+	},
+	"GUI Release": {
+	    "path": "gui/release/:id",
+	    async read ({ id }) {
+		return await client.call("happs", "happ_library", "get_gui_release", { id });
+	    },
+	    adapter ( content ) {
+		content.for_gui			= new EntryHash( content.for_gui );
+		content.web_asset_id		= new EntryHash( content.web_asset_id );
+		content.changelog_html		= common.mdHTML( content.changelog );
+
+		content.for_happ_releases.forEach( (release_id, i) => {
+		    content.for_happ_releases[i] = new EntryHash( release_id );
+		});
+
+		if ( content.screenshots ) {
+		    content.screenshots.forEach( (screenshot_id, i) => {
+			content.screenshots[i]	= new EntryHash( screenshot_id );
+		    });
+		}
+	    },
+	    prepInput ( input ) {
+		if ( input.published_at )
+		    input.published_at		= (new Date( input.published_at )).getTime();
+		if ( input.last_updated )
+		    input.last_updated		= (new Date( input.last_updated )).getTime();
+	    },
+	    defaultMutable () {
+		return {
+		    "version": "",
+		    "changelog": "",
+		    "for_happ_releases": [],
+		};
+	    },
+	    async create ( input ) {
+		return await client.call("happs", "happ_library", "create_gui_release", input );
+	    },
+	    async update ({ id }, changed ) {
+		return await client.call("happs", "happ_library", "update_gui_release", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    async delete ({ id }) {
+		return await client.call("happs", "happ_library", "delete_gui_release", { id });
+	    },
+	    "permissions": {
+		async writable ( release ) {
+		    const agent_info	= await this.get("agent/me");
+		    const gui		= await this.get(`gui/${release.for_gui}`);
+
+		    return common.hashesAreEqual( gui.designer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections ) {
+		const hr_names		= {
+		    "version": "Version",
+		    "changelog": "Changelog",
+		    "for_gui": "For GUI",
+		    "for_happ_releases": "Compatible hApp Releases",
+		    "web_asset_id": "Web Asset Reference",
+		};
+		["version", "changelog", "for_gui", "for_happ_releases"].forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		["version"].forEach( key => {
+		    if ( common.isEmpty( data[key] ) )
+			rejections.push(`'${hr_names[key]}' cannot be blank`);
+		});
+
+		// if ( data.for_happ_releases.length === 0 )
+		//     rejections.push(`'${hr_names.for_happ_releases}' cannot be empty`);
+
+		if ( data.file_bytes ) {
+		    if ( !Array.isArray(data.file_bytes) )
+			rejections.push(`'File Bytes' must be an array; not type '${typeof data.file_bytes}'`);
+
+		    if ( data.file_bytes.length === 0 )
+			rejections.push(`'File Bytes' must contain bytes`);
+		}
+		else if ( !data.web_asset_id )
+		    rejections.push(`'Web Asset ID' or 'File Bytes' is required`);
+	    },
+	},
+	"All hApps": {
+	    "path": "happs",
+	    "readonly": true,
+	    async read () {
+		const list		= await client.call("happs", "happ_library", "get_all_happs");
+
+		// for ( let happ of list ) {
+		//     const path		= `happ/${happ.$id}`;
+		//     this.openstate.state[path]	= happ;
+		// }
+
+		return list;
+	    },
+	},
+	"hApp": {
+	    "path": "happ/:id",
+	    async read ({ id }) {
+		return await client.call("happs", "happ_library", "get_happ", { id });
+	    },
+	    defaultMutable () {
+		return {
+		    "title": "",
+		    "subtitle": "",
+		    "description": "",
+		    "tags": [],
+		};
+	    },
+	    async create ( input ) {
+		const happ		= await client.call("happs", "happ_library", "create_happ", input );
+
+		this.openstate.state[`happ/${happ.$id}`] = happ;
+
+		return happ;
+	    },
+	    toMutable ({ title, subtitle, description, tags }) {
+		return {
+		    title,
+		    subtitle,
+		    description,
+		    tags,
+		};
+	    },
+	    async update ({ id }, changed, intent ) {
+		if ( intent === "deprecation" ) {
+		    return await client.call("happs", "happ_library", "deprecate_happ", {
+			"addr": this.state.$action,
+			"message": changed.deprecation,
+		    });
+		}
+
+		console.log("Update:", id, changed );
+		return await client.call("happs", "happ_library", "update_happ", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    "permissions": {
+		async writable ( happ ) {
+		    if ( happ.deprecation )
+			return false;
+
+		    const agent_info	= await this.get("agent/me");
+		    return common.hashesAreEqual( happ.designer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, intent ) {
+		const hr_names		= {
+		    "title": "hApp Title",
+		    "subtitle": "hApp Subtitle",
+		    "display_name": "Display Name",
+		    "description": "hApp Description",
+		};
+
+		if ( intent === "deprecation" ) {
+		    console.log("Validate deprecation input", data );
+		    if ( data.deprecation === undefined )
+			rejections.push(`'Deprecation Reason' is required`);
+		    else if ( typeof data.deprecation !== "string")
+			rejections.push(`'Deprecation Reason' must be a string`);
+		    else if ( data.deprecation.trim() === "" )
+			rejections.push(`'Deprecation Reason' cannot be blank`);
+		    return;
+		}
+
+		["title", "subtitle", "description"].forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		["title", "subtitle"].forEach( key => {
+		    if ( common.isEmpty( data[key] ) )
+			rejections.push(`'${hr_names[key]}' cannot be blank`);
+		});
+	    },
+	},
+	"hApp Release": {
+	    "path": "happ/release/:id",
+	    async read ({ id }) {
+		return await client.call("happs", "happ_library", "get_happ_release", { id });
+	    },
+	    defaultMutable () {
+		return {
+		    "name": "",
+		    "description": "",
+		    "ordering": null,
+		    "manifest": {
+			"manifest_version": "1",
+			"roles": [],
+		    },
+		    "hdk_version": null,
+		    "dnas": [],
+		};
+	    },
+	    async create ( input ) {
+		const release		= await client.call("happs", "happ_library", "create_happ_release", input );
+
+		this.openstate.state[`happ/release/${release.$id}`] = release;
+
+		return release;
+	    },
+	    async update ({ id }, changed ) {
+		return await client.call("happs", "happ_library", "update_happ_release", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    async delete ({ id }) {
+		return await client.call("happs", "happ_library", "delete_happ_release", { id });
+	    },
+	    validation ( data, rejections ) {
+		if ( data.name === undefined )
+		    rejections.push(`Missing Name`);
+		if ( !data.for_happ )
+		    rejections.push(`Missing 'for_happ'`);
+		if ( !Array.isArray( data.dnas ) )
+		    rejections.push(`Missing 'DNA List'`);
+		else if ( data.dnas.length === 0 )
+		    rejections.push(`'DNA List' cannot be empty`);
+		// if ( !data.official_gui )
+		//     rejections.push(`Missing 'Official GUI'`);
+		if ( !data.hdk_version )
+		    rejections.push(`Missing 'HDK Version'`);
+		if ( data.name === "" )
+		    rejections.push(`Name cannot be empty`);
+	    },
+	},
+	"Bundle for hApp Release": {
+	    "path": "happ/release/:id/bundle",
+	    "readonly": true,
+	    async read ({ id }, opts ) {
+		return await client.call( "happs", "happ_library", "get_release_package", { id }, 300_000 );
+	    },
+	    adapter ( bytes ) {
+		return new Uint8Array( bytes );
+	    },
+	},
+	"Webhapp Bundle for hApp Release": {
+	    "path": "happ/release/:id/webhapp/:gui/bundle",
+	    "readonly": true,
+	    async read ({ id, gui }, opts ) {
+		const release		= await this.openstate.get(`happ/release/${id}`);
+		const happ		= await this.openstate.get(`happ/${release.for_happ}`);
+
+		return await client.call( "happs", "happ_library", "get_webhapp_package", {
+		    "name": happ.title,
+		    "happ_release_id": new EntryHash( id ),
+		    "gui_release_id": new EntryHash( gui ),
+		}, 300_000 );
+	    },
+	    adapter ( bytes ) {
+		return new Uint8Array( bytes );
+	    },
+	},
+	"Releases for hApp": {
+	    "path": "happ/:id/releases",
+	    "readonly": true,
+	    async read ({ id }) {
+		const list		= await client.call("happs", "happ_library", "get_happ_releases", {
+		    "for_happ": id,
+		});
+
+		for ( let release of list ) {
+		    const path		= `happ/release/${release.$id}`;
+		    this.openstate.state[path]	= release;
+		}
+
+		return list;
+	    },
+	},
+	"Latest Release for hApp": {
+	    "path": "happ/:id/releases/latest",
+	    "readonly": true,
+	    async read ({ id }) {
+		const releases		= await this.openstate.get(`happ/${id}/releases`);
+
+		return releases.reduce( (acc, release, i) => {
+		    if ( acc === null )
+			return release;
+
+		    if ( release.release > acc.release )
+			return release;
+
+		    return acc;
+		}, null );
+	    },
+	},
+	"All DNAs": {
+	    "path": "dnas",
+	    "readonly": true,
+	    async read () {
+		const list		= await client.call("dnarepo", "dna_library", "get_all_dnas");
+
+		for ( let dna of list ) {
+		    const path			= `dna/${dna.$id}`;
+		    this.openstate.state[path]	= dna;
+		}
+
+		return list;
+	    },
+	},
+	"DNA": {
+	    "path": "dna/:id",
+	    async read ({ id }) {
+		await common.delay( 1_000 );
+
+		return await client.call("dnarepo", "dna_library", "get_dna", { id });
+	    },
+	    adapter ( entity ) {
+		entity.developer	= new AgentPubKey( entity.developer );
+	    },
+	    defaultMutable () {
+		return {
+		    "name": "",
+		    "description": "",
+		    "tags": [],
+		};
+	    },
+	    async create ( input ) {
+		const dna		= await client.call("dnarepo", "dna_library", "create_dna", input );
+
+		this.openstate.state[`dna/${dna.$id}`] = dna;
+
+		return dna;
+	    },
+	    toMutable ({ name, display_name, description, tags }) {
+		return {
+		    name,
+		    display_name,
+		    description,
+		    tags,
+		};
+	    },
+	    async update ({ id }, changed, intent ) {
+		if ( intent === "deprecation" ) {
+		    return await client.call("dnarepo", "dna_library", "deprecate_dna", {
+			"addr": this.state.$action,
+			"message": changed.deprecation,
+		    });
+		}
+
+		console.log("Update:", id, changed );
+		return await client.call("dnarepo", "dna_library", "update_dna", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    "permissions": {
+		async writable ( dna ) {
+		    if ( dna.deprecation )
+			return false;
+
+		    const agent_info	= await this.get("agent/me");
+		    return common.hashesAreEqual( dna.developer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, intent ) {
+		const hr_names		= {
+		    "name": "DNA Name",
+		    "display_name": "Display Name",
+		    "description": "DNA Description",
+		};
+
+		if ( intent === "deprecation" ) {
+		    console.log("Validate deprecation input", data );
+		    if ( data.deprecation === undefined )
+			rejections.push(`'Deprecation Reason' is required`);
+		    else if ( typeof data.deprecation !== "string")
+			rejections.push(`'Deprecation Reason' must be a string`);
+		    else if ( data.deprecation.trim() === "" )
+			rejections.push(`'Deprecation Reason' cannot be blank`);
+		    return;
+		}
+
+		["name", "description"].forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		["name"].forEach( key => {
+		    if ( common.isEmpty( data[key] ) )
+			rejections.push(`'${hr_names[key]}' cannot be blank`);
+		});
+	    },
+	},
+	"Versions for DNA": {
+	    "path": "dna/:id/versions",
+	    "readonly": true,
+	    async read ({ id }) {
+		const list		= await client.call("dnarepo", "dna_library", "get_dna_versions", { "for_dna": id });
+
+		for ( let version of list ) {
+		    const path		= `dna/version/${version.$id}`;
+		    this.openstate.state[path]	= version;
+		}
+
+		return list;
+	    },
+	},
+	"Latest Version for DNA": {
+	    "path": "dna/:id/versions/latest",
+	    "readonly": true,
+	    async read ({ id }) {
+		const versions		= await this.openstate.get(`dna/${id}/versions`);
+
+		return versions.reduce( reduceLatestVersion, null );
+	    },
+	},
+	"Versions for DNA with HDK Version": {
+	    "path": "dna/:id/versions/hdk/:hdk_version",
+	    "readonly": true,
+	    async read ({ id, hdk_version }) {
+		const versions		= (await this.openstate.get(`dna/${id}/versions`))
+		      .filter( dna_version => dna_version.hdk_version === hdk_version );
+
+		return versions;
+	    },
+	},
+	"Latest Version for DNA with HDK Version": {
+	    "path": "dna/:id/versions/hdk/:hdk_version/latest",
+	    "readonly": true,
+	    async read ({ id, hdk_version }) {
+		const versions		= await this.openstate.get(`dna/${id}/versions/hdk/${hdk_version}`);
+
+		return versions.reduce( reduceLatestVersion, null );
+	    },
+	},
+	"DNA Version": {
+	    "path": "dna/version/:id",
+	    async read ({ id }) {
+		return await client.call("dnarepo", "dna_library", "get_dna_version", { id });
+	    },
+	    adapter ( content ) {
+		content.for_dna			= new EntryHash( content.for_dna );
+		content.changelog_html		= common.mdHTML( content.changelog );
+	    },
+	    defaultMutable () {
+		return {
+		    "version": null,
+		    "ordering": null,
+		    "changelog": null,
+		    "hdk_version": null,
+		    "integrity_zomes": [],
+		    "zomes": [],
+		    "metadata": {},
+		};
+	    },
+	    async create ( input ) {
+		return await client.call("dnarepo", "dna_library", "create_dna_version", input );
+	    },
+	    async update ({ id }, changed ) {
+		return await client.call("dnarepo", "dna_library", "update_dna_version", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    async delete ({ id }) {
+		return await client.call("dnarepo", "dna_library", "delete_dna_version", { id });
+	    },
+	    "permissions": {
+		async writable ( version ) {
+		    const agent_info	= await this.get("agent/me");
+		    const dna		= await this.get(`dna/${version.for_dna}`);
+
+		    return common.hashesAreEqual( dna.developer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, intent ) {
+		const hr_names		= {
+		    "for_dna": "For DNA",
+		    "version": "Version",
+		    "ordering": "Ordering",
+		    "changelog": "Changelog",
+		    "hdk_version": "HDK Version",
+		    "integrity_zomes": "Integrity Zomes",
+		    "zomes": "Coordinator Zomes",
+		};
+		const required_props	= ["for_dna", "version", "ordering", "hdk_version"];
+		const nonempty_props	= ["hdk_version"];
+
+		if ( intent === "create" ) {
+		    required_props.push("integrity_zomes");
+		    nonempty_props.push("integrity_zomes");
+		}
+
+		required_props.forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		nonempty_props.forEach( key => {
+		    if ( common.isEmpty( data[key] ) )
+			rejections.push(`'${hr_names[key]}' cannot be blank`);
+		});
+
+		if ( intent === "create" ) {
+		    data.zomes.forEach( zome_ref => {
+			if ( common.isEmpty( zome_ref.dependencies ) )
+			    rejections.push(`Dependencies for Zome '${zome_ref.name}' cannot be empty`);
+		    });
+		}
+	    },
+	},
+	"Bundle for DNA Version": {
+	    "path": "dna/version/:id/bundle",
+	    "readonly": true,
+	    async read ({ id }, opts ) {
+		return await client.call( "dnarepo", "dna_library", "get_dna_package", { id });
+	    },
+	    adapter ( bytes ) {
+		return new Uint8Array( bytes );
+	    },
+	},
+	"All Zomes": {
+	    "path": "zomes",
+	    "readonly": true,
+	    async read () {
+		const list		= await client.call("dnarepo", "dna_library", "get_all_zomes");
+
+		for ( let zome of list ) {
+		    this.openstate.state[ `zome/${zome.$id}` ]	= zome;
+		}
+
+		return list;
+	    },
+	},
+	"All Integrity Zomes": {
+	    "path": "zomes/integrity",
+	    "readonly": true,
+	    async read () {
+		return (await this.openstate.get("zomes"))
+		    .filter( zome => zome.zome_type === 0 );
+	    },
+	},
+	"All Coordinator Zomes": {
+	    "path": "zomes/coordinator",
+	    "readonly": true,
+	    async read () {
+		return (await this.openstate.get("zomes"))
+		    .filter( zome => zome.zome_type === 1 );
+	    },
+	},
+	"Zome": {
+	    "path": "zome/:id",
+	    async read ({ id }) {
+		await common.delay( 1_000 );
+
+		return await client.call("dnarepo", "dna_library", "get_zome", { id });
+	    },
+	    adapter ( entity ) {
+		entity.developer	= new AgentPubKey( entity.developer );
+	    },
+	    defaultMutable () {
+		return {
+		    "name": "",
+		    "description": "",
+		    "zome_type": null,
+		    "tags": [],
+		};
+	    },
+	    toMutable ({ name, display_name, description, zome_type, tags }) {
+		return {
+		    name,
+		    display_name,
+		    description,
+		    zome_type,
+		    tags,
+		};
+	    },
+	    async create ( input ) {
+		const zome		= await client.call("dnarepo", "dna_library", "create_zome", input );
+
+		this.openstate.state[`zome/${zome.$id}`] = zome;
+
+		return zome;
+	    },
+	    async update ({ id }, changed, intent ) {
+		if ( intent === "deprecation" ) {
+		    return await client.call("dnarepo", "dna_library", "deprecate_zome", {
+			"addr": this.state.$action,
+			"message": changed.deprecation,
+		    });
+		}
+
+		console.log("Update:", id, changed );
+		return await client.call("dnarepo", "dna_library", "update_zome", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    "permissions": {
+		async writable ( zome ) {
+		    if ( zome.deprecation )
+			return false;
+
+		    const agent_info	= await this.get("agent/me");
+		    return common.hashesAreEqual( zome.developer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, intent ) {
+		const hr_names		= {
+		    "name": "Zome Name",
+		    "display_name": "Display Name",
+		    "description": "Zome Description",
+		    "zome_type": "Zome Type",
+		};
+
+		if ( intent === "deprecation" ) {
+		    console.log("Validate deprecation input", data );
+		    if ( data.deprecation === undefined )
+			rejections.push(`'Deprecation Reason' is required`);
+		    else if ( typeof data.deprecation !== "string")
+			rejections.push(`'Deprecation Reason' must be a string`);
+		    else if ( data.deprecation.trim() === "" )
+			rejections.push(`'Deprecation Reason' cannot be blank`);
+		    return;
+		}
+
+		["name", "description", "zome_type"].forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		["name"].forEach( key => {
+		    if ( common.isEmpty( data[key] ) )
+			rejections.push(`'${hr_names[key]}' cannot be blank`);
+		});
+	    },
+	},
+	"Latest Version for Zome": {
+	    "path": "zome/:id/versions/latest",
+	    "readonly": true,
+	    async read ({ id }) {
+		const versions		= await this.openstate.get(`zome/${id}/versions`);
+
+		return versions.reduce( reduceLatestVersion, null );
+	    },
+	},
+	"Versions for Zome with HDK Version": {
+	    "path": "zome/:id/versions/hdk/:hdk_version",
+	    "readonly": true,
+	    async read ({ id, hdk_version }) {
+		const versions		= (await this.openstate.get(`zome/${id}/versions`))
+		      .filter( zome_version => zome_version.hdk_version === hdk_version );
+
+		return versions;
+	    },
+	},
+	"Latest Version for Zome with HDK Version": {
+	    "path": "zome/:id/versions/hdk/:hdk_version/latest",
+	    "readonly": true,
+	    async read ({ id, hdk_version }) {
+		const versions		= await this.openstate.get(`zome/${id}/versions/hdk/${hdk_version}`);
+
+		return versions.reduce( reduceLatestVersion, null );
+	    },
+	},
+	"Zome Version": {
+	    "path": "zome/version/:id",
+	    async read ({ id }) {
+		return await client.call("dnarepo", "dna_library", "get_zome_version", { id });
+	    },
+	    adapter ( content ) {
+		content.for_zome		= new EntryHash( content.for_zome );
+		content.mere_memory_addr	= new EntryHash( content.mere_memory_addr );
+		content.changelog_html		= common.mdHTML( content.changelog );
+
+		if ( content.review_summary )
+		    content.review_summary	= new EntryHash( content.review_summary );
+	    },
+	    defaultMutable () {
+		return {
+		    "version": null,
+		    "ordering": null,
+		    "changelog": null,
+		    "zome_bytes": null,
+		    "hdk_version": null,
+		    "source_code_commit_url": null,
+		    "metadata": {},
+		};
+	    },
+	    async create ( input ) {
+		return await client.call("dnarepo", "dna_library", "create_zome_version", input );
+	    },
+	    async update ({ id }, changed ) {
+		return await client.call("dnarepo", "dna_library", "update_zome_version", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    async delete ({ id }) {
+		return await client.call("dnarepo", "dna_library", "delete_zome_version", { id });
+	    },
+	    "permissions": {
+		async writable ( version ) {
+		    const agent_info	= await this.get("agent/me");
+		    const zome		= await this.get(`zome/${version.for_zome}`);
+
+		    return common.hashesAreEqual( zome.developer, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, intent ) {
+		const hr_names		= {
+		    "for_zome": "For Zome",
+		    "version": "Version",
+		    "ordering": "Ordering",
+		    "changelog": "Changelog",
+		    "hdk_version": "HDK Version",
+		    "zome_bytes": "Zome Bytes",
+		};
+		const required_props	= ["for_zome", "version", "ordering", "hdk_version"];
+
+		if ( intent === "create" )
+		    required_props.push("zome_bytes");
+
+		required_props.forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		if ( data.zome_bytes && data.zome_bytes.length === 0 )
+		    rejections.push(`Byte length is 0`);
+	    },
+	},
+	"Versions for Zome": {
+	    "path": "zome/:id/versions",
+	    "readonly": true,
+	    async read ({ id }) {
+		const list		= await client.call("dnarepo", "dna_library", "get_zome_versions", { "for_zome": id });
+
+		for ( let version of list ) {
+		    const path		= `zome/version/${version.$id}`;
+		    this.openstate.state[path]	= version;
+		}
+
+		return list;
+	    },
+	},
+	"WASM for Zome Version": {
+	    "path": "zome/version/:id/wasm",
+	    "readonly": true,
+	    async read ({ id }, opts ) {
+		const version		= await this.openstate.get(`zome/version/${id}`);
+		return await this.openstate.get(`dnarepo/mere_memory/${version.mere_memory_addr}`, opts );
+	    },
+	},
+	"Reviews for Zome Version": {
+	    "path": "zome/version/:id/reviews",
+	    "readonly": true,
+	    async read ({ id }) {
+		const list		= await client.call("dnarepo", "reviews", "get_reviews_for_subject", { "id": id });
+
+		for ( let review of list ) {
+		    const path		= `review/${review.$id}`;
+		    this.openstate.state[path]	= review;
+		}
+
+		return list;
+	    },
+	},
+	"Review Summary by Zome Version ID": {
+	    "path": "zome/version/:id/review/summary",
+	    async read ({ id }) {
+		const version		= await this.openstate.get(`zome/version/${id}`);
+
+		if ( !version.review_summary )
+		    throw new Error(`Zome Version ${id} has no review summary`);
+
+		return await this.openstate.get(`zome/version/review/summary/${version.review_summary}`);
+	    },
+	    "permissions": {
+		async writable ( summary ) {
+		    return summary.last_updated < common.pastTime( 24 );
+		},
+	    },
+	    async create () {
+		const summarypath	= `zome/version/review/summary/new`;
+		const version		= await this.openstate.get(`zome/version/${this.params.id}`);
+		const mutable		= this.openstate.mutable[ summarypath ];
+
+		mutable.subject_action	= version.$action;
+
+		return await this.openstate.write( summarypath );
+	    },
+	    async update ({ id }, changed ) {
+		const version		= await this.openstate.get(`zome/version/${id}`);
+		return await this.openstate.write(`zome/version/review/summary/${version.review_summary}`);
+	    },
+	},
+	"Zome Version Review Summary": {
+	    "path": "zome/version/review/summary/:id",
+	    async read ({ id }) {
+		return await client.call("dnarepo", "reviews", "get_review_summary", { id });
+	    },
+	    adapter ( summary ) {
+		const breakdown		= {};
+
+		for ( let review_id in summary.review_refs ) {
+		    // (EntryHash, ActionHash, AgentPubKey, u64, BTreeMap<String,u8>, Option<(ActionHash, u64, BTreeMap<u64,u64>)>)
+		    const [
+			_,
+			latest_action,
+			author,
+			action_count,
+			ratings,
+			reaction_ref,
+		    ]			= summary.review_refs[ review_id ];
+
+		    let weight		= 1;
+
+		    if ( reaction_ref ) {
+			const [
+			    reaction_summary_id,
+			    reaction_count,
+			    reactions,
+			]		= reaction_ref;
+
+			const likes	= ( reactions[1] || 0 ) + 1;
+			const dislikes	= ( reactions[2] || 0 ) + 1;
+			weight	       += ( likes / dislikes ) * .2;
+		    }
+
+		    for ( let rating_name in ratings ) {
+			if ( breakdown[rating_name] === undefined )
+			    breakdown[rating_name]	= [];
+
+			breakdown[rating_name].push( [ ratings[rating_name], weight ] );
+		    }
+		}
+
+		for ( let [key, ratings] of Object.entries(breakdown) ) {
+		    let [ weighted_sum, weight_total ]	= ratings.reduce( (acc, [value, weight]) => {
+			acc[0] += value * weight;
+			acc[1] += weight;
+
+			return acc;
+		    }, [0, 0] );
+
+		    breakdown[key]	= weighted_sum / weight_total;
+		}
+
+		const all_ratings	= Object.values( breakdown );
+		const average		= all_ratings.reduce( (acc, value) => acc + value, 0 ) / all_ratings.length;
+
+		log.info("Aggregated summary:", average, breakdown );
+		summary.average		= average;
+		summary.breakdown	= breakdown;
+	    },
+	    "permissions": {
+		async writable ( summary ) {
+		    return summary.last_updated < common.pastTime( 24 );
+		},
+	    },
+	    defaultMutable () {
+		return {
+		    "subject_action": null,
+		};
+	    },
+	    async create ( input ) {
+		const version		= await client.call("dnarepo", "dna_library", "create_zome_version_review_summary", {
+		    "subject_action": input.subject_action,
+		    "addr": input.subject_action,
+		});
+
+		this.openstate.state[`zome/version/${version.$id}`] = version;
+
+		return await this.openstate.read(`zome/version/review/summary/${version.review_summary}`);
+	    },
+	    async update ({ id }, changed ) {
+		if ( this.state.last_updated > common.pastTime( 24 ) )
+		    throw new Error(`Not updating review summary because it was updated within the last 24 hours: ${$filters.time(this.state.last_updated)}`);
+
+		return await client.call("dnarepo", "reviews", "update_review_summary", {
+		    id,
+		});
+	    },
+	    validation ( data, rejections, type ) {
+		if ( type === "create" && !data.subject_action )
+		    rejections.push("'Subject Action' is required");
+	    },
+	},
+	"Review": {
+	    "path": "review/:id",
+	    async read ({ id }) {
+		return await client.call("dnarepo", "reviews", "get_review", { id });
+	    },
+	    adapter ( content ) {
+		content.author			= new AgentPubKey( content.author );
+
+		if ( content.reaction_summary )
+		    content.reaction_summary	= new EntryHash( content.reaction_summary );
+
+		content.subject_ids.forEach( ([id, action], i) => {
+		    content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
+		});
+	    },
+	    defaultMutable () {
+		return {
+		    "subject_ids": [],
+		    "message": "",
+		    "ratings": {},
+		};
+	    },
+	    toMutable ( entity ) {
+		return {
+		    "message": entity.message,
+		    "ratings": entity.ratings,
+		};
+	    },
+	    async create ( input ) {
+		const review			= await client.call("dnarepo", "reviews", "create_review", input );
+
+		this.openstate.state[`review/${review.$id}`] = review;
+
+		return review;
+	    },
+	    async update ({ id }, changed ) {
+		return await client.call("dnarepo", "reviews", "update_review", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    "permissions": {
+		async writable ( review ) {
+		    const agent_info	= await this.get("agent/me");
+
+		    return common.hashesAreEqual( review.author, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, type ) {
+		const hr_names		= {
+		    "message": "Message",
+		    "subject_ids": "Subject IDs",
+		};
+
+		if ( type === "create" ) {
+		    ["subject_ids"].forEach( key => {
+			if ( [null, undefined].includes( data[key] ) )
+			    rejections.push(`'${hr_names[key]}' is required`);
+		    });
+
+		    if ( !Array.isArray( data.subject_ids ) )
+			rejections.push("'subject_ids' must be a list of ID/Action pairs");
+		}
+
+		["message"].forEach( key => {
+		    if ( [null, undefined].includes( data[key] ) )
+			rejections.push(`'${hr_names[key]}' is required`);
+		});
+
+		if ( Object.keys(data.ratings).length === 0 )
+		    rejections.push(`There must be at least 1 rating`);
+	    },
+	},
+	"Reaction": {
+	    "path": "reaction/:id",
+	    async read ({ id }) {
+		return await client.call("dnarepo", "reviews", "get_reaction", { id });
+	    },
+	    async create ( input ) {
+		const reaction			= await client.call("dnarepo", "reviews", "create_reaction", input );
+
+		this.openstate.state[`reaction/${reaction.$id}`] = reaction;
+
+		return reaction;
+	    },
+	    async update ({ id }, changed ) {
+		return await client.call("dnarepo", "reviews", "update_reaction", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+	    },
+	    "permissions": {
+		async writable ( reaction ) {
+		    const agent_info	= await this.get("agent/me");
+
+		    return common.hashesAreEqual( reaction.author, agent_info.pubkey.initial );
+		},
+	    },
+	    validation ( data, rejections, type ) {
+	    },
+	},
+	"Subject Reaction": {
+	    "path": "subject/:addr/reaction",
+	    async read ({ addr }) {
+		const my_reactions	= await this.$openstate.get(`agent/me/reactions`);
+		return my_reactions[ addr ];
+	    },
+	    defaultMutable () {
+		return {
+		    "subject_ids": [],
+		    "reaction_type": null,
+		};
+	    },
+	    async create ( input ) {
+		const reaction		= await client.call("dnarepo", "reviews", "create_reaction", input );
+
+		this.openstate.state[`reaction/${reaction.$id}`] = reaction;
+
+		return reaction;
+	    },
+	    async update ( _, changed ) {
+		const reaction		= await client.call("dnarepo", "reviews", "update_reaction", {
+		    "addr": this.state.$action,
+		    "properties": changed,
+		});
+
+		this.openstate.state[`reaction/${reaction.$id}`] = reaction;
+
+		return reaction;
+	    },
+	    async delete () {
+		const result		= await client.call("dnarepo", "reviews", "delete_reaction", {
+		    "addr": this.state.$action,
+		});
+
+		delete this.openstate.purge( `reaction/${this.state.$action}` );
+
+		return result;
+	    },
+	    validation ( data, rejections ) {
+		if ( data.subject_ids.length === 0 )
+		    rejections.push("Requires at least 1 subject reference");
+		if ( !data.reaction_type )
+		    rejections.push("'Reaction Type' is required");
+	    },
+	},
+	"Reaction Summary": {
+	    "path": "reaction/summary/:id",
+	    async read ({ id }) {
+		const summary		= await client.call("dnarepo", "reviews", "get_reaction_summary", { id });
+
+		this.openstate.state[`subject/${summary.subject_id}/reaction/summary`] = summary;
+
+		return summary;
+	    },
+	},
+	"Subject Reaction Summary": {
+	    "path": "subject/:addr/reaction/summary",
+	    async read ({ addr }) {
+		throw new Error(`Reaction Summaries cannot be read here; try 'reaction/summary/:id'`);
+	    },
+	    defaultMutable () {
+		return {
+		    "subject_action": null,
+		};
+	    },
+	    async create ( input ) {
+		const summary		= await client.call("dnarepo", "reviews", "create_review_reaction_summary", {
+		    "subject_action": input.subject_action,
+		    "addr": input.subject_action,
+		});
+
+		this.openstate.state[`reaction/summary/${summary.$id}`] = summary;
+
+		return summary;
+	    },
+	    async update ( _, changed ) {
+		if ( this.state.last_updated > common.pastTime( 24 ) )
+		    throw new Error(`Not updating reaction summary because it was updated within the last 24 hours: ${$filters.time(this.state.last_updated)}`);
+
+		const summary		= await client.call("dnarepo", "reviews", "update_reaction_summary", {
+		    "id": this.state.$id,
+		});
+
+		this.openstate.state[`reaction/summary/${summary.$id}`] = summary;
+
+		return summary;
+	    },
+	    validation ( data, rejections, type ) {
+		if ( type === "create" && !data.subject_action )
+		    rejections.push("'Subject Action' is required");
+	    },
+	},
+	"Web Asset": {
+	    "path": "webasset/:id",
+	    async read ({ id }) {
+		return await client.call("web_assets", "web_assets", "get_file", { id });
+	    },
+	    adapter ( entity ) {
+		entity.author		= new AgentPubKey( entity.author );
+		entity.mere_memory_addr	= new EntryHash( entity.mere_memory_addr );
+	    },
+	    async create ( input ) {
+		const webasset		= await client.call("web_assets", "web_assets", "create_file", input );
+
+		this.openstate.state[`webasset/${webasset.$id}`] = webasset;
+
+		return webasset;
+	    },
+	    async update () {
+		throw new Error(`Web assets cannot be updated`);
+	    },
+	    validation ( data, rejections ) {
+		if ( data.file_bytes === undefined )
+		    rejections.push(`Missing bytes`);
+		else if ( data.file_bytes.length === 0 )
+		    rejections.push(`Byte length is 0`);
+	    },
+	},
+	"DNA's Mere Memory": {
+	    "path": ":dna/mere_memory/:addr",
+	    async read ({ dna, addr }) {
+		const bytes		= await client.call( dna, "mere_memory", "retrieve_bytes", new EntryHash( addr ) );
+		return new Uint8Array( bytes );
+	    },
+	    adapter ( bytes ) {
+		return new Uint8Array( bytes );
+	    },
+	    async create ( input ) {
+		const memory		= await client.call("web_assets", "mere_memory", "save_bytes", input );
+
+		this.openstate.state[`webasset/${webasset.$id}`] = webasset;
+
+		return webasset;
+	    },
+	    async update () {
+		throw new Error(`Mere Memory records cannot be updated`);
+	    },
+	    validation ( data, rejections ) {
+		if ( !data )
+		    rejections.push(`Missing bytes`);
+		else if ( data.length === 0 )
+		    rejections.push(`Byte length is 0`);
+	    },
+	},
+	// "Web Asset Mere Memory": {
+	//     "path": "webasset/mere_memory/:addr",
+	//     async read ({ addr }) {
+	// 	const bytes		= await client.call("web_assets", "mere_memory", "retrieve_bytes", new EntryHash( addr ) );
+	// 	return new Uint8Array( bytes );
+	//     },
+	//     adapter ( bytes ) {
+	// 	return new Uint8Array( bytes );
+	//     },
+	//     async create ( input ) {
+	// 	const memory		= await client.call("web_assets", "mere_memory", "save_bytes", input );
+
+	// 	this.openstate.state[`webasset/${webasset.$id}`] = webasset;
+
+	// 	return webasset;
+	//     },
+	//     async update () {
+	// 	throw new Error(`Mere Memory records cannot be updated`);
+	//     },
+	//     validation ( data, rejections ) {
+	// 	if ( !data )
+	// 	    rejections.push(`Missing bytes`);
+	// 	else if ( data.length === 0 )
+	// 	    rejections.push(`Byte length is 0`);
+	//     },
+	// },
+	"Known HDK Versions in 'dnarepo'": {
+	    "path": "dnarepo/hdk/versions",
+	    "readonly": true,
+	    async read () {
+		return await client.call("dnarepo", "dna_library", "get_hdk_versions");
+	    },
+	},
+	"DNAs by HDK Version": {
+	    "path": "hdk/:version/dnas",
+	    "readonly": true,
+	    async read ({ version }) {
+		const list		= await client.call("dnarepo", "dna_library", "get_dnas_with_an_hdk_version", version );
+
+		for ( let dna of list ) {
+		    const path		= `dna/${dna.$id}`;
+		    this.openstate.state[path]	= dna;
+		}
+
+		return list;
+	    },
+	},
+	"Zomes by HDK Version": {
+	    "path": "hdk/:version/zomes",
+	    "readonly": true,
+	    async read ({ version }) {
+		const list		= await client.call("dnarepo", "dna_library", "get_zomes_with_an_hdk_version", version );
+
+		for ( let zome of list ) {
+		    const path		= `zome/${zome.$id}`;
+		    this.openstate.state[path]	= zome;
+		}
+
+		return list;
+	    },
+	},
+	"Integrity Zomes by HDK Version": {
+	    "path": "hdk/:version/zomes/integrity",
+	    "readonly": true,
+	    async read ({ version }) {
+		return (await this.openstate.get(`hdk/${version}/zomes`))
+		    .filter( zome => zome.zome_type === 0 );
+	    },
+	},
+	"Coordinator Zomes by HDK Version": {
+	    "path": "hdk/:version/zomes/coordinator",
+	    "readonly": true,
+	    async read ({ version }) {
+		return (await this.openstate.get(`hdk/${version}/zomes`))
+		    .filter( zome => zome.zome_type === 1 );
+	    },
+	},
+	"URL Info": {
+	    "path": "url/info/:id",
+	    "readonly": true,
+	    async read ({ id }) {
+		return await common.http_info( id.replaceAll("|", "/") );
+	    },
+	},
+    });
+
+    window.openstate			= openstate;
+    app.config.globalProperties.$openstate	= openstate;
+
     return new Vuex.Store({
 	state () {
 	    return {
@@ -1569,14 +3113,14 @@ module.exports = async function ( client, app ) {
 		return wasm_bytes;
 	    },
 
-	    async fetchWebhappReleasePackage ({ dispatch, commit }, { name, id } ) {
-		const path		= dataTypePath.happReleasePackage( id + "-webhapp" );
+	    async fetchWebhappReleasePackage ({ dispatch, commit }, { name, happ_release_id, gui_release_id } ) {
+		const path		= dataTypePath.happReleasePackage( happ_release_id + "-webhapp" );
 
 		commit("signalLoading", path );
 
-		log.debug("Getting hApp package %s", String(id) );
+		log.debug("Getting hApp package %s", String(happ_release_id) );
 		const result			= await dispatch("callClient", [
-		    "happs", "happ_library", "get_webhapp_package", { name, id }, 300_000
+		    "happs", "happ_library", "get_webhapp_package", { name, happ_release_id, gui_release_id }, 300_000
 		]);
 
 		const wasm_bytes	= new Uint8Array( result );

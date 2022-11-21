@@ -1,0 +1,11 @@
+<div v-if="$rejections.length" class="alert alert-danger d-flex align-items-center" role="alert">
+    <i class="bi-exclamation-triangle-fill me-3"></i>
+    <div>
+	<strong>Invalid Content</strong>
+	<br>
+	<p class="m-0"><em>Please correct the following issues</em></p>
+	<ul>
+	    <li v-for="message in $rejections">{{ message }}</li>
+	</ul>
+    </div>
+</div>

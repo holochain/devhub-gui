@@ -4,86 +4,92 @@
     <hr>
 
     <div class="row">
-	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
-	    <template v-if="zome">
-		<label class="form-label fw-6">Zome Name</label>
-		<input-feedback>
-		    <input type="text" @change="copy(zome, input, 'name')" v-model="zome.name"
-			   class="form-control" :disabled="$zome.updating" required>
-		</input-feedback>
-
-		<label class="form-label fw-6">Display Name</label>
-		<input-feedback>
-		    <input type="text" @change="copy(zome, input, 'display_name')" v-model="zome.display_name"
-			   class="form-control" :disabled="$zome.updating" required>
-		</input-feedback>
-
-		<label class="form-label fw-6">Zome Description</label>
-		<input-feedback>
-		    <textarea @change="copy(zome, input, 'description')" v-model="zome.description"
-			      class="form-control" rows="3" :disabled="$zome.updating" required></textarea>
-		</input-feedback>
-
-		<label class="form-label fw-6">Zome Type</label>
-		<div class="mb-3">
-		    <div class="form-check">
-			<input class="form-check-input" type="radio"
-			       name="zome_type" :value="0"
-			       @change="copy(zome, input, 'zome_type')" v-model.number="zome.zome_type">
-			<label class="form-check-label">
-			    Integrity Zome
-			</label>
-		    </div>
-		    <div class="form-check">
-			<input class="form-check-input" type="radio"
-			       name="zome_type" :value="1"
-			       @change="copy(zome, input, 'zome_type')" v-model.number="zome.zome_type">
-			<label class="form-check-label">
-			    Coordination Zome
-			</label>
-		    </div>
-		</div>
-
-		<div>
-		    <label class="form-label fw-6">Tags</label>
-		    <div class="form-input-search">
-			<input type="text" class="form-control no-validate" placeholder="search and add tags"
-			       v-model="tag_search_text" @keyup.keydown.enter.prevent="addTag( tag_search_text )">
-		    </div>
-
-		    <div class="p-3">
-			<div v-for="tag in tags" class="badge-group ms-2">
-			    <span class="badge bg-secondary">{{ tag }}</span>
-			    <span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
-				<i class="bi-x-lg"></i>
-			    </span>
-			</div>
-		    </div>
-		</div>
-
-		<display-error class="mt-5" :error="error"></display-error>
-
-		<div class="row mt-5">
-		    <div class="col-6"></div>
-		    <div class="col-3">
-			<router-link :to="'/zomes/' + id" class="btn btn-outline-primary w-100">Cancel</router-link>
-		    </div>
-		    <div class="col-3">
-			<a @click="update()" class="btn btn-primary w-100" :class="{ 'disabled': $zome.updating }">
-			    <span v-if="$zome.updating"
-				  class="spinner-border spinner-border-sm me-3"></span>
-			    Save
-			</a>
-		    </div>
-		</div>
-	    </template>
-	    <div v-else class="card">
+	<div v-if="$zome.reading" class="col-6">
+	    <div class="card">
 		<div class="card-body text-center p-4">
 		    <div class="spinner-border mt-1" role="status">
 			<span class="visually-hidden">Loading...</span>
 		    </div>
 		</div>
 	    </div>
+	</div>
+	<form v-else class="col-6" :class="{ 'was-validated': $zome.failed }">
+	    <label class="form-label fw-6">Zome Name</label>
+	    <input-feedback>
+		<input type="text" v-model="zome$.name"
+		       class="form-control" :disabled="$zome.writing" required>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Display Name</label>
+	    <input-feedback>
+		<input type="text" v-model="zome$.display_name"
+		       class="form-control" :disabled="$zome.writing" required>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Zome Description</label>
+	    <input-feedback>
+		<textarea v-model="zome$.description"
+			  class="form-control" rows="3" :disabled="$zome.writing" required></textarea>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Zome Type</label>
+	    <div class="mb-3">
+		<div class="form-check">
+		    <input class="form-check-input" type="radio"
+			   name="zome_type" :value="0"
+			   v-model.number="zome$.zome_type">
+		    <label class="form-check-label">
+			Integrity Zome
+		    </label>
+		</div>
+		<div class="form-check">
+		    <input class="form-check-input" type="radio"
+			   name="zome_type" :value="1"
+			   v-model.number="zome$.zome_type">
+		    <label class="form-check-label">
+			Coordination Zome
+		    </label>
+		</div>
+	    </div>
+
+	    <div>
+		<label class="form-label fw-6">Tags</label>
+		<div class="form-input-search">
+		    <input type="text" class="form-control no-validate" placeholder="search and add tags"
+			   v-model="tag_search_text" @keyup.keydown.enter.prevent="addTag( tag_search_text )">
+		</div>
+
+		<div class="p-3">
+		    <div v-for="tag in zome$.tags" class="badge-group ms-2">
+			<span class="badge bg-secondary">{{ tag }}</span>
+			<span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
+			    <i class="bi-x-lg"></i>
+			</span>
+		    </div>
+		</div>
+	    </div>
+
+	    <div v-if="!$zome.changed" class="alert alert-info d-flex align-items-center" role="alert">
+		<p class="m-0">Change something to activate the save button</p>
+	    </div>
+	    <input-rejections v-else-if="$zome.failed" :rejections="zome_rejections"></input-rejections>
+
+	    <div class="row mt-5">
+		<div class="col-6"></div>
+		<div class="col-3">
+		    <router-link :to="'/zomes/' + id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		</div>
+		<div class="col-3">
+		    <a @click="write()" class="btn btn-primary w-100"
+		       :class="{ 'disabled': $zome.writing || ($zome.failed && $zome.invalid) || !$zome.changed }">
+			<span v-if="$zome.writing"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Save
+		    </a>
+		</div>
+	    </div>
+
+	    <display-error class="mt-5" :error="error"></display-error>
 	</form>
     </div>
 

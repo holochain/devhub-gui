@@ -7,8 +7,10 @@ const { EntityArchitect,
 const { TimeoutError }			= HolochainClient;
 const { AgentPubKey }			= holohash;
 
+Error.stackTraceLimit = Infinity;
 
-log.level.trace && crux.log.setLevel("trace");
+
+// log.level.trace && crux.log.setLevel("trace");
 
 const client_init			= require('./client.js');
 const store_init			= require('./store.js');
@@ -21,6 +23,8 @@ const dnas_init				= require('./dna_controllers.js');
 const dna_versions_init			= require('./dna_version_controllers.js');
 const happs_init			= require('./happ_controllers.js');
 const happ_releases_init		= require('./happ_release_controllers.js');
+const guis_init				= require('./gui_controllers.js');
+const gui_releases_init			= require('./gui_release_controllers.js');
 
 
 const HISTORY_PUSH_STATE		= window.localStorage.getItem("PUSH_STATE");
@@ -75,6 +79,8 @@ window.PersistentStorage		= {
     const dna_version_controllers	= await dna_versions_init( client );
     const happ_controllers		= await happs_init( client );
     const happ_release_controllers	= await happ_releases_init( client );
+    const gui_controllers		= await guis_init( client );
+    const gui_release_controllers	= await gui_releases_init( client );
 
     const route_components		= [
 	[ "/",					happ_controllers.list,			"Dashboard" ],
@@ -87,6 +93,14 @@ window.PersistentStorage		= {
 	[ "/happs/:happ/releases/new",		happ_release_controllers.create,	"Add hApp Release" ],
 	[ "/happs/:happ/releases/:id",		happ_release_controllers.single,	"hApp Release Info" ],
 	[ "/happs/:happ/releases/:id/update",	happ_release_controllers.update,	"Edit Release" ],
+
+	[ "/guis",				gui_controllers.list,			"All GUIs" ],
+	[ "/guis/new",				gui_controllers.create,			"Add GUI" ],
+	[ "/guis/:id",				gui_controllers.single,			"GUI Info" ],
+	[ "/guis/:id/update",			gui_controllers.update,			"Edit GUI" ],
+	[ "/guis/:gui/releases/new",		gui_release_controllers.create,		"Add GUI Release" ],
+	[ "/guis/:gui/releases/:id",		gui_release_controllers.single,		"GUI Release Info" ],
+	[ "/guis/:gui/releases/:id/update",	gui_release_controllers.update,		"Edit Release" ],
 
 	[ "/dnas",				dna_controllers.list,			"DNAs" ],
 	[ "/dnas/new",				dna_controllers.create,			"Add DNA" ],
@@ -144,32 +158,7 @@ window.PersistentStorage		= {
 	    };
 	},
 	"computed": {
-	    agent () {
-		return this.$store.getters.agent;
-	    },
-	    $agent () {
-		return this.$store.getters.$agent;
-	    },
-
-	    reviews () {
-		return this.$store.getters.reviews;
-	    },
-	    reviewsMap () {
-		return this.$store.getters.reviews_by_subject;
-	    },
-	    $reviews () {
-		return this.$store.getters.$my_reviews;
-	    },
-
-	    reactions () {
-		return this.$store.getters.reactions;
-	    },
-	    reactionsMap () {
-		return this.$store.getters.reactions_by_subject;
-	    },
-	    $reactions () {
-		return this.$store.getters.$my_reactions;
-	    },
+	    ...common.scopedPathComputed( "agent/me", "agent" ),
 	},
 	async created () {
 	    this.$router.afterEach( (to, from, failure) => {
@@ -185,12 +174,12 @@ window.PersistentStorage		= {
 	    });
 
 	    try {
-		let agent_info		= await this.$store.dispatch("fetchAgent");
+		const agent_info		= await this.$openstate.get("agent/me");
 
 		this.agent_id		= agent_info.pubkey.current;
 
-		await this.$store.dispatch("fetchMyReviews");
-		await this.$store.dispatch("fetchMyReactions");
+		this.$openstate.get("agent/me/reviews");
+		this.$openstate.get("agent/me/reactions");
 	    } catch (err) {
 		if ( err instanceof TimeoutError )
 		    return this.showStatusView( 408, {
@@ -217,7 +206,7 @@ window.PersistentStorage		= {
 	},
     });
 
-    const store				= await store_init( client );
+    const store				= await store_init( client, app );
     window.store			= store;
 
     app.mixin({
@@ -230,10 +219,34 @@ window.PersistentStorage		= {
 		console,
 	    };
 	},
+	"computed": {
+	    myReviewMap () {
+		return this.$openstate.state["agent/me/reviews"];
+	    },
+	    $myReviewMap () {
+		return this.$openstate.metastate["agent/me/reviews"];
+	    },
+
+	    myReactionMap () {
+		return this.$openstate.state["agent/me/reactions"];
+	    },
+	    $myReactionMap () {
+		return this.$openstate.metastate["agent/me/reactions"];
+	    },
+	},
 	"methods": {
 	    $debug ( value ) {
 		log.trace("JSON debug for value:", value );
 		return json.debug( value );
+	    },
+
+	    async mustGet ( callback ) {
+		try {
+		    await callback();
+		} catch (err) {
+		    this.catchStatusCodes([ 404, 500 ], err );
+		    log.error("Failed to get required resource(s): %s", err.message, err );
+		}
 	    },
 
 	    async catchStatusCodes ( status_codes, err ) {
@@ -298,11 +311,11 @@ window.PersistentStorage		= {
 	    },
 
 	    hasReactionForSubject ( id, reaction_type ) {
-		if ( !(this.$root.$reactions.current && this.$root.reactionsMap) )
+		if ( !this.$myReactionMap.present )
 		    return false;
 
 		// console.log("Checking for %s in reaction map:", id, this.$root.reactionsMap );
-		const reaction		= this.$root.reactionsMap[ id ];
+		const reaction		= this.myReactionMap[ id ];
 
 		if ( !reaction )
 		    return false;
@@ -317,11 +330,11 @@ window.PersistentStorage		= {
 	    },
 
 	    hasReviewForSubject ( id ) {
-		if ( !(this.$root.$reviews.current && this.$root.reviewsMap) )
+		if ( !this.$myReviewMap.present )
 		    return false;
 
 		// console.log("Checking for %s in review map:", id, this.$root.reviewsMap );
-		const review		= this.$root.reviewsMap[ id ];
+		const review		= this.myReviewMap[ id ];
 
 		if ( !review )
 		    return false;
@@ -347,12 +360,15 @@ window.PersistentStorage		= {
     };
 
     const components			= [
+	"Avatar",
 	"Breadcrumbs",
 	"Datetime",
 	"DeprecationAlert",
 	"DisplayError",
 	"HoloHash",
+	"Identicon",
 	"InputFeedback",
+	"InputRejections",
 	"LinkPreview",
 	"ListGroup",
 	"ListGroupItem",
@@ -370,6 +386,11 @@ window.PersistentStorage		= {
 	"DnaVersionCard",
 	"HappCard",
 	"HappReleaseCard",
+
+	// "GuiRef",
+	"GuiReleaseRef",
+
+	"DnaPickerModal",
     ];
     await Promise.all(
 	components.map( async name => {

@@ -63,7 +63,7 @@ module.exports = async function () {
     });
 
     client.addProcessor("input", async function (input) {
-	let keys			= input ? ` ${Object.keys( input ).join(", ")} ` : "";
+	let keys			= input ? `{ ${Object.keys( input ).join(", ")} }` : "";
 	log.trace("Calling %s::%s->%s(%s)", this.dna, this.zome, this.func, keys );
 	return input;
     });

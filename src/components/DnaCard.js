@@ -6,7 +6,7 @@ module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": Uint8Array,
+		// "type": Uint8Array,
 		"required": true,
 	    },
 	    "link": {
@@ -79,10 +79,10 @@ module.exports = function ( element_local_name, component_name ) {
 		return "more version" + ( this.more_version_count > 1 ? "s" : "" );
 	    },
 	    recent_versions () {
-		return this.versions.items( -5, -1 );
+		return this.versions.slice( -5, -1 );
 	    },
 	    latest_version () {
-		return this.versions.items( -1 )[0];
+		return this.versions.slice( -1 )[0];
 	    },
 	    child_expand_depth () {
 		return this.expandDepth - 1;

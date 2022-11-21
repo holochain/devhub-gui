@@ -125,7 +125,7 @@
 
 					    <label class="form-label fw-6">Description</label>
 					    <input-feedback>
-						<textarea v-model="role.description" class="form-control" rows="4" :disabled="role.saving" required></textarea>
+						<textarea v-model="role.description" class="form-control" rows="4" :disabled="role.saving"></textarea>
 					    </input-feedback>
 					</loading>
 				    </template>
@@ -157,7 +157,7 @@
 				    <input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
 				</dd>
 			    </dl>
-			    <div style="margin: 1rem 0 2.5rem 0;">
+			    <div style="margin: 1rem 0 1.5rem 0;">
 				<template v-if="role.selected_dna && versions_for_dna(role.selected_dna.$id).length">
 				    <div v-if="versions_for_dna(role.selected_dna.$id).length > 4"
 					 class="card entity-card entity-card-layered dna-card">
@@ -190,14 +190,6 @@
 						</div>
 						<div class="col text-end">
 						    <div class="row g-2">
-							<div class="col-12">
-							    <span v-if="role.saving"
-								  class="spinner-border spinner-border-sm me-3"></span>
-							    <a @click="create_dna_version( role )"
-							       title="Create new DNA Version">
-								<i class="bi-plus-lg"></i>
-							    </a>
-							</div>
 							<template v-if="!role.selected_dna">
 							    <div v-if="!$dna_versions(role.hash).current || dna_versions(role.hash).length > 0" class="col-12">
 								<a class="btn btn-outline-secondary btn-sm position-relative"
@@ -229,7 +221,7 @@
 						</dl>
 					    </div>
 
-					    <div v-if="role.file" style="margin: 1rem 0 2.5rem 0;">
+					    <div v-if="role.file" style="margin: 1rem 0 1.5rem 0;">
 						<h5>Integrity</h5>
 						<div v-for="zome in role.bundle.integrity.zomes" class="mb-3">
 						    <zome-version-card v-if="zome.selected_zome_version"
@@ -289,7 +281,7 @@
 
 									    <label class="form-label fw-6">Description</label>
 									    <input-feedback>
-										<textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving" required></textarea>
+										<textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving"></textarea>
 									    </input-feedback>
 									</template>
 								    </div>
@@ -351,18 +343,6 @@
 											</div>
 										    </div>
 										</div>
-										<div class="col text-end">
-										    <div class="row g-2">
-											<div class="col-12">
-											    <span v-if="zome.saving"
-												  class="spinner-border spinner-border-sm me-3"></span>
-											    <a @click="create_zome_version( zome, 0 )"
-											       title="Upload new Zome Version">
-												<i class="bi-upload"></i>
-											    </a>
-											</div>
-										    </div>
-										</div>
 									    </div>
 
 									    <dl class="row mb-0">
@@ -379,13 +359,21 @@
 									</div>
 								    </div>
 								</div>
-
-								<div class="text-end mb-3">
-								    <a class="btn btn-outline-secondary" @click="zome.create_zome = null">
-									Cancel
-								    </a>
-								</div>
 							    </div>
+							</div>
+
+							<div class="text-end mb-3">
+							    <a class="btn btn-outline-secondary"
+							       @click="zome.create_zome = null">
+								Cancel
+							    </a>
+							    <a @click="create_zome_version( zome, 0 )"
+							       class="btn btn-primary ms-3"
+							       title="Upload new Zome Version">
+								<span v-if="zome.saving"
+								      class="spinner-border spinner-border-sm me-3"></span>
+								Create Zome Version
+							    </a>
 							</div>
 						    </form>
 						</div>
@@ -449,7 +437,7 @@
 
 									    <label class="form-label fw-6">Description</label>
 									    <input-feedback>
-										<textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving" required></textarea>
+										<textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving"></textarea>
 									    </input-feedback>
 									</template>
 								    </div>
@@ -511,18 +499,6 @@
 											</div>
 										    </div>
 										</div>
-										<div class="col text-end">
-										    <div class="row g-2">
-											<div class="col-12">
-											    <span v-if="zome.saving"
-												  class="spinner-border spinner-border-sm me-3"></span>
-											    <a @click="create_zome_version( zome, 1 )"
-											       title="Upload new Zome Version">
-												<i class="bi-upload"></i>
-											    </a>
-											</div>
-										    </div>
-										</div>
 									    </div>
 
 									    <dl class="row mb-0">
@@ -539,13 +515,21 @@
 									</div>
 								    </div>
 								</div>
-
-								<div class="text-end mb-3">
-								    <a class="btn btn-outline-secondary" @click="zome.create_zome = null">
-									Cancel
-								    </a>
-								</div>
 							    </div>
+							</div>
+
+							<div class="text-end mb-3">
+							    <a class="btn btn-outline-secondary"
+							       @click="zome.create_zome = null">
+								Cancel
+							    </a>
+							    <a @click="create_zome_version( zome, 1 )"
+							       class="btn btn-primary ms-3"
+							       title="Upload new Zome Version">
+								<span v-if="zome.saving"
+								      class="spinner-border spinner-border-sm me-3"></span>
+								Create Zome Version
+							    </a>
 							</div>
 						    </form>
 						</div>
@@ -568,6 +552,21 @@
 				    </div>
 				</div>
 			    </div>
+
+			    <div v-if="missingZomes( role )" class="alert alert-warning" role="alert">
+				<p class="m-0">Finish selecting or creating zomes to create the DNA Version</p>
+			    </div>
+
+			    <div class="text-end mb-3">
+				<a @click="create_dna_version( role )"
+				   class="btn btn-primary btn"
+				   :class="{ 'disabled': missingZomes( role ) }"
+				   title="Create new DNA Version">
+				    <span v-if="role.saving"
+					  class="spinner-border spinner-border-sm me-3"></span>
+				    Create DNA Version
+				</a>
+			    </div>
 			</div>
 		    </div>
 		</form>
@@ -576,17 +575,12 @@
 	    </div>
 	</div>
 
-	<div class="row mb-5">
-	    <div class="col-6">
-		<label class="form-label fw-6">Drag and drop zipped GUI</label>
-		<input-feedback ref="gui_input" style="height: 10rem;" :valid-message="gui_valid_feedback">
-		    <input type="file" @change="gui_selected" class="form-control form-input-file">
-		</input-feedback>
-	    </div>
-	</div>
-
 	<div class="row">
 	    <div class="col-6">
+		<div v-if="missingDnas()" class="alert alert-warning" role="alert">
+		    <p class="m-0">Finish selecting or creating DNAs to continue</p>
+		</div>
+
 		<div class="row">
 		    <div class="col-6">
 		    </div>
@@ -605,7 +599,7 @@
 	<!-- <pre>{{ $debug( input ) }}</pre> -->
     </div>
 
-    <form ref="form" :class="{ 'was-validated': validated }">
+    <form :class="{ 'was-validated': validated }">
 	<div v-if="step === 2">
 	    <div class="row">
 		<div class="col-6">

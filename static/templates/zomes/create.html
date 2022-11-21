@@ -4,49 +4,42 @@
     <hr>
 
     <div class="row">
-	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
+	<form class="col-6" :class="{ 'was-validated': $zome.failed }">
 	    <label class="form-label fw-6">Zome Name</label>
 	    <input-feedback>
-		<input type="text" v-model="input.name" class="form-control" :disabled="saving" required>
+		<input type="text" v-model="zome$.name" class="form-control"
+		       :disabled="$zome.writing" required>
 	    </input-feedback>
 
 	    <label class="form-label fw-6">Display Name</label>
 	    <input-feedback>
-		<input type="text" v-model="input.display_name" class="form-control" :disabled="saving" required>
+		<input type="text" v-model="zome$.display_name" class="form-control"
+		       :disabled="$zome.writing">
 	    </input-feedback>
 
 	    <label class="form-label fw-6">Zome Description</label>
 	    <input-feedback>
-		<textarea v-model="input.description" class="form-control" rows="3" :disabled="saving" required></textarea>
+		<textarea v-model="zome$.description" class="form-control" rows="3"
+			  :disabled="$zome.writing"></textarea>
 	    </input-feedback>
 
 	    <label class="form-label fw-6">Zome Type</label>
 	    <div class="mb-3">
 		<div class="form-check">
-		    <input class="form-check-input" type="radio"
-			   name="zome_type" v-model.number="input.zome_type" :value="0">
-		    <label class="form-check-label">
+		    <input class="form-check-input" type="radio" id="radioIntegrity"
+			   name="zome_type" v-model.number="zome$.zome_type" :value="0" required>
+		    <label class="form-check-label" for="radioIntegrity">
 			Integrity Zome
 		    </label>
 		</div>
 		<div class="form-check">
-		    <input class="form-check-input" type="radio"
-			   name="zome_type" v-model.number="input.zome_type" :value="1">
-		    <label class="form-check-label">
+		    <input class="form-check-input" type="radio" id="radioCoordination"
+			   name="zome_type" v-model.number="zome$.zome_type" :value="1" required>
+		    <label class="form-check-label" for="radioCoordination">
 			Coordination Zome
 		    </label>
 		</div>
 	    </div>
-
-	    <!-- <div class="mt-5"> -->
-	    <!-- 	<h6>Developed by</h6> -->
-
-	    <!-- 	<label class="form-label">Name</label> -->
-	    <!-- 	<input type="text" class="form-control"> -->
-
-	    <!-- 	<label class="form-label">Website</label> -->
-	    <!-- 	<input type="text" class="form-control"> -->
-	    <!-- </div> -->
 
 	    <div>
 		<label class="form-label fw-6">Tags</label>
@@ -56,7 +49,7 @@
 		</div>
 
 		<div class="p-3">
-		    <div v-for="tag in input.tags" class="badge-group ms-2">
+		    <div v-for="tag in zome$.tags" class="badge-group ms-2">
 			<span class="badge bg-secondary">{{ tag }}</span>
 			<span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
 			    <i class="bi-x-lg"></i>
@@ -65,7 +58,7 @@
 		</div>
 	    </div>
 
-	    <display-error class="mt-5" :error="error"></display-error>
+	    <input-rejections v-if="$zome.failed" :rejections="zome_rejections"></input-rejections>
 
 	    <div class="row mt-5">
 		<div class="col-6"></div>
@@ -73,13 +66,16 @@
 		    <router-link to="/zomes" class="btn btn-outline-primary w-100">Cancel</router-link>
 		</div>
 		<div class="col-3">
-		    <a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
-			<span v-if="saving"
+		    <a @click="write()" class="btn btn-primary w-100"
+		       :class="{ 'disabled': $zome.writing || ($zome.failed && $zome.invalid) }">
+			<span v-if="$zome.writing"
 			      class="spinner-border spinner-border-sm me-3"></span>
 			Save
 		    </a>
 		</div>
 	    </div>
+
+	    <display-error class="mt-5" :error="error"></display-error>
 	</form>
     </div>
 

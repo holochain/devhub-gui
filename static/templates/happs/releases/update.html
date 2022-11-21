@@ -6,7 +6,8 @@
 
     <display-error class="mt-5" :error="error"></display-error>
 
-    <form ref="form" :class="{ 'was-validated': validated }"
+    <form v-if="release"
+	  :class="{ 'was-validated': $release.failed }"
 	  class="flex-grow-1 d-flex flex-column">
 	<div class="mb-4">
 	    <h1 class="fs-2"><placeholder :when="!$happ.current" size="fill">{{ happ.title }}</placeholder></h1>
@@ -17,9 +18,8 @@
 		<h2 class="fs-5 text-nowrap">
 		    <placeholder :when="!$release.current" size="fill">
 			<input-feedback class="w-auto">
-			    <input type="text" v-model="release.name"
+			    <input type="text" v-model="release$.name"
 				   class="form-control d-inline-block" style="width: 6em;"
-				   @change="copy(release, input, 'name')"
 				   :disabled="$release.updating" required>
 			</input-feedback>
 			<span class="fw-3 ms-3">({{ $filters.time( release.published_at, "date" ) }})</span>
@@ -50,8 +50,7 @@
 			<placeholder :when="!$release.current" size="p">
 			    <div v-if="show_preview" v-html="mdHTML( release.description )"></div>
 			    <input-feedback v-else class="h-100">
-				<textarea v-model="release.description" class="form-control h-100 border-0 shadow-none" rows="10"
-					  @change="copy(release, input, 'description')"
+				<textarea v-model="release$.description" class="form-control h-100 border-0 shadow-none" rows="10"
 					  :disabled="$release.updating"></textarea>
 			    </input-feedback>
 			</placeholder>
@@ -85,18 +84,68 @@
 			<label class="form-label fw-6">Ordering</label>
 			<placeholder :when="!$release.current">
 			    <input-feedback>
-				<input type="number" v-model.number="release.ordering" class="form-control"
-				       @change="copy(release, input, 'ordering')" required>
+				<input type="number" v-model.number="release$.ordering"
+				       class="form-control" required>
 			    </input-feedback>
 			</placeholder>
 
-			<label class="form-label fw-6">Drag and drop zipped GUI</label>
-			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-			    <input type="file" @change="file_selected" class="form-control form-input-file" :disabled="$release.updating || saving_gui">
-			</input-feedback>
+			<div class="row mt-3">
+			    <div class="col">
+				<label class="form-label fw-6 flex-grow-1">Official GUI</label>
+			    </div>
+			    <div class="col text-end">
+				<a @click="guis_modal.show()"
+				   class="btn btn-primary btn-sm">Select GUI Release</a>
+			    </div>
+			</div>
+			<gui-release-ref v-if="release$.official_gui"
+					 :id="release$.official_gui.toString()"></gui-release-ref>
+			<div v-else class="card">
+			    <div class="card-body text-center">
+				No GUI Selected
+			    </div>
+			</div>
 		    </div>
 		</div>
 	    </div>
 	</div>
     </form>
+
+    <modal title="Select GUI Release" ref="select_gui_release"
+	   cancel-text="Finish" data-bs-backdrop="static">
+
+	<div class="accordion">
+	    <div v-for="(gui, i) in all_guis"
+		 class="accordion-item">
+		<h2 class="accordion-header" @click="getGUIReleases( gui.$id )">
+		    <button class="accordion-button collapsed" type="button"
+			    data-bs-toggle="collapse" :data-bs-target="'#collapse-' + i">
+			<span><strong>{{ gui.name }}</strong> - <span class="fw-smaller">{{ gui.description }}</span></span>
+		    </button>
+		</h2>
+		<div :id="'collapse-' + i" class="accordion-collapse collapse">
+		    <div class="accordion-body text-start">
+			<p>{{ gui.description }}</p>
+			<loading :when="!$gui_releases( gui.$id ).present">
+			    <div v-for="release in gui_releases( gui.$id )" :key="release.$id"
+				 class="mb-3">
+				<gui-release-ref :id="release.$id.toString()" class="cursor-pointer"
+						 @click="release$.official_gui = String(release$.official_gui) === String(release.$id) ? null : release.$id">
+				    <template #title>
+					<input class="form-check-input me-2"
+					       type="radio" name="official_gui"
+					       v-model="release$.official_gui"
+					       :value="release.$id">
+				    </template>
+
+				    <datetime :datetime="release.last_updated"></datetime>
+				</gui-release-ref>
+			    </div>
+			</loading>
+		    </div>
+		</div>
+	    </div>
+	</div>
+
+    </modal>
 </page-view>

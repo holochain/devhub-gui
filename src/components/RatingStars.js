@@ -18,7 +18,7 @@ module.exports = function ( element_local_name, component_name ) {
 	"computed": {
 	    end_text_content () {
 		return this.endText === undefined
-		    ? (this.rating/2).toFixed(1)
+		    ? this.rating.toFixed(1)
 		    : this.endText;
 	    },
 	},

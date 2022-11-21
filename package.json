@@ -4,8 +4,7 @@
   "description": "A web-based UI that works with Holochain's collection of DevHub DNAs",
   "main": "index.js",
   "scripts": {
-    "build": "webpack",
-    "webpack": "WEBPACK_MODE=development webpack --watch"
+    "build": "webpack"
   },
   "repository": {
     "type": "git",
@@ -20,12 +19,14 @@
   "dependencies": {
     "@babel/runtime": "^7.15.3",
     "@msgpack/msgpack": "^2.7.1",
-    "@whi/crux-payload-parser": "^0.2.1",
+    "@whi/crux-payload-parser": "^0.2.2",
     "@whi/holo-hash": "^0.3.0",
     "@whi/holochain-client": "^0.61.0",
-    "@whi/weblogger": "^0.1.4",
+    "@whi/identicons": "^0.1.0",
+    "@whi/weblogger": "^0.1.5",
     "gzip-js": "^0.3.2",
     "js-sha256": "^0.9.0",
+    "openstate": "file:../openstate-js",
     "showdown": "^1.9.1",
     "vue": "^3.2.25",
     "vue-router": "^4.0.11",
@@ -45,7 +46,7 @@
     "babel-loader": "^8.2.2",
     "chai": "^4.3.4",
     "copy-webpack-plugin": "^8.1.1",
-    "mocha": "^9.2.0",
+    "mocha": "^10.1.0",
     "node-fetch": "^2.6.7",
     "node-gzip": "^1.1.2",
     "node-localstorage": "^2.2.1",

@@ -1,0 +1,16 @@
+<div class="card entity-ref gui-release-ref">
+    <identicon class="position-absolute top-0 end-0"
+	       style="margin: 10px;"
+	       :seed="id"></identicon>
+    <div class="d-flex">
+	<placeholder :when="!$release.present || !$gui.present">
+	    <slot name="title"></slot>
+	    <span>
+		<strong>v{{ release.version }}</strong>
+		<span class="fw-lighter"> &mdash; {{ gui.name }}</span>
+	    </span>
+	</placeholder>
+    </div>
+
+    <slot></slot>
+</div>

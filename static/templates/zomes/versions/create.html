@@ -5,12 +5,13 @@
     <hr>
 
     <div class="row">
-	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
+	<form class="col-6" :class="{ 'was-validated': $version.failed }">
 	    <label class="form-label fw-6">Version Number</label>
 	    <input-feedback>
 		<div class="input-group">
 		    <span class="input-group-text">v</span>
-		    <input v-model="input.version" class="form-control" :disabled="saving" required>
+		    <input v-model="version$.version" class="form-control"
+			   :disabled="$version.writing" required>
 		</div>
 	    </input-feedback>
 
@@ -18,7 +19,8 @@
 	    <input-feedback>
 		<div class="input-group">
 		    <span class="input-group-text">v</span>
-		    <input type="number" v-model.number="input.ordering" class="form-control" :disabled="saving" required>
+		    <input type="number" v-model.number="version$.ordering" class="form-control"
+			   :disabled="$version.writing" required>
 		</div>
 	    </input-feedback>
 
@@ -28,16 +30,17 @@
 		    <input-feedback>
 			<div class="input-group mb-3">
 			    <span class="input-group-text" id="basic-addon1">v</span>
-			    <input v-model="input.hdk_version" class="form-control" :disabled="saving" required>
+			    <input v-model="version$.hdk_version" class="form-control"
+				   :disabled="$version.writing" required>
 			</div>
 		    </input-feedback>
 		</div>
-		<div v-if="$previous_hdk_versions.loaded" class="col-6">
+		<div v-if="$previous_hdk_versions.present" class="col-6">
 		    <loading :when="!$previous_hdk_versions.current">
 			<label class="form-label">Versions on DevHub</label>
-			<select class="form-select" :disabled="saving || previous_hdk_versions.length === 0"
-				@change="selectHDKVersion( $event.target.value )">
-			    <option selected>Choose an HDK version</option>
+			<select class="form-select" v-model="version$.hdk_version"
+				:disabled="$version.writing || previous_hdk_versions.length === 0">
+			    <option selected :value="null">Choose an HDK version</option>
 			    <option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
 			</select>
 		    </loading>
@@ -46,40 +49,46 @@
 
 	    <label class="form-label fw-6">Changelog</label>
 	    <input-feedback>
-		<textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="saving"></textarea>
+		<textarea v-model="version$.changelog" class="form-control font-monospace" rows="10"
+			  :disabled="$version.writing"></textarea>
 	    </input-feedback>
 
 	    <label class="form-label fw-6">Drag and drop Zome here</label>
 	    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-		<input type="file" @change="file_selected" class="form-control form-input-file" :disabled="saving" required>
+		<input type="file" @change="file_selected" class="form-control form-input-file"
+		       :disabled="$version.writing" required>
 	    </input-feedback>
 
 	    <label class="form-label fw-6">Source Code (commit) URL</label>
 	    <input-feedback class="mb-3">
-		<input v-model="input.source_code_commit_url" class="form-control">
+		<input v-model="version$.source_code_commit_url" class="form-control">
 	    </input-feedback>
 
-	    <loading :when="$sc_url_preview.loading">
+	    <loading :when="$sc_url_preview.reading">
 		<!-- Is there a preview? -->
-		<div v-if="input.metadata.source_code_url_preview || (input.metadata && input.metadata.source_code_url_preview)">
+		<div v-if="version$.metadata.source_code_url_preview || (version$.metadata && version$.metadata.source_code_url_preview)">
 		    <!-- Preview is changing -->
-		    <template v-if="input.metadata && input.metadata.source_code_url_preview">
+		    <template v-if="version$.metadata && version$.metadata.source_code_url_preview">
 			<h4>New Preview</h4>
-			<link-preview :info="input.metadata.source_code_url_preview"></link-preview>
+			<link-preview :url="version$.source_code_commit_url"></link-preview>
+			<!-- version$.metadata.source_code_url_preview -->
 		    </template>
 
 		    <!-- Display current preview -->
 		    <template v-else>
 			<h4>Preview</h4>
-			<link-preview :info="input.metadata.source_code_url_preview"></link-preview>
+			<link-preview :url="version$.source_code_commit_url"></link-preview>
+			<link-preview :url-image="version$.metadata.source_code_url_preview.image"
+				      :url-title="version$.metadata.source_code_url_preview.title"
+				      :url-description="version$.metadata.source_code_url_preview.description"></link-preview>
 		    </template>
 
 		    <!-- Update or Remove preview info -->
 		    <div class="row mt-3">
 			<div class="col-6">
-			    <a @click="createSourceCodeUrlPreview( input.source_code_commit_url )"
+			    <a @click="createSourceCodeUrlPreview( version$.source_code_commit_url )"
 			       class="btn btn-outline-primary w-100"
-			       :class="{ 'disabled': saving }">
+			       :class="{ 'disabled': $version.writing }">
 				Update URL Preview
 			    </a>
 			</div>
@@ -93,7 +102,7 @@
 		</div>
 		<!-- No preview yet -->
 		<div v-else>
-		    <a @click="createSourceCodeUrlPreview( input.source_code_commit_url )"
+		    <a @click="createSourceCodeUrlPreview( version$.source_code_commit_url )"
 		       class="btn btn-outline-primary w-100">
 			Create URL Preview
 		    </a>
@@ -102,7 +111,8 @@
 		<!-- <pre>{{ $debug(input) }}</pre> -->
 	    </loading>
 
-	    <display-error class="mt-5" :error="error"></display-error>
+	    <input-rejections v-if="$version.failed" class="mt-5"
+			      :rejections="version_rejections"></input-rejections>
 
 	    <div class="row mt-5">
 		<div class="col-6"></div>
@@ -110,13 +120,17 @@
 		    <router-link :to="'/zomes/' + zome_id" class="btn btn-outline-primary w-100">Cancel</router-link>
 		</div>
 		<div class="col-3">
-		    <a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
-			<span v-if="saving"
+		    <a @click="write()" class="btn btn-primary w-100"
+		       :class="{ 'disabled': $version.writing || ($version.failed && $version.invalid) }">
+			<span v-if="$version.writing"
 			      class="spinner-border spinner-border-sm me-3"></span>
 			Save
 		    </a>
 		</div>
 	    </div>
+
+	    <display-error class="mt-5" :error="version_errors.write"></display-error>
+
 	</form>
     </div>
 

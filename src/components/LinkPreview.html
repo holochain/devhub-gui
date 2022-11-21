@@ -1,4 +1,4 @@
-<loading :when="!ready">
+<loading :when="!$url_info.present">
     <div class="card">
 	<img v-if="image" class="card-img-top" :src="image">
 	<div class="card-body">

@@ -1,14 +1,14 @@
 <page-view id="single-dna version-page">
     <breadcrumbs v-if="version && dna" :skip-base="true" :path-mapping="breadcrumb_mapping"
 		 :sub-1="dna.display_name || dna.name" :sub-3="'v' + version.version">
-	<a v-if="$version.loaded" @click="fetchVersion()" class="ms-2 fs-4">
-	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $version.loading }"></i>
+	<a v-if="$version.present" @click="refresh()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $version.reading }"></i>
 	</a>
     </breadcrumbs>
 
     <hr>
 
-    <deprecation-alert v-if="dna_deprecated && $version.current"
+    <deprecation-alert v-if="dna?.deprecation && $version.current"
 		       title="The parent DNA has been deprecated"></deprecation-alert>
 
     <div class="mb-4">
@@ -44,7 +44,7 @@
 		</div>
 		<div class="card-body">
 		    <placeholder :when="!$version.current">
-			<div v-html="changelog_html"></div>
+			<div v-html="version.changelog_html"></div>
 		    </placeholder>
 		</div>
 	    </div>
@@ -94,43 +94,40 @@
 		    </div>
 
 		    <h4 class="fs-6 mt-5">Integrity Zomes</h4>
-		    <list-group v-if="version" :list="Object.values(version.integrity_zomes)" :loading="!$version.current">
-			<template v-for="(zome_version, name) in version.integrity_zomes">
-			    <zome-version-card v-if="zome_version" class="my-2"
-					       :title="zome_version.name || name"
-					       :id="zome_version.$id || zome_version.version"></zome-version-card>
-			    <div v-else class="card my-2">
-				<div class="card-body text-center">
-				    <p><i>This version of <strong>{{ name }}</strong> has been unpublished</i></p>
-				</div>
-			    </div>
+		    <list-group v-if="version" :list="version.integrity_zomes"
+				:loading="!$version.current">
+			<template v-for="zome_ref in version.integrity_zomes" :key="zome_ref.version">
+			    <zome-version-card class="my-2"
+					       :title="zome_ref.name"
+					       :id="zome_ref.version"></zome-version-card>
 			</template>
 		    </list-group>
 
 		    <h4 class="fs-6 mt-5">Coordination Zomes</h4>
-		    <list-group v-if="version" :list="Object.values(version.zomes)" no-result-text="No Zomes" :loading="!$version.current">
-			<template v-for="(zome_version, name) in version.zomes">
-			    <zome-version-card v-if="zome_version" class="my-2"
-					       :title="zome_version.name || name"
-					       :id="zome_version.$id || zome_version.version"></zome-version-card>
-			    <div v-else class="card my-2">
-				<div class="card-body text-center">
-				    <p><i>This version of <strong>{{ name }}</strong> has been unpublished</i></p>
-				</div>
-			    </div>
+		    <list-group v-if="version" :list="version.zomes" no-result-text="No Zomes"
+				:loading="!$version.current">
+			<template v-for="zome_ref in version.zomes" :key="zome_ref.version">
+			    <zome-version-card class="my-2"
+					       :title="zome_ref.name"
+					       :id="zome_ref.version"></zome-version-card>
+			    <!-- <div v-else class="card my-2"> -->
+			    <!-- 	<div class="card-body text-center"> -->
+			    <!-- 	    <p><i>This version of <strong>{{ name }}</strong> has been unpublished</i></p> -->
+			    <!-- 	</div> -->
+			    <!-- </div> -->
 			</template>
 		    </list-group>
 
 		    <loading :when="!$version.current">
 			<div class="mx-3 my-5">
 			    <a class="btn btn-primary w-100" @click="downloadPackageBytes()">
-				<span v-if="$packageBytes.loading"
+				<span v-if="$package_bytes.reading"
 				      class="spinner-border spinner-border-sm me-3"></span>
 				<i v-else class="bi-download"></i>
 				Download {{ package_filename }}
 			    </a>
 
-			    <display-error class="mt-3" :error="download_error"></display-error>
+			    <display-error class="mt-3" :error="package_bytes_errors.read"></display-error>
 			</div>
 		    </loading>
 		</div>
