@@ -182,8 +182,8 @@ web_assets.zip:		Makefile static/* static/*/*
 	cp node_modules/@whi/holochain-client/dist/holochain-client.prod.js.map		static/dependencies/holochain-client.js.map
 	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.prod.js	static/dependencies/crux-payload-parser.js
 	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.prod.js.map	static/dependencies/crux-payload-parser.js.map
-	cp node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.prod.js	static/dependencies/holo-hash.js
-	cp node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.prod.js.map	static/dependencies/holo-hash.js.map
+	cp node_modules/@whi/holo-hash/dist/holo-hash.prod.js				static/dependencies/holo-hash.js
+	cp node_modules/@whi/holo-hash/dist/holo-hash.prod.js.map			static/dependencies/holo-hash.js.map
 	cp node_modules/js-sha256/build/sha256.min.js					static/dependencies/sha256.js
 	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.min.js			static/dependencies/msgpack.js
 	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.min.js.map		static/dependencies/msgpack.js.map
@@ -197,8 +197,8 @@ web_assets.zip:		Makefile static/* static/*/*
 	cp node_modules/@whi/holochain-client/dist/holochain-client.js.map		static/dependencies/holochain-client.js.map
 	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js		static/dependencies/crux-payload-parser.js
 	cp node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js.map	static/dependencies/crux-payload-parser.js.map
-	cp node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js	static/dependencies/holo-hash.js
-	cp node_modules/@whi/entity-architect/node_modules/@whi/holo-hash/dist/holo-hash.js.map	static/dependencies/holo-hash.js.map
+	cp node_modules/@whi/holo-hash/dist/holo-hash.js				static/dependencies/holo-hash.js
+	cp node_modules/@whi/holo-hash/dist/holo-hash.js.map				static/dependencies/holo-hash.js.map
 	cp node_modules/js-sha256/src/sha256.js						static/dependencies/sha256.js
 	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.js			static/dependencies/msgpack.js
 	cp node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.js.map			static/dependencies/msgpack.js.map
