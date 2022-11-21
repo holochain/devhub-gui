@@ -1,13 +1,13 @@
 <page-view id="single-happ-page">
     <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="happ.title">
-	<a v-if="$happ.loaded" @click="fetchHapp()" class="ms-2 fs-4">
-	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $happ.loading }"></i>
+	<a v-if="$happ.present" @click="refresh()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $happ.reading }"></i>
 	</a>
     </breadcrumbs>
 
     <hr>
 
-    <deprecation-alert v-if="deprecated && $happ.current"
+    <deprecation-alert v-if="happ?.deprecation"
 		       title="This hApp has been deprecated"
 		       :message="happ.deprecation.message"></deprecation-alert>
 
@@ -27,16 +27,20 @@
 	    </div>
 	</template>
 
-	<template #title-extras v-if="!deprecated && $happ.writable">
+	<template #title-extras v-if="$happ.writable">
             <router-link :to="'/happs/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
 		<i class="bi-pencil"></i>
 		Edit
             </router-link>
 
-            <a @click="modal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
+            <a @click="deprecationModal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
 		<i class="bi-x-lg"></i>
 		Deprecate
             </a>
+	</template>
+
+	<template #controls>
+	    <identicon :seed="id" :size="50"></identicon>
 	</template>
     </page-header>
 
@@ -63,10 +67,14 @@
 			</dd>
 
 			<dt class="col-sm-4">Created</dt>
-			<dd class="col-sm-8"><placeholder :when="!$happ.current">{{ $filters.time( happ.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$happ.current"><datetime :datetime="happ.published_at" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 
 			<dt class="col-sm-4">Last Updated</dt>
-			<dd class="col-sm-8"><placeholder :when="!$happ.current">{{ $filters.time( happ.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$happ.current"><datetime :datetime="happ.last_updated" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 		    </dl>
 		</div>
 	    </div>
@@ -84,14 +92,8 @@
 			</dt>
 			<dd class="col-sm-12">
 			    <placeholder :when="!$happ.current">
-				<holo-hash :hash="happ.designer"></holo-hash>
+				<identicon :seed="happ.designer"></identicon>
 			    </placeholder>
-			</dd>
-			<dt class="col-sm-12">
-			    External Links
-			</dt>
-			<dd class="col-sm-12">
-			    None
 			</dd>
 		    </dl>
 		</div>
@@ -103,35 +105,39 @@
 	<div class="d-flex mb-4">
 	    <h2 class="fs-4 flex-grow-1">
 		hApp Releases
-		<a v-if="$releases.loaded" @click="fetchHappReleases()" class="ms-2 fs-4">
-		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $releases.loading }"></i>
+		<a v-if="$releases.present" @click="$openstate.read( releases_datapath )" class="ms-2 fs-4">
+		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $releases.reading }"></i>
 		</a>
 	    </h2>
 
             <router-link v-if="happ && $happ.writable" :to="'/happs/' + id + '/upload'"
 			 class="btn btn-primary text-nowrap me-3"
-			 :class="{ 'disabled': deprecated }">
+			 :class="{ 'disabled': happ?.deprecation }">
 		<i class="bi-upload"></i>
 		Upload Bundle
             </router-link>
 
             <router-link v-if="happ && $happ.writable" :to="'/happs/' + id + '/releases/new'"
 			 class="btn btn-primary text-nowrap"
-			 :class="{ 'disabled': deprecated }">
+			 :class="{ 'disabled': happ?.deprecation }">
 		<i class="bi-plus-lg"></i>
 		Create new release
             </router-link>
 	</div>
 
-	<list-group :list="releases" no-result-text="No hApp Releases" :loading="$releases.loading">
+	<list-group :list="releases" no-result-text="No hApp Releases" :loading="$releases.reading">
 	    <div class="row px-3">
-		<div class="col-2 fw-7">
+		<div class="col-1"></div>
+		<div class="col-1 fw-7">
 		    Release #
 		</div>
-		<div class="col-4 fw-7">
+		<div class="col-3 fw-7">
 		    Created
 		</div>
 		<div class="col-2 fw-7">
+		    Last Updated
+		</div>
+		<div class="col-1 fw-7">
 		    HDK Version
 		</div>
 		<div class="col"></div>
@@ -141,13 +147,19 @@
 
 	    <list-group-item v-for="release in releases" class="py-3">
 		<div class="row align-items-center">
-		    <div class="col-2">
+		    <div class="col-1">
+			<identicon :seed="release.$id" :size="30"></identicon>
+		    </div>
+		    <div class="col-1">
 			<h3 class="fs-6 m-0">{{ release.name }}</h3>
 		    </div>
-		    <div class="col-4">
-			Created on {{ $filters.time( release.published_at, "weekday+date" ) }}
+		    <div class="col-3">
+			<datetime :datetime="release.published_at" format="weekday+date+time"></datetime>
 		    </div>
 		    <div class="col-2">
+			<datetime :datetime="release.last_updated"></datetime>
+		    </div>
+		    <div class="col-1">
 			<div class="badge bg-light text-dark font-monospace">v{{ release.hdk_version }}</div>
 		    </div>
 		    <div class="col text-end text-nowrap">
@@ -166,14 +178,19 @@
 
     <modal v-if="happ" title="Deprecate hApp" ref="modal"
 	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
-	<form ref="form" :class="{ 'was-validated': validated }">
+	<form :class="{ 'was-validated': $happ.failed }">
 	    <div class="mb-4">
 		<p>Are you sure you want to deprecate the <strong>{{ happ.title }}</strong> hApp?</p>
 	    </div>
 	    <input-feedback>
-		<textarea v-model="deprecation.message" class="form-control" rows="4"
-			  placeholder="Reason (optional)" required :disabled="$happ.deprecating"></textarea>
+		<textarea v-model="happ$.deprecation" class="form-control" rows="4"
+			  placeholder="Reason (optional)" required :disabled="$happ.writing"></textarea>
 	    </input-feedback>
+
+	    <input-rejections v-if="$happ.failed" class="mt-5"
+			      :rejections="happ_rejections"></input-rejections>
+
+	    <display-error class="mt-5" :error="happ_errors.deprecation" :debug="true"></display-error>
 	</form>
     </modal>
 

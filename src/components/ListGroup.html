@@ -3,7 +3,8 @@
         <loading :when="true"></loading>
     </div>
 </div>
-<div v-else-if="list.length" class="list-group list-group-flush">
+<div v-else-if="list.length" class="list-group"
+     :class="{ 'list-group-flush': border === false }">
     <slot></slot>
 </div>
 <div v-else class="card my-4">

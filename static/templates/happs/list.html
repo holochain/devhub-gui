@@ -2,8 +2,8 @@
     <page-header controls-col="7">
 	<template #default>
 	    <h1 class="fs-2">{{ title }}</h1>
-	    <a v-if="$happs.loaded" @click="fetchHapps()" class="ms-2 fs-4">
-		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $happs.loading }"></i>
+	    <a v-if="$happs.present" @click="refresh()" class="ms-2 fs-4">
+		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $happs.reading }"></i>
 	    </a>
 	</template>
 
@@ -40,15 +40,25 @@
 
     <hr>
 
-    <list-group :list="happs" no-result-text="No hApps" :loading="$happs.loading">
+    <list-group :list="happs" no-result-text="No hApps" :loading="$happs.reading">
 	<list-group-item v-for="happ in happs">
-	    <div class="row align-items-center">
-		<div class="col pt-3">
-		    <h3 class="fs-6">{{ happ.title }} &mdash; <span class="fw-2">{{ happ.subtitle }}</span></h3>
-		    <p>{{ happ.description }}</p>
+	    <div class="row align-items-center pt-3">
+		<div class="col d-flex align-items-center">
+		    <identicon :seed="happ.$id" :size="50"></identicon>
+		    <div>
+			<h3 class="fs-6">{{ happ.title }} &mdash; <span class="fw-2">{{ happ.subtitle }}</span></h3>
+			<p class="m-0">{{ happ.description }}</p>
+		    </div>
 		</div>
-		<div class="col-4">
-		    <span class="badge badge-md bg-secondary">Created {{ $filters.time( happ.published_at ) }}</span>
+		<div class="col-2 text-center">
+		    <template v-if="happ.tags && happ.tags.length">
+			<span v-for="tag in happ.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
+		    </template>
+		    <span v-else>No tags</span>
+		</div>
+		<div class="col-2 text-center">
+		    <span class="fw-lighter">Last updated</span>
+		    <br><datetime :datetime="happ.last_updated"></datetime>
 		</div>
 		<div class="col-auto">
 		    <router-link :to="'/happs/' + happ.$id" class="btn btn-light">

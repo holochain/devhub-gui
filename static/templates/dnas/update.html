@@ -1,63 +1,72 @@
 <page-view id="update-dna-page">
-    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.name"></breadcrumbs>
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.display_name || dna.name"></breadcrumbs>
 
     <hr>
 
     <div class="row">
-	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
-	    <template v-if="dna">
-		<label class="form-label fw-6">DNA Name</label>
-		<input-feedback>
-		    <input type="text" @change="copy(dna, input, 'name')" v-model="dna.name"
-			   class="form-control" :disabled="$dna.updating" required>
-		</input-feedback>
-
-		<label class="form-label fw-6">DNA Description</label>
-		<input-feedback>
-		    <textarea @change="copy(dna, input, 'description')" v-model="dna.description"
-			      class="form-control" rows="3" :disabled="$dna.updating" required></textarea>
-		</input-feedback>
-
-		<div>
-		    <label class="form-label fw-6">Tags</label>
-		    <div class="form-input-search">
-			<input type="text" class="form-control no-validate" placeholder="search and add tags"
-			       v-model="tag_search_text" @keyup.keydown.enter.prevent="addTag( tag_search_text )">
-		    </div>
-
-		    <div class="p-3">
-			<div v-for="tag in tags" class="badge-group ms-2">
-			    <span class="badge bg-secondary">{{ tag }}</span>
-			    <span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
-				<i class="bi-x-lg"></i>
-			    </span>
-			</div>
-		    </div>
-		</div>
-
-		<display-error class="mt-5" :error="error"></display-error>
-
-		<div class="row mt-5">
-		    <div class="col-6"></div>
-		    <div class="col-3">
-			<router-link :to="'/dnas/' + id" class="btn btn-outline-primary w-100">Cancel</router-link>
-		    </div>
-		    <div class="col-3">
-			<a @click="update()" class="btn btn-primary w-100" :class="{ 'disabled': $dna.updating }">
-			    <span v-if="$dna.updating"
-				  class="spinner-border spinner-border-sm me-3"></span>
-			    Save
-			</a>
-		    </div>
-		</div>
-	    </template>
-	    <div v-else class="card">
+	<div v-if="$dna.reading" class="col-6">
+	    <div class="card">
 		<div class="card-body text-center p-4">
 		    <div class="spinner-border mt-1" role="status">
 			<span class="visually-hidden">Loading...</span>
 		    </div>
 		</div>
 	    </div>
+	</div>
+	<form v-else class="col-6" :class="{ 'was-validated': $dna.failed }">
+	    <label class="form-label fw-6">DNA Name</label>
+	    <input-feedback>
+		<input type="text" v-model="dna$.name"
+		       class="form-control" :disabled="$dna.writing" required>
+	    </input-feedback>
+
+	    <label class="form-label fw-6">Display Name</label>
+	    <input-feedback>
+		<input type="text" v-model="dna$.display_name"
+		       class="form-control" :disabled="$dna.writing">
+	    </input-feedback>
+
+	    <label class="form-label fw-6">DNA Description</label>
+	    <input-feedback>
+		<textarea v-model="dna$.description"
+			  class="form-control" rows="3" :disabled="$dna.writing"></textarea>
+	    </input-feedback>
+
+	    <div>
+		<label class="form-label fw-6">Tags</label>
+		<div class="form-input-search">
+		    <input type="text" class="form-control no-validate" placeholder="search and add tags"
+			   v-model="tag_search_text" @keyup.keydown.enter.prevent="addTag( tag_search_text )">
+		</div>
+
+		<div class="p-3">
+		    <div v-for="tag in dna$.tags" class="badge-group ms-2">
+			<span class="badge bg-secondary">{{ tag }}</span>
+			<span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
+			    <i class="bi-x-lg"></i>
+			</span>
+		    </div>
+		</div>
+	    </div>
+
+	    <input-rejections v-if="$dna.failed" :rejections="dna_rejections"></input-rejections>
+
+	    <div class="row mt-5">
+		<div class="col-6"></div>
+		<div class="col-3">
+		    <router-link :to="'/dnas/' + id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		</div>
+		<div class="col-3">
+		    <a @click="write()" class="btn btn-primary w-100"
+		       :class="{ 'disabled': $dna.writing || ($dna.failed && $dna.invalid) || !$dna.changed }">
+			<span v-if="$dna.writing"
+			      class="spinner-border spinner-border-sm me-3"></span>
+			Save
+		    </a>
+		</div>
+	    </div>
+
+	    <display-error class="mt-5" :error="error"></display-error>
 	</form>
     </div>
 

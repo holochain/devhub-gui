@@ -5,7 +5,7 @@
 	    does not exist or has been unpublished
 	</p>
     </div>
-    <loading v-else :when="!$version.current">
+    <loading v-else :when="!$version.present">
 	<div class="entity-card-header">{{ header_prefix }}: <strong>{{ version.version }}</strong></div>
 	<div v-if="actions.length" class="entity-card-actions">
 	    <template v-for="action in actions">
@@ -35,7 +35,8 @@
 	    <template v-if="expanded">
 		<h4 class="fs-6 mt-2">Changelog</h4>
 		<div class="bg-light rounded-3 p-4 pb-3 mb-3">
-		    {{ version.changelog || "No changelog" }}
+		    <span v-if="version.changelog" v-html="version.changelog_html"></span>
+		    <span v-else>No changelog</span>
 		</div>
 	    </template>
 

@@ -1,24 +1,26 @@
 <page-view id="single-zome version-page">
     <breadcrumbs v-if="version && zome" :skip-base="true" :path-mapping="breadcrumb_mapping"
-		 :sub-1="zome.name" :sub-3="'Version #' + version.version">
-	<a v-if="$version.loaded" @click="fetchVersion()" class="ms-2 fs-4">
-	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $version.loading }"></i>
+		 :sub-1="zome?.display_name || zome.name" :sub-3="'v' + version.version">
+	<a v-if="$version.present" @click="refresh()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $version.reading }"></i>
 	</a>
     </breadcrumbs>
 
     <hr>
 
-    <deprecation-alert v-if="zome_deprecated && $version.current"
+    <deprecation-alert v-if="zome?.deprecation"
 		       title="The parent Zome has been deprecated"></deprecation-alert>
 
     <div class="mb-4">
-	<h1 class="fs-2"><placeholder :when="!$version.current" size="25%">{{ zome.name }}</placeholder></h1>
+	<h1 class="fs-2"><placeholder :when="!$zome.current" size="25%">{{ zome.display_name || zome.name }}</placeholder></h1>
+	<rating-stars v-if="summary" class="fs-5 text-primary" :rating="summary.average"
+		      :end-text="$reviews.current ? reviews.length + ' reviews' : ''"></rating-stars>
     </div>
 
     <page-header class="mb-2 p-3">
 	<template #default>
             <h2 class="fs-5 text-nowrap">
-		<placeholder :when="!$version.current" size="fill">{{ version.version }}
+		<placeholder :when="!$version.present || $version.reading" size="fill">v{{ version.version }}
 		    <span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
 		</placeholder>
 	    </h2>
@@ -34,6 +36,10 @@
 		Unpublish
             </a>
 	</template>
+
+	<template #controls>
+	    <identicon :seed="id" :size="50"></identicon>
+	</template>
     </page-header>
 
     <div class="row align-items-stretch">
@@ -43,8 +49,8 @@
 		    Changelog
 		</div>
 		<div class="card-body">
-		    <placeholder :when="!$version.current">
-			<div v-html="changelog_html"></div>
+		    <placeholder :when="!$version.present || $version.reading">
+			<div v-html="version.changelog_html"></div>
 		    </placeholder>
 		</div>
 	    </div>
@@ -58,22 +64,30 @@
 		<div class="card-body">
 		    <dl class="row">
 			<dt class="col-sm-12">Created</dt>
-			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.present || $version.reading">
+				<datetime :datetime="version.published_at" format="weekday+date+time"></datetime>
+			    </placeholder>
+			</dd>
 
 			<dt class="col-sm-12">Last Updated</dt>
-			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.present || $version.reading">
+				<datetime :datetime="version.last_updated" format="weekday+date+time"></datetime>
+			    </placeholder>
+			</dd>
 
 			<dt class="col-sm-12">HDK Version</dt>
-			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ version.hdk_version }}</placeholder></dd>
+			<dd class="col-sm-12"><placeholder :when="!$version.present || $version.reading">{{ version.hdk_version }}</placeholder></dd>
 
 			<dt class="col-sm-12">Resource Hash</dt>
-			<dd class="col-sm-12"><placeholder :when="!$version.current"><code>{{ version.mere_memory_hash }}</code></placeholder></dd>
+			<dd class="col-sm-12"><placeholder :when="!$version.present || $version.reading"><code>{{ version.mere_memory_hash }}</code></placeholder></dd>
 		    </dl>
 
-		    <loading :when="!$version.current">
+		    <loading :when="!$version.present || $version.reading">
 			<div class="mx-3 my-5">
 			    <a class="btn btn-primary w-100" @click="downloadWasmBytes()">
-				<span v-if="$wasmBytes.loading"
+				<span v-if="$wasm_bytes.reading"
 				      class="spinner-border spinner-border-sm me-3"></span>
 				<i v-else class="bi-download"></i>
 				Download {{ wasm_filename }}
@@ -82,11 +96,190 @@
 		    </loading>
 		</div>
 	    </div>
+
+	    <div class="mt-4" v-if="version && version.source_code_commit_url">
+		<link-preview v-if="version.metadata.source_code_url_preview"
+			      :info="version.metadata.source_code_url_preview"></link-preview>
+		<div v-else class="card">
+		    <div class="card-header">
+			Source Code
+		    </div>
+		    <div class="card-body">
+			<a :href="version.source_code_commit_url" target="_blank">{{ version.source_code_commit_url }}</a>
+		    </div>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+    <div class="row mt-5">
+	<div class="d-flex mb-3">
+	    <h2 class="fs-4 flex-grow-1">Reviews</h2>
+
+	    <a v-if="hasReviewForSubject( id )"
+	       @click="editReview()" class="btn btn-outline-primary text-nowrap">
+		<i class="bi-pencil"></i>
+		Update Review
+	    </a>
+	    <a v-else
+	       @click="reviewModal.show()" class="btn btn-primary text-nowrap">
+		<i class="bi-pencil"></i>
+		Write Review
+	    </a>
+	</div>
+
+	<!-- <pre>{{ $debug( $zome ) }}</pre> -->
+	<!-- <pre>{{ $debug( zome ) }}</pre> -->
+
+	<div class="col-8">
+	    <list-group :list="reviews" no-result-text="No Zome Reviews"
+			:loading="$reviews.reading" :border="true">
+		<list-group-item v-for="review in reviews" class="p-3 pb-1">
+		    <div class="row">
+			<div class="col-8 pb-2">
+			    <div class="d-flex">
+				<div class="flex-grow-1">
+				    <div class="d-flex align-items-center">
+					<avatar :agent-id="review.author" :size="40"></avatar>
+					<div>
+					    <p class="mb-1 fw-1">
+						<small>Username</small>
+						<span v-if="zome && hashesAreEqual( zome.developer, review.author )"
+						      class="badge bg-light text-dark ms-1">Author</span>
+					    </p>
+					    <rating-stars :rating="average( ...Object.values( review.ratings ) )"></rating-stars>
+					</div>
+				    </div>
+				</div>
+				<datetime :datetime="review.published_at"></datetime>
+			    </div>
+			    <blockquote class="blockquote mb-0">
+				<p style="white-space: pre-wrap;">{{ review.message }}</p>
+			    </blockquote>
+			</div>
+			<div class="col-4 d-flex flex-column">
+			    <div class="flex-grow-1 d-flex">
+				<div class="flex-grow-1">
+				</div>
+				<div class="d-flex flex-column">
+				    <a v-if="$reviewMap( review.$id ).writable"
+				       class="btn btn-outline-secondary"
+				       @click="editReview()">
+					<i class="bi-pencil me-0"></i>
+				    </a>
+				    <template v-else-if="review.message">
+					<span class="text-smaller">Is this helpful?</span>
+					<div class="d-flex justify-content-around">
+					    <a @click="doReaction( review, 1 )">
+						<i v-if="hasReactionForSubject( review.$id, 1 )"
+						   class="bi-hand-thumbs-up-fill fs-3"></i>
+						<i v-else class="bi-hand-thumbs-up fs-3"></i>
+					    </a>
+					    <a @click="doReaction( review, 2 )">
+						<i v-if="hasReactionForSubject( review.$id, 2 )"
+						   class="bi-hand-thumbs-down-fill fs-3"></i>
+						<i v-else class="bi-hand-thumbs-down fs-3"></i>
+					    </a>
+					</div>
+				    </template>
+				</div>
+			    </div>
+			    <div class="d-flex justify-content-end">
+				<!-- <a @click="updateReactionSummaryReport( review )" class="btn btn-outline-primary text-nowrap ms-2"> -->
+				<!--     <span v-if="review.calculating" -->
+				<!-- 	  class="spinner-border spinner-border-sm me-3"></span> -->
+				<!--     {{ review.reaction_summary ? 'Rec' : 'C' }}alculate Reaction -->
+				<!-- </a> -->
+				<!-- <a @click="" class="d-flex align-items-center"> -->
+				<!--     <i class="bi-chat fs-3 me-1"></i> -->
+				<!--     <span class="text-bigger">Reply</span> -->
+				<!-- </a> -->
+			    </div>
+			</div>
+		    </div>
+		</list-group-item>
+	    </list-group>
+	</div>
+	<div class="col-4">
+	    <ul v-if="summary" class="list-group">
+		<li v-for="(rating, name) in summary.breakdown" class="list-group-item d-flex">
+		    <span class="flex-grow-1">
+			<span class="fw-6 me-1">{{ capitalize( name ) }}</span>
+			<span class="fw-1 fst-italic">({{ rating_term( name, rating ) }})</span>
+		    </span>
+		    <rating-stars :rating="rating"></rating-stars>
+		</li>
+	    </ul>
+
+	    <div v-if="$version.writable && $summary.writable && $reviews.present && reviews.length > 1"
+		 class="my-3 text-end">
+		<a @click="updateReviewSummaryReport( true )"
+		   class="btn btn-outline-primary text-nowrap ms-2">
+		    <span v-if="$summary.writing"
+			  class="spinner-border spinner-border-sm me-3"></span>
+		    {{ version.review_summary ? 'Rec' : 'C' }}alculate Reviews
+		</a>
+
+		<display-error class="my-3" :error="summary_errors.write"></display-error>
+	    </div>
+	    <!-- 	<p><span class="fw-light">{{ summary.accuracy_average.toFixed(1) }}</span>/10</p> -->
+	    <!-- 	<p><span class="fw-light">{{ summary.efficiency_average.toFixed(1) }}</span>/10</p> -->
 	</div>
     </div>
 
     <modal v-if="version && zome" title="Unpublish Zome Version" ref="modal"
 	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
 	<p>Are you sure you want to unpublish the {{ zome.name }} Zome Version <strong>{{ version.version }}</strong>?</p>
+    </modal>
+
+    <modal title="Post review" ref="review"
+	   action-text="Post" :action="postReview" data-bs-backdrop="static">
+	<form ref="form_review" :class="{ 'was-validated': $review_input.failed }">
+	    <div v-for="rating_type in ['accuracy', 'efficiency']" class="mb-1">
+		<div v-if="review_input$.ratings[rating_type] === undefined">
+		    <a @click="updateReviewRating( rating_type, 0 )" class="btn btn-outline-primary text-nowrap"
+		       :class="{ 'border-danger': $review_input.failed && $review_input.invalid }">
+			Add {{ capitalize( rating_type ) }} Rating
+		    </a>
+		</div>
+		<div v-else class="row align-items-center">
+		    <div class="col-5 text-start">
+			<a @click="updateReviewRating( rating_type, undefined )" class="btn btn-outline-secondary text-nowrap">
+			    Cancel
+			</a>
+		    </div>
+		    <div class="col-7">
+			<label class="form-label">
+			    {{ capitalize( rating_type ) }} Rating
+			    <i>({{ rating_term( rating_type, review_input$.ratings[rating_type] ) }})</i>
+			</label>
+			<div class="d-flex justify-content-center">
+			    <a class="pe-2" @click="updateReviewRating( rating_type, 0 )">None</a>
+			    <i v-for="i in 5" class="p-1 cursor-pointer"
+			       :class="starClass( rating_type, i )"
+			       @click="updateReviewRating( rating_type, i )"></i>
+			</div>
+		    </div>
+		</div>
+	    </div>
+
+	    <label class="form-label">Message</label>
+	    <input-feedback>
+		<textarea v-model="review_input$.message" class="form-control" rows="4"
+			  placeholder="Message (optional)"></textarea>
+	    </input-feedback>
+
+	    <div v-if="$review_input.failed && $review_input.invalid" class="alert alert-danger d-flex align-items-center" role="alert">
+		<i class="bi-exclamation-triangle-fill me-3"></i>
+		<div>
+		    <strong>Invalid Content</strong>
+		    <br>
+		    <p class="m-0"><em>Please correct the following issues</em></p>
+		    <ul>
+			<li v-for="message in $review_errors">{{ message }}</li>
+		    </ul>
+		</div>
+	    </div>
+	</form>
     </modal>
 </page-view>

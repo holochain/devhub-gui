@@ -1,143 +1,157 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("happ releases");
 
-const { load_html,
-	...common }			= require('./common.js');
-
-const md_converter			= new showdown.Converter({
-    "headerLevelStart": 3,
-});
+const common				= require('./common.js');
 
 
 module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": await load_html("/templates/happs/releases/create.html"),
+	    "template": await common.load_html("/templates/happs/releases/create.html"),
 	    "data": function() {
+		const happ_id		= this.getPathId("happ");
+
 		return {
-		    "happ_id": null,
-		    "error": null,
-		    "input": {
-			"gui": null,
-			"manifest": {
-			    "manifest_version": "1",
-			    "roles": [],
-			},
-			"hdk_version": null,
-			"dnas": [],
-		    },
-		    "added_dnas": [],
-		    "dna_search_text": "",
-		    "validated": false,
-		    "saving": false,
-		    "lock_hdk_version_input": false,
-		    "change_version_context": null,
-		    "gui_file": null,
-		    "gui_bytes": null,
+		    happ_id,
+		    "happ_datapath":		`happ/${happ_id}`,
+		    "happ_release_datapath":	`happ/release/new`,
+		    "gui_release_datapath":	`gui/release/new`,
+		    "error":			null,
+		    "added_dnas":		[],
+		    "dna_search_text":		"",
+		    "change_version_context":	null,
+		    "hdk_version_cache":	{},
 		};
 	    },
+	    "watch": {
+		"release$.hdk_version" ( new_hdk_version, old_hdk_version ) {
+		    console.log("Changed HDK Version from %s to %s", old_hdk_version, new_hdk_version );
+
+		    if ( old_hdk_version ) {
+			this.hdk_version_cache[ old_hdk_version ] = {
+			    "added_dnas":		this.added_dnas.slice(),
+			    "dna_versions":		this.release$.dnas,
+			};
+		    }
+
+		    if ( new_hdk_version ) {
+			const cache			= this.hdk_version_cache[ new_hdk_version ];
+
+			if ( cache ) {
+			    this.added_dnas.splice( 0, this.added_dnas.length, ...cache.added_dnas );
+			    this.release$.dnas			= cache.dna_versions;
+			    return;
+			}
+		    }
+
+		    this.added_dnas.splice( 0, this.added_dnas.length );
+		    this.release$.dnas			= [];
+		},
+	    },
 	    "computed": {
-		form () {
-		    return this.$refs["form"];
+		...common.scopedPathComputed( c => c.happ_datapath,		"happ", { "get": true } ),
+		...common.scopedPathComputed( c => c.happ_release_datapath,	"release" ),
+		...common.scopedPathComputed( c => c.gui_release_datapath,	"gui_release" ),
+		...common.scopedPathComputed( `guis`,				"all_guis", { "get": true }),
+		...common.scopedPathComputed( `dnarepo/hdk/versions`,		"previous_hdk_versions", { "get": true }),
+
+		relative_dna_versions_path () {
+		    return this.change_version_context
+			? `dna/${this.change_version_context[1].$id}/versions/hdk/${this.release$.hdk_version}`
+			: this.$openstate.DEADEND;
+		},
+		...common.scopedPathComputed( c => c.relative_dna_versions_path, "alternative_versions", {
+		    "default": [],
+		}),
+
+		dna_picker_modal () {
+		    return this.$refs["dna_picker"].modal;
 		},
 		change_version_modal () {
-		    return this.$refs["changeVersion"].modal;
+		    return this.$refs["change_version"].modal;
+		},
+		gui_releases_modal () {
+		    return this.$refs["select_gui_release"].modal;
 		},
 
-		happ () {
-		    return this.$store.getters.happ( this.happ_id );
+		gui_releases () {
+		    return ( gui_id ) => {
+			return this.$openstate.state[ `gui/${gui_id}/releases` ] || [];
+		    }
 		},
-		$happ () {
-		    return this.$store.getters.$happ( this.happ_id );
-		},
-
-		compatible_dnas () {
-		    return this.$store.getters.dnas( this.input.hdk_version || "all" );
-		},
-		$compatible_dnas () {
-		    return this.$store.getters.$dnas( this.input.hdk_version || "all" );
-		},
-
-		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions;
-		},
-		$previous_hdk_versions () {
-		    return this.$store.getters.$hdk_versions;
-		},
-
-		alternative_versions () {
-		    if ( !this.change_version_context )
-			return [];
-		    return this.$store.getters.dna_versions( this.change_version_context[1].$id );
-		},
-		$alternative_versions () {
-		    return this.$store.getters.$dna_versions( this.change_version_context ? this.change_version_context[1].$id : "" );
-		},
-
-		filtered_dnas () {
-		    return this.compatible_dnas.filter( dna => {
-			return dna.name.toLowerCase()
-			    .includes( this.dna_search_text.toLowerCase() )
-			    && !this.added_dnas.find( z => z.$id === dna.$id );
-		    });
-		},
-		dna_card_actions () {
-		    return ( index ) => {
-			return [
-			    this.changeDnaVersionAction( index ),
-			    this.removeDnaAction( index ),
-			];
-		    };
-		},
-		file_valid_feedback () {
-		    const file		= this.gui_file;
-
-		    if ( !file )
-			return "";
-
-		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
+		$gui_releases () {
+		    return ( gui_id ) => {
+			return this.$openstate.metastate[ `gui/${gui_id}/releases` ];
+		    }
 		},
 	    },
 	    async created () {
-		this.happ_id		= this.getPathId("happ");
+		window.HappReleaseCreate = this;
+		const release		= await this.$openstate.get(`happ/${this.happ_id}/releases/latest`);
 
-		this.$store.dispatch("fetchHDKVersions");
-		this.$store.dispatch("fetchHapp", this.happ_id );
-
-		const latest_happ_release	= await this.$store.dispatch("getLatestReleaseForHapp", [ this.happ_id, null ] );
+		this.release$.ordering	= release ? release.ordering + 1 : 1;
+		this.release$.for_happ	= this.happ_id;
 	    },
 	    "methods": {
-		async create () {
-		    log.info("Form was submitted");
-		    this.validated		= true;
+		async updateDnaList () {
+		    log.info("Configure added DNAs:", this.added_dnas );
+		    this.added_dnas.forEach( dna => {
+			this.$openstate.get(`dna/${dna.$id}/versions`);
+		    });
+		    const prev_dnas			= new Set( this.release$.dnas.map( dna_ref => dna_ref.dna ) );
+		    const new_dnas			= new Set( this.added_dnas.map( dna => String(dna.$id) ) );
 
-		    if ( this.form.checkValidity() === false )
-			return;
-
-		    this.saving			= true;
-		    try {
-			const input		= Object.assign({}, this.input );
-
-			if ( this.gui_bytes ) {
-			    const web_asset	= await this.$store.dispatch("createWebAsset", this.gui_bytes );
-
-			    input.gui		= {
-				"asset_group_id": web_asset.$id,
-				"uses_web_sdk": false,
-			    };
+		    for ( let dna of this.added_dnas ) {
+			log.info("Check exisitng list:", prev_dnas, String(dna.$id) );
+			if ( prev_dnas.has( String(dna.$id) ) ) {
+			    prev_dnas.delete( String(dna.$id) );
+			    continue;
 			}
 
-			input.manifest				= Object.assign({}, input.manifest );
-			input.manifest.name			= this.happ.title;
-			input.manifest.description		= this.happ.description;
-			input.manifest.roles			= [];
+			const versions			= await this.$openstate.get(`dna/${dna.$id}/versions/hdk/${this.release$.hdk_version}`);
+			const latest_version		= await this.$openstate.get(`dna/${dna.$id}/versions/hdk/${this.release$.hdk_version}/latest`);
 
-			for ( let dna_ref of input.dnas ) {
-			    input.manifest.roles.push({
-				"id":		dna_ref.id,
+			log.info("Push dna:", dna );
+			this.release$.dnas.push({
+			    "version_count":	versions.length,
+			    "role_id":		dna.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
+			    "dna":		String( dna.$id ),
+			    "version":		String( latest_version.$id ),
+			    "title":		latest_version.version,
+			    "wasm_hash":	latest_version.wasm_hash,
+			});
+		    }
+
+		    log.info("Remove DNAs:", prev_dnas );
+		    prev_dnas.forEach( id => {
+			log.debug("Remove DNA:", id, this.release$.dnas );
+			const index		= this.release$.dnas.findIndex( dna => {
+			    return String(dna.$id) === id;
+			});
+			this.release$.dnas.splice( index, 1 );
+		    });
+		},
+
+		async getGUIReleases ( gui_id ) {
+		    await this.$openstate.get(`gui/${gui_id}/releases`);
+		},
+
+		async create () {
+		    log.info("Form was submitted");
+
+		    try {
+			const release$			= this.release$;
+
+			release$.manifest.name			= this.happ.title;
+			release$.manifest.description		= this.happ.description;
+			release$.manifest.roles			= [];
+
+			for ( let dna_ref of release$.dnas ) {
+			    release$.manifest.roles.push({
+				"id":		dna_ref.role_id,
 				"dna": {
-				    "bundled":	`./${dna.role_id}.dna`,
+				    "bundled":	`./${dna_ref.role_id}.dna`,
 				    "clone_limit": 0,
 				},
 				"provisioning": {
@@ -147,234 +161,38 @@ module.exports = async function ( client ) {
 			    });
 			}
 
-			const release	= await this.$store.dispatch("createHappRelease", [ this.happ_id, input ] );
+			await this.$openstate.write(`happ/release/new`);
 
-			this.$store.dispatch("fetchReleasesForHapp", this.happ_id );
-			this.$router.push( `/happs/${this.happ_id}/releases/${release.$id}` );
+			const new_id		= this.release.$id;
+
+			this.$openstate.purge(`happ/release/new`);
+			this.$openstate.read(`happ/${this.happ_id}/releases`);
+
+			this.$router.push( `/happs/${this.happ_id}/releases/${new_id}` );
 		    } catch ( err ) {
 			log.error("Failed to create hApp Release:", err, err.data );
 			this.error	= err;
-		    } finally {
-			this.saving	= false;
 		    }
 		},
 
 		selectNewVersion ( version ) {
 		    const [ index, dna ]		= this.change_version_context;
 
-		    this.input.dnas[index].version		= version.$id;
-		    this.input.dnas[index].wasm_hash		= version.wasm_hash;
+		    this.release$.dnas[index].title	= version.version;
+		    this.release$.dnas[index].version	= version.$id;
+		    this.release$.dnas[index].wasm_hash	= version.wasm_hash;
 
-		    this.change_version_context			= null;
+		    this.change_version_context		= null;
 		    this.change_version_modal.hide();
 		},
-		changeDnaVersionAction ( index ) {
-		    const dna			= this.added_dnas[ index ];
-		    const versions		= this.$store.getters.dna_versions( dna.$id )
-			  .filter( version => version.hdk_version === this.input.hdk_version );
-
-		    return {
-			"hide": versions.length < 2,
-			"title": "Select a different version",
-			"icon": "layers-half",
-			"method": () => {
-			    const dna				= this.added_dnas[index];
-			    this.change_version_context		= [ index, dna ];
-			    this.change_version_modal.show();
-			},
-		    };
-		},
-		removeDnaAction ( i ) {
-		    return {
-			"icon": "x-lg",
-			"title": "Remove DNA Version",
-			"method": () => {
-			    this.removeDna( i );
-			},
-		    };
-		},
-		addDnaAction ( dna ) {
-		    return {
-			"icon": "plus-lg",
-			"title": "Add DNA",
-			"method": () => {
-			    this.addDna( dna );
-			},
-		    };
+		changeDnaVersion ( index ) {
+		    const dna				= this.added_dnas[ index ];
+		    this.change_version_context		= [ index, dna ];
+		    this.change_version_modal.show();
 		},
 
-		removeDna ( i ) {
-		    this.added_dnas.splice( i, 1 );
-		    this.input.dnas.splice( i, 1 );
-		},
-		async addDna ( dna ) {
-		    log.debug("Adding DNA:", dna );
-		    if ( dna === undefined )
-			return;
-
-		    log.info("Reset search");
-		    this.dna_search_text = "";
-
-		    if ( this.added_dnas.find( z => z.$id === dna.$id ) )
-			return;
-
-		    const latest_version	= await this.$store.dispatch("getLatestVersionForDna", [ dna.$id, this.input.hdk_version ] );
-
-		    if ( !this.input.hdk_version ) {
-			this.input.hdk_version		= latest_version.hdk_version;
-		    }
-
-		    this.lock_hdk_version_input		= true;
-
-		    this.added_dnas.push( dna );
-		    this.input.dnas.push({
-			"role_id":	dna.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
-			"dna":		dna.$id,
-			"version":	latest_version.$id,
-			"wasm_hash":	latest_version.wasm_hash,
-		    });
-		},
-		dnaIsAdded ( dna_id ) {
-		    return !!this.added_dnas.find( d => d.$id === dna_id );
-		},
 		selectHDKVersion ( hdk_version ) {
-		    this.input.hdk_version		= hdk_version || null;
-
-		    if ( this.compatible_dnas.length === 0 ) {
-			if ( hdk_version )
-			    this.$store.dispatch("fetchDnasWithHDKVersion", hdk_version );
-			else
-			    this.$store.dispatch("fetchAllDnas");
-		    }
-		},
-		async file_selected ( event ) {
-		    const files			= event.target.files;
-		    const file			= files[0];
-
-		    if ( file === undefined ) {
-			this.gui_bytes		= null;
-			this.gui_file		= null;
-			return;
-		    }
-
-		    this.gui_file		= file;
-		    this.gui_bytes		= await this.load_file( file );
-		},
-	    },
-	};
-    };
-
-    async function update () {
-	return {
-	    "template": await load_html("/templates/happs/releases/update.html"),
-	    "data": function() {
-		return {
-		    "id": null,
-		    "happ_id": null,
-		    "error": null,
-		    "_release": null,
-		    "input": {},
-		    "validated": false,
-		    "gui_file": null,
-		    "gui_bytes": null,
-		    "saving_gui": false,
-		    "show_preview": false,
-		};
-	    },
-	    "computed": {
-		release () {
-		    if ( this.$store.getters.happ_release( this.id ) )
-			this._release	= this.copy( this.$store.getters.happ_release( this.id ) );
-
-		    return this._release;
-		},
-		$release () {
-		    return this.$store.getters.$happ_release( this.id );
-		},
-		happ () {
-		    if ( !this.release )
-			return null;
-
-		    return this.$store.getters.happ( this.release.for_happ.$id || this.release.for_happ );
-		},
-		$happ () {
-		    return this.$release;
-		},
-		form () {
-		    return this.$refs["form"];
-		},
-		preview_toggle_text () {
-		    return this.show_preview ? "editor" : "preview";
-		},
-		file_valid_feedback () {
-		    const file		= this.gui_file;
-
-		    if ( !file )
-			return "";
-
-		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
-		},
-	    },
-	    async created () {
-		this.id			= this.getPathId("id");
-		this.happ_id		= this.getPathId("happ");
-
-		if ( !this.release )
-		    await this.fetchRelease();
-	    },
-	    "methods": {
-		togglePreview () {
-		    this.show_preview		= !this.show_preview;
-		},
-		async fetchRelease () {
-		    try {
-			await this.$store.dispatch("fetchHappRelease", this.id );
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
-
-			log.error("Failed to get happ release (%s): %s", String(this.id), err.message, err );
-		    }
-		},
-		async update () {
-		    this.validated	= true;
-
-		    if ( this.form.checkValidity() === false )
-			return;
-
-		    try {
-			if ( this.gui_bytes ) {
-			    this.saving_gui			= true;
-			    const web_asset			= await this.$store.dispatch("createWebAsset", this.gui_bytes );
-
-			    this.input.gui	= {
-				"asset_group_id": web_asset.$id,
-				"holo_hosting_settings": {
-				    "uses_web_sdk": false,
-				},
-			    };
-			    this.saving_gui			= false;
-			}
-
-			await this.$store.dispatch("updateHappRelease", [ this.id, this.input ] );
-
-			this.$router.push( `/happs/${this.happ_id}/releases/${this.id}` );
-		    } catch ( err ) {
-			log.error("Failed to update hApp Release (%s):", String(this.id), err );
-			this.error	= err;
-		    }
-		},
-		async file_selected ( event ) {
-		    const files			= event.target.files;
-		    const file			= files[0];
-
-		    if ( file === undefined ) {
-			this.gui_bytes		= null;
-			this.gui_file		= null;
-			return;
-		    }
-
-		    this.gui_file		= file;
-		    this.gui_bytes		= await this.load_file( file );
+		    this.release$.hdk_version		= hdk_version || null;
 		},
 	    },
 	};
@@ -382,47 +200,46 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": await load_html("/templates/happs/releases/single.html"),
+	    "template": await common.load_html("/templates/happs/releases/single.html"),
 	    "data": function() {
+		const id		= this.getPathId("id");
+		const happ_id		= this.getPathId("happ");
+
 		return {
-		    "id": null,
-		    "happ_id": null,
-		    "changelog_html": null,
-		    "download_error": null,
-		    "download_webhapp_error": null,
+		    id,
+		    happ_id,
+		    "datapath":			`happ/release/${id}`,
+		    "happ_datapath":		`happ/${happ_id}`,
+		    "bundle_datapath":		`happ/release/${id}/bundle`,
+
+		    "download_error":		null,
+		    "download_webhapp_error":	null,
 		};
 	    },
 	    async created () {
-		this.id			= this.getPathId("id");
-		this.happ_id		= this.getPathId("happ");
-
-		this.refresh();
+		this.mustGet(async () => {
+		    await Promise.all([
+			this.$openstate.get( this.datapath ),
+			this.$openstate.get( this.happ_datapath ),
+		    ]);
+		});
 	    },
 	    "computed": {
-		release () {
-		    return this.$store.getters.happ_release( this.id );
-		},
-		$release () {
-		    return this.$store.getters.$happ_release( this.id );
-		},
-		happ () {
-		    if ( !this.release )
-			return null;
+		...common.scopedPathComputed( c => c.datapath,			"release", { "get": true } ),
+		...common.scopedPathComputed( c => c.happ_datapath,		"happ", { "get": true } ),
+		...common.scopedPathComputed( c => c.bundle_datapath,		"package_bytes" ),
 
-		    return this.$store.getters.happ( this.release.for_happ.$id || this.release.for_happ );
+		webhapp_bundle_datapath () {
+		    return this.release && this.release.official_gui
+			? `happ/release/${this.id}/webhapp/${this.release.official_gui}/bundle`
+			: this.$openstate.DEADEND;
 		},
-		$happ () {
-		    return this.$store.getters.$happ( this.release ? this.release.for_happ.$id || this.release.for_happ : null );
-		},
-		$packageBytes () {
-		    return this.$store.getters.$happ_release_package( this.release ? this.release.$id : null );
-		},
-		$webhappPackageBytes () {
-		    return this.$store.getters.$happ_release_package( this.release ? this.release.$id + "-webhapp" : null );
-		},
+		...common.scopedPathComputed( c => c.webhapp_bundle_datapath,	"webhapp_package_bytes" ),
+
 		modal () {
 		    return this.$refs["modal"].modal;
 		},
+
 		package_filename () {
 		    if ( !this.happ )
 			return "hApp Package";
@@ -437,58 +254,103 @@ module.exports = async function ( client ) {
 		    const filename	= this.happ.title.replace(/[/\\?%*:|"<>]/g, '_');
 		    return `${filename}_${this.release.name}.webhapp`;
 		},
-		happ_deprecated () {
-		    return !!( this.happ && this.happ.deprecation );
-		},
 	    },
 	    "methods": {
 		refresh () {
-		    if ( !this.release )
-			this.fetchRelease();
-		},
-		async fetchRelease () {
-		    try {
-			let release	= await this.$store.dispatch("fetchHappRelease", this.id );
-
-			release.dnas.forEach( (dna_ref) => {
-			    // fetch DNA version
-			});
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
-
-			log.error("Failed to get happ release (%s): %s", String(this.id), err.message, err );
-		    }
+		    this.$openstate.read( this.datapath );
+		    this.$openstate.read( this.happ_datapath );
 		},
 		async downloadPackageBytes () {
-		    try {
-			const package_bytes	= await this.$store.dispatch("fetchHappReleasePackage", this.release.$id );
+		    const bytes		= await this.$openstate.get( this.bundle_datapath, {
+			"rememberState": false,
+		    });
 
-			this.download( this.package_filename, package_bytes );
-		    } catch (err) {
-			this.download_error	= err;
-			log.error("Failed to get package bytes for happ release(%s):", String(this.id), err );
-		    }
+		    this.download( this.package_filename, bytes );
 		},
 		async downloadWebhappPackageBytes () {
-		    try {
-			const package_bytes	= await this.$store.dispatch("fetchWebhappReleasePackage", {
-			    "name": this.happ.title,
-			    "id": this.release.$id,
-			});
+		    log.normal("Download Webhapp package:", this.happ, this.release );
+		    const bytes		= await this.$openstate.get( this.webhapp_bundle_datapath, {
+			"rememberState": false,
+		    });
 
-			this.download( this.package_webhapp_filename, package_bytes );
-		    } catch (err) {
-			this.download_webhapp_error	= err;
-			log.error("Failed to get webhapp package bytes for happ release(%s):", String(this.id), err );
-		    }
+		    this.download( this.package_webhapp_filename, bytes );
 		},
 		async unpublish () {
-		    await this.$store.dispatch("unpublishHappRelease", this.id );
+		    await this.$openstate.delete( this.datapath );
 
 		    this.modal.hide();
 
-		    this.$store.dispatch("fetchReleasesForHapp", this.happ_id );
+		    this.$openstate.read(`happ/${this.happ_id}/releases`);
 		    this.$router.push( `/happs/${this.happ_id}` );
+		},
+	    },
+	};
+    };
+
+    async function update () {
+	return {
+	    "template": await common.load_html("/templates/happs/releases/update.html"),
+	    "data": function() {
+		const id			= this.getPathId("id");
+		const happ_id			= this.getPathId("happ");
+
+		return {
+		    id,
+		    happ_id,
+		    "error": null,
+		    "show_preview": false,
+		};
+	    },
+	    "computed": {
+		...common.scopedPathComputed( c => `happ/release/${c.id}`,	"release", { "get": true }),
+		...common.scopedPathComputed( c => `happ/${c.happ_id}`,		"happ", { "get": true } ),
+		...common.scopedPathComputed( `guis`,				"all_guis", { "get": true }),
+
+		input () {
+		    return this.release$;
+		},
+
+		gui_releases () {
+		    return ( gui_id ) => {
+			return this.$openstate.state[ `gui/${gui_id}/releases` ] || [];
+		    }
+		},
+		$gui_releases () {
+		    return ( gui_id ) => {
+			return this.$openstate.metastate[ `gui/${gui_id}/releases` ];
+		    }
+		},
+
+		guis_modal () {
+		    return this.$refs["select_gui_release"].modal;
+		},
+		preview_toggle_text () {
+		    return this.show_preview ? "editor" : "preview";
+		},
+	    },
+	    async created () {
+		this.mustGet(async () => {
+		    await this.$openstate.get(`happ/release/${this.id}`);
+		});
+	    },
+	    "methods": {
+		async getGUIReleases ( gui_id ) {
+		    await this.$openstate.get(`gui/${gui_id}/releases`);
+		},
+		togglePreview () {
+		    this.show_preview		= !this.show_preview;
+		},
+		async update () {
+		    try {
+			await this.$openstate.write(`happ/release/${this.id}`);
+
+			this.$openstate.read(`happ/${this.happ_id}/releases`);
+
+			this.$router.push( `/happs/${this.happ_id}/releases/${this.id}` );
+		    } catch ( err ) {
+			log.error("Failed to update hApp Release (%s):", String(this.id), err );
+			this.error	= err;
+		    }
 		},
 	    },
 	};
@@ -496,7 +358,7 @@ module.exports = async function ( client ) {
 
     async function upload () {
 	return {
-	    "template": await load_html("/templates/happs/releases/upload.html"),
+	    "template": await common.load_html("/templates/happs/releases/upload.html"),
 	    "data": function() {
 		return {
 		    "id": null,
@@ -504,6 +366,7 @@ module.exports = async function ( client ) {
 		    "input": {
 			"name": "",
 			"description": "",
+			"ordering": 1,
 			"manifest": null,
 			"hdk_version": null,
 			"dnas": [],
@@ -738,18 +601,24 @@ module.exports = async function ( client ) {
 		    log.info("Latest hApp release:", this.happ_release );
 
 		    // We will use the last release name as the default value for the next release.
-		    this.input.name		= this.happ_release.name;
+		    // this.input.name		= this.happ_release.name;
+		    this.input.ordering		= this.happ_release.ordering + 1;
 
 		    log.info("Make reverse-lookup for previous DNAs:", this.happ_release );
 		    this.happ_release.dnas.forEach( async dna_ref => {
 			const prev_dna_info	= this.previous_dnas[dna_ref.role_id]	= this.copy( dna_ref );
-			prev_dna_info.zomes	= {};
+			prev_dna_info.integrity_zomes	= {};
+			prev_dna_info.zomes		= {};
 
 			this.$store.dispatch("getDnaVersion", dna_ref.version ).then( dna_version => {
-			    prev_dna_info.zomes			= {};
+			    // prev_dna_info.zomes			= {};
 
-			    for ( let [name, version] of Object.entries(dna_version.zomes) ) {
-				prev_dna_info.zomes[name]	= version;
+			    for ( let zome_ref of dna_version.integrity_zomes ) {
+				prev_dna_info.integrity_zomes[zome_ref.name]	= zome_ref;
+			    }
+
+			    for ( let zome_ref of dna_version.zomes ) {
+				prev_dna_info.zomes[zome_ref.name]	= zome_ref;
 			    }
 			});
 		    });
@@ -787,6 +656,7 @@ module.exports = async function ( client ) {
 
 		    this.input.name			= "";
 		    this.input.description		= "";
+		    this.input.ordering			= 1;
 		    this.input.hdk_version		= null;
 
 		    this.validated			= false;
@@ -809,7 +679,11 @@ module.exports = async function ( client ) {
 		},
 
 		missing_zome_version ( dna ) {
-		    for ( let zome_sources of Object.values( dna.zomes ) ) {
+		    for ( let zome_sources of Object.values( dna.integrity_zomes ) ) {
+			if ( !zome_sources.upload.zome_version_id )
+			    return true;
+		    }
+		    for ( let zome_sources of Object.values( dna.coordinator.zomes ) ) {
 			if ( !zome_sources.upload.zome_version_id )
 			    return true;
 		    }
@@ -861,7 +735,8 @@ module.exports = async function ( client ) {
 			await this.delay();
 
 			log.debug("Setup for role:", role );
-			role.version			= 1;
+			role.version			= "";
+			role.ordering			= 1;
 			role.file			= null;
 			role.bundle			= await role.dna.manifest();
 			role.hash			= role.bundle.dna_hash;
@@ -880,10 +755,11 @@ module.exports = async function ( client ) {
 				    });
 			    }
 			    else {
-				const matches		= await this.$store.dispatch("fetchDnaVersionsByHash", role.hash );
+				await this.$store.dispatch("fetchDnaVersionsByHash", role.hash );
+
 				// If there are any matching versions, then we won't assume that a
 				// new DNA Version is being created.
-				if ( matches.length === 0 ) {
+				if ( this.dna_versions( role.hash ).length === 0 ) {
 				    // Auto-select the parent DNA of the previous role configuration
 				    this.$store.dispatch("getDna", prev_dna_ref.dna )
 					.then( dna => {
@@ -897,10 +773,46 @@ module.exports = async function ( client ) {
 			this.$store.dispatch("fetchDnasByName", role.bundle.name );
 			this.$dna_versions( role.hash ).current || this.$store.dispatch("fetchDnaVersionsByHash", role.hash );
 
-			role.bundle.zomes.forEach( async zome_ref => {
+			role.bundle.integrity.zomes.forEach( async zome_ref => {
 			    await this.delay();
 
-			    zome_ref.version		= 1;
+			    zome_ref.version		= "";
+			    zome_ref.ordering		= 1;
+
+			    if ( this.previous_dnas[ role.id ] && this.previous_dnas[ role.id ].integrity_zomes[ zome_ref.name ] ) {
+				const prev_zome		= this.previous_dnas[ role.id ].integrity_zomes[ zome_ref.name ];
+
+				log.normal("Previous zome match (%s) in role '%s':", zome_ref.name, role.id, prev_zome );
+				if ( prev_zome.mere_memory_hash === zome_ref.hash
+				     && prev_zome.hdk_version === this.input.hdk_version) {
+				    // Auto-select the previous role->zome Version
+				    this.select_zome_version( zome_ref, prev_zome );
+				}
+				else {
+				    await this.$store.dispatch("fetchZomeVersionsByHash", zome_ref.hash );
+
+				    // If there are any matching versions, then we won't assume that
+				    // a new Zome Version is being created.
+				    if ( this.zome_versions( zome_ref.hash ).length === 0 ) {
+					// Auto-select the parent Zome of the previous role->zome configuration
+					this.$store.dispatch("getZome", prev_zome.zome )
+					    .then( zome => {
+						this.assign_parent_zome_for( zome_ref, zome );
+					    });
+				    }
+				}
+			    }
+
+			    // Search for existing zomes with the same name
+			    this.$store.dispatch("fetchZomesByName", zome_ref.name );
+			    this.$zome_versions( zome_ref.hash ).current || this.$store.dispatch("fetchZomeVersionsByHash", zome_ref.hash );
+			});
+
+			role.bundle.coordinator.zomes.forEach( async zome_ref => {
+			    await this.delay();
+
+			    zome_ref.version		= "";
+			    zome_ref.ordering		= 1;
 
 			    if ( this.previous_dnas[ role.id ] && this.previous_dnas[ role.id ].zomes[ zome_ref.name ] ) {
 				const prev_zome		= this.previous_dnas[ role.id ].zomes[ zome_ref.name ];
@@ -912,13 +824,13 @@ module.exports = async function ( client ) {
 				    this.select_zome_version( zome_ref, prev_zome );
 				}
 				else {
-				    const matches	= await this.$store.dispatch("fetchZomeVersionsByHash", zome_ref.hash );
+				    await this.$store.dispatch("fetchZomeVersionsByHash", zome_ref.hash );
 
 				    // If there are any matching versions, then we won't assume that
 				    // a new Zome Version is being created.
-				    if ( matches.length === 0 ) {
+				    if ( this.zome_versions( zome_ref.hash ).length === 0 ) {
 					// Auto-select the parent Zome of the previous role->zome configuration
-					this.$store.dispatch("getZome", prev_zome.for_zome )
+					this.$store.dispatch("getZome", prev_zome.zome )
 					    .then( zome => {
 						this.assign_parent_zome_for( zome_ref, zome );
 					    });
@@ -984,7 +896,7 @@ module.exports = async function ( client ) {
 
 		    if ( upload.selected_dna ) {
 			const version		= await this.$store.dispatch("getLatestVersionForDna", [ upload.selected_dna.$id, null ]  );
-			upload.version		= version ? version.version + 1 : 1;
+			upload.ordering		= version ? version.ordering + 1 : 1;
 		    }
 		},
 
@@ -996,12 +908,12 @@ module.exports = async function ( client ) {
 		    this.select_dna_modal.hide();
 
 		    const version		= await this.$store.dispatch("getLatestVersionForDna", [ dna.$id, null ]  );
-		    role.version		= version ? version.version + 1 : 1;
+		    role.ordering		= version ? version.ordering + 1 : 1;
 		},
 		async unassign_parent_dna_for ( role ) {
 		    log.normal("Unassign parent DNA for '%s'", role.id );
 
-		    role.version		= 1;
+		    role.ordering		= 1;
 
 		    delete role.selected_dna;
 		},
@@ -1047,15 +959,15 @@ module.exports = async function ( client ) {
 
 		    delete upload.selected_zome_version;
 
-		    let empty				= true;
-		    for ( let zome of role.bundle.zomes ) {
-			if ( zome.selected_zome_version )
-			    empty			= false;
-		    }
+		    // let empty				= true;
+		    // for ( let zome of role.bundle.zomes ) {
+		    // 	if ( zome.selected_zome_version )
+		    // 	    empty			= false;
+		    // }
 
 		    if ( upload.selected_zome ) {
 			const version		= await this.$store.dispatch("getLatestVersionForZome", [ upload.selected_zome.$id, null ]  );
-			upload.version		= version ? version.version + 1 : 1;
+			upload.ordering		= version ? version.ordering + 1 : 1;
 		    }
 		},
 
@@ -1067,12 +979,12 @@ module.exports = async function ( client ) {
 		    this.select_zome_modal.hide();
 
 		    const version		= await this.$store.dispatch("getLatestVersionForZome", [ zome.$id, null ]  );
-		    upload.version		= version ? version.version + 1 : 1;
+		    upload.ordering		= version ? version.ordering + 1 : 1;
 		},
 		async unassign_parent_zome_for ( upload ) {
 		    log.normal("Unassign parent zome for '%s'", upload.name );
 
-		    upload.version		= 1;
+		    upload.ordering		= 1;
 
 		    delete upload.selected_zome;
 		},
@@ -1090,7 +1002,7 @@ module.exports = async function ( client ) {
 		    this.ready_for_review	= true;
 		},
 
-		async create_zome_version ( zome_info ) {
+		async create_zome_version ( zome_info, zome_type ) {
 		    this.validated		= true;
 		    zome_info.validated		= true;
 
@@ -1107,7 +1019,9 @@ module.exports = async function ( client ) {
 			    zome_info.selected_zome	= await this.$client.call(
 				"dnarepo", "dna_library", "create_zome", {
 				    "name": zome_info.name,
-				    "description": zome_info.description,
+				    "display_name": zome_info.display_name,
+				    "description": zome_info.description || "",
+				    zome_type,
 				}
 			    );
 			    this.$store.dispatch("fetchZomesByName", zome_info.name );
@@ -1116,10 +1030,11 @@ module.exports = async function ( client ) {
 			// Create the new version
 			const version			= await this.$client.call(
 			    "dnarepo", "dna_library", "create_zome_version", {
-				"for_zome": zome_info.selected_zome.$id,
-				"version": zome_info.version,
-				"zome_bytes": zome_info.bytes,
-				"hdk_version": this.input.hdk_version,
+				"for_zome":	zome_info.selected_zome.$id,
+				"version":	zome_info.version,
+				"ordering":	zome_info.ordering,
+				"zome_bytes":	zome_info.bytes,
+				"hdk_version":	this.input.hdk_version,
 			    }
 			);
 			this.$store.dispatch("fetchZomeVersionsByHash", zome_info.hash );
@@ -1155,8 +1070,9 @@ module.exports = async function ( client ) {
 			if ( !role.selected_dna ) {
 			    role.selected_dna	= await this.$client.call(
 				"dnarepo", "dna_library", "create_dna", {
-				    "name": role.id,
-				    "description": role.description,
+				    "name": role.bundle.name,
+				    "display_name": role.display_name,
+				    "description": role.description || "",
 				}
 			    );
 			    this.$store.dispatch("fetchDnasByName", role.id );
@@ -1165,17 +1081,28 @@ module.exports = async function ( client ) {
 			// Create the new version
 			const version			= await this.$client.call(
 			    "dnarepo", "dna_library", "create_dna_version", {
-				"for_dna":	role.selected_dna.$id,
-				"version":	role.version,
-				"hdk_version":	this.input.hdk_version,
-				"properties":	role.bundle.properties,
-				"zomes":	role.bundle.zomes.map( zome_info => {
+				"for_dna":		role.selected_dna.$id,
+				"version":		role.version,
+				"ordering":		role.ordering,
+				"hdk_version":		this.input.hdk_version,
+				"properties":		role.bundle.integrity.properties,
+				"integrity_zomes":	role.bundle.integrity.zomes.map( zome_info => {
 				    return {
 					"name":			zome_info.name,
-					"zome":			zome_info.selected_zome_version.for_zome.$id || zome_info.selected_zome_version.for_zome,
+					"zome":			zome_info.selected_zome_version.for_zome,
 					"version":		zome_info.selected_zome_version.$id,
 					"resource":		zome_info.selected_zome_version.mere_memory_addr,
 					"resource_hash":	zome_info.selected_zome_version.mere_memory_hash,
+				    };
+				}),
+				"zomes":		role.bundle.coordinator.zomes.map( zome_info => {
+				    return {
+					"name":			zome_info.name,
+					"zome":			zome_info.selected_zome_version.for_zome,
+					"version":		zome_info.selected_zome_version.$id,
+					"resource":		zome_info.selected_zome_version.mere_memory_addr,
+					"resource_hash":	zome_info.selected_zome_version.mere_memory_hash,
+					"dependencies":		Object.values( zome_info.dependencies ).map( ref => ref.name ),
 				    };
 				}),
 			    }
@@ -1203,12 +1130,13 @@ module.exports = async function ( client ) {
 			    "name":		this.input.name,
 			    "description":	this.input.description,
 			    "hdk_version":	this.input.hdk_version,
+			    "ordering":		this.input.ordering,
 			    "manifest":		this.bundle.manifest,
 			    "dnas": this.bundle.roles.map( role => {
 				const version		= role.selected_dna_version;
 				return {
 				    "role_id":		role.id,
-				    "dna":		version.for_dna.$id || version.for_dna,
+				    "dna":		version.for_dna,
 				    "version":		version.$id,
 				    "wasm_hash":	version.wasm_hash,
 				};
@@ -1261,10 +1189,18 @@ module.exports = async function ( client ) {
 		    return false;
 		},
 		missingZomes ( role ) {
-		    if ( !(role.bundle && role.bundle.zomes) )
+		    console.log("Check for missing zomes:", role );
+		    if ( !role.bundle )
 			return false;
+		    if ( !(role.bundle.integrity?.zomes || role.bundle.coordinator?.zomes) )
+			return true;
 
-		    for ( let zome of role.bundle.zomes ) {
+		    for ( let zome of role.bundle.integrity.zomes ) {
+			if ( !zome.selected_zome_version )
+			    return true;
+		    }
+
+		    for ( let zome of role.bundle.coordinator.zomes ) {
 			if ( !zome.selected_zome_version )
 			    return true;
 		    }

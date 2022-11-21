@@ -7,11 +7,11 @@ const Copy			= require('copy-webpack-plugin');
 
 const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH",	"utf8").trim();
 const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH",		"utf8").trim();
-const WEBASSETS_HASH		= fs.readFileSync("./tests/WEBASSETS_HASH",	"utf8").trim();
+const WEBASSETS_HASH		= fs.readFileSync("./tests/WEB_ASSETS_HASH",	"utf8").trim();
 const WEBPACK_MODE		= process.env.WEBPACK_MODE || "production";
 
 
-const MAX_SIZE_KB		= 200;
+const MAX_SIZE_KB		= 250;
 const MAX_SIZE			= MAX_SIZE_KB * 1_000;
 
 

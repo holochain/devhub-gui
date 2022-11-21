@@ -1,36 +1,36 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("zome versions");
 
-const { load_html }			= require('./common.js');
-const md_converter			= new showdown.Converter({
-    "headerLevelStart": 3,
-});
+const common				= require('./common.js');
 
 
 module.exports = async function ( client ) {
 
     async function create () {
 	return {
-	    "template": await load_html("/templates/zomes/versions/create.html"),
+	    "template": await common.load_html("/templates/zomes/versions/create.html"),
 	    "data": function() {
+		const zome_id		= this.getPathId("zome");
+
 		return {
-		    "zome_id": null,
-		    "error": null,
-		    "input": {
-			"version": null,
-			"changelog": null,
-			"zome_bytes": null,
-			"hdk_version": null,
-		    },
-		    "zome_file": null,
-		    "validated": false,
-		    "saving": false,
+		    zome_id,
+		    "zome_version_datapath":	`zome/version/new`,
+		    "zome_file":		null,
+		    "error":			null,
 		};
 	    },
 	    "computed": {
-		form () {
-		    return this.$refs["form"];
+		...common.scopedPathComputed( c => `zome/${c.zome_id}`,		"zome", { "get": true } ),
+		...common.scopedPathComputed( c => c.zome_version_datapath,	"version" ),
+		...common.scopedPathComputed( `dnarepo/hdk/versions`,		"previous_hdk_versions", { "get": true }),
+
+		sc_url_datapath () {
+		    return this.version$.source_code_commit_url
+			? `url/info/${this.version$.source_code_commit_url.replaceAll("/", "|")}`
+			: this.$openstate.DEADEND;
 		},
+		...common.scopedPathComputed( c => c.sc_url_datapath,		"sc_url_preview" ),
+
 		file_valid_feedback () {
 		    const file		= this.zome_file;
 
@@ -39,135 +39,62 @@ module.exports = async function ( client ) {
 
 		    return `Selected file "<strong class="font-monospace">${file.name}</strong>" (${this.$filters.number(file.size)} bytes)`;
 		},
-		previous_hdk_versions () {
-		    return this.$store.getters.hdk_versions;
-		},
-		$previous_hdk_versions () {
-		    return this.$store.getters.$hdk_versions;
-		},
 	    },
 	    async created () {
-		this.zome_id		= this.getPathId("zome");
+		this.version$.for_zome	= this.zome_id;
 
-		this.fetchHDKVersions();
+		const version			= await this.$openstate.get(`zome/${this.zome_id}/versions/latest`);
+		this.version$.ordering	= version ? version.ordering + 1 : 1;
 	    },
 	    "methods": {
 		async file_selected ( event ) {
+		    console.log(`File selected`, event );
+
 		    const files			= event.target.files;
 		    const file			= files[0];
 
 		    if ( file === undefined ) {
-			this.input.zome_bytes	= null;
-			this.zome_file		= null;
+			this.version$.zome_bytes	= null;
+			this.zome_file			= null;
 			return;
 		    }
 
 		    this.zome_file		= file;
-		    this.input.zome_bytes	= await this.load_file( file );
+		    this.version$.zome_bytes	= await this.load_file( file );
+
+		    console.log(`File selected done`, this.version$ );
 		},
-		async create () {
-		    this.validated	= true;
-
-		    if ( this.form.checkValidity() === false )
+		async createSourceCodeUrlPreview ( url ) {
+		    if ( !url ) {
+			delete this.version$.metadata.source_code_url_preview;
 			return;
+		    }
 
-		    this.saving		= true;
+		    const url_info		= await this.$openstate.read( this.sc_url_datapath );
+
+		    Object.assign( this.version$.metadata, {
+			"source_code_url_preview": {
+			    "title":		url_info.title,
+			    "description":	url_info.description,
+			    "image":		url_info.image,
+			},
+		    });
+		    log.debug("Updated preview metadata:", this.version$ );
+
+		    return url_info;
+		},
+		async write () {
 		    try {
-			const version	= await this.$store.dispatch("createZomeVersion", [ this.zome_id, this.input ] );
+			await this.$openstate.write( this.zome_version_datapath );
 
-			this.$store.dispatch("fetchVersionsForZome", this.zome_id );
-			this.$router.push( `/zomes/${this.zome_id}/versions/${version.$id}` );
+			const new_id		= this.version.$id;
+
+			this.$openstate.purge( this.zome_version_datapath );
+			this.$openstate.read(`zome/${this.zome_id}/versions`);
+
+			this.$router.push( `/zomes/${this.zome_id}/versions/${new_id}` );
 		    } catch ( err ) {
 			log.error("Failed to create Zome Version:", err );
-			this.error	= err;
-		    } finally {
-			this.saving	= false;
-		    }
-		},
-		async fetchHDKVersions () {
-		    await this.$store.dispatch("fetchHDKVersions");
-		},
-		selectHDKVersion ( hdk_version ) {
-		    this.input.hdk_version	= hdk_version;
-		}
-	    },
-	};
-    };
-
-    async function update () {
-	return {
-	    "template": await load_html("/templates/zomes/versions/update.html"),
-	    "data": function() {
-		return {
-		    "id": null,
-		    "zome_id": null,
-		    "error": null,
-		    "_version": null,
-		    "input": {},
-		    "validated": false,
-		    "changelog_html": null,
-		    "show_changelog_preview": false,
-		};
-	    },
-	    "computed": {
-		version () {
-		    if ( this.$store.getters.zome_version( this.id ) )
-			this._version	= this.copy( this.$store.getters.zome_version( this.id ) );
-
-		    return this._version;
-		},
-		$version () {
-		    return this.$store.getters.$zome_version( this.id );
-		},
-		zome () {
-		    return this.$store.getters.zome( this.version.for_zome.$id || this.version.for_zome );
-		},
-		$zome () {
-		    return this.$version;
-		},
-		form () {
-		    return this.$refs["form"];
-		},
-		preview_toggle_text () {
-		    return this.show_changelog_preview ? "editor" : "preview";
-		}
-	    },
-	    async created () {
-		this.id			= this.getPathId("id");
-		this.zome_id		= this.getPathId("zome");
-
-		if ( !this.version )
-		    await this.fetchVersion();
-	    },
-	    "methods": {
-		toggleChangelogPreview () {
-		    this.show_changelog_preview = !this.show_changelog_preview;
-		    this.updateChangelogMarkdown();
-		},
-		updateChangelogMarkdown () {
-		    this.changelog_html	= md_converter.makeHtml( this.version.changelog );
-		},
-		async fetchVersion () {
-		    try {
-			await this.$store.dispatch("fetchZomeVersion", this.id );
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
-
-			log.error("Failed to get zome version (%s): %s", String(this.id), err.message, err );
-		    }
-		},
-		async update () {
-		    this.validated	= true;
-
-		    if ( this.form.checkValidity() === false )
-			return;
-
-		    try {
-			await this.$store.dispatch("updateZomeVersion", [ this.id, this.input ] );
-
-			this.$router.push( `/zomes/${this.zome_id}/versions/${this.id}` );
-		    } catch ( err ) {
-			log.error("Failed to update Zome Version (%s):", String(this.id), err );
 			this.error	= err;
 		    }
 		},
@@ -177,39 +104,70 @@ module.exports = async function ( client ) {
 
     async function single () {
 	return {
-	    "template": await load_html("/templates/zomes/versions/single.html"),
+	    "template": await common.load_html("/templates/zomes/versions/single.html"),
 	    "data": function() {
+		const id		= this.getPathId("id");
+		const zome_id		= this.getPathId("zome");
+
 		return {
-		    "id": null,
-		    "zome_id": null,
-		    "changelog_html": null,
+		    id,
+		    zome_id,
+		    "my_review": null,
+
+		    "zomepath":			`zome/${zome_id}`,
+		    "versionpath":		`zome/version/${id}`,
+		    "wasmbytespath":		`zome/version/${id}/wasm`,
+		    "reviewsummarypath":	`zome/version/${id}/review/summary`,
+		    "versionreviewspath":	`zome/version/${id}/reviews`,
+		    "reviewinputpath":		`review/${id}`, // unique per zome version
+
+		    "review_summary_error": null,
 		};
 	    },
 	    async created () {
-		this.id			= this.getPathId("id");
-		this.zome_id		= this.getPathId("zome");
+		window.ZomeVersionSingle = this;
+		await this.mustGet(async () => {
+		    await Promise.all([
+			this.$openstate.get( this.versionpath ),
+			this.$openstate.get( this.zomepath ),
+			this.$openstate.read( this.versionreviewspath ),
+		    ]);
 
-		this.refresh();
+		    if ( this.version.review_summary )
+			this.$openstate.get( this.reviewsummarypath );
+		});
+
+		await this.$openstate.get( `agent/me/reviews` );
+
+		if ( this.myReviewMap[ this.id ] ) {
+		    this.my_review		= this.myReviewMap[ this.id ];
+
+		    this.reviewinputpath	= `review/${this.my_review.$id}`;
+		} else {
+		    this.resetReviewEdit();
+		}
 	    },
 	    "computed": {
-		version () {
-		    return this.$store.getters.zome_version( this.id );
-		},
-		$version () {
-		    return this.$store.getters.$zome_version( this.id );
-		},
-		zome () {
-		    return this.$store.getters.zome( this.version ? this.version.for_zome.$id || this.version.for_zome : null );
-		},
-		$zome () {
-		    return this.$version;
-		},
-		$wasmBytes () {
-		    return this.$store.getters.$zome_version_wasm( this.version ? this.version.mere_memory_addr : null );
-		},
+		...common.scopedPathComputed( c => c.zomepath,			"zome", { "get": true } ),
+		...common.scopedPathComputed( c => c.versionpath,		"version", { "get": true } ),
+		...common.scopedPathComputed( c => c.versionreviewspath,	"reviews", { "get": true, "default": [] } ),
+		...common.scopedPathComputed( c => c.wasmbytespath,		"wasm_bytes" ),
+		...common.scopedPathComputed( c => c.reviewsummarypath,		"summary" ),
+		...common.scopedPathComputed( c => c.reviewinputpath,		"review_input" ),
+
 		modal () {
 		    return this.$refs["modal"].modal;
 		},
+		reviewModal () {
+		    return this.$refs["review"].modal;
+		},
+
+		$reviewMap () {
+		    return id => {
+			return this.$openstate.metastate[`review/${id}`];
+		    };
+		},
+
 		wasm_filename () {
 		    if ( !this.zome )
 			return "Zome Wasm";
@@ -217,34 +175,31 @@ module.exports = async function ( client ) {
 		    const filename	= this.zome.name.replace(/[/\\?%*:|"<>]/g, '_');
 		    return `${filename}_v${this.version.version}.wasm`;
 		},
-		zome_deprecated () {
-		    return !!( this.zome && this.zome.deprecation );
-		},
 	    },
 	    "methods": {
-		refresh () {
-		    if ( !this.version )
-			this.fetchVersion();
-		    else
-			this.updateChangelogMarkdown();
-		},
-		updateChangelogMarkdown () {
-		    this.changelog_html	= md_converter.makeHtml( this.version.changelog );
-		},
-		async fetchVersion () {
-		    try {
-			let version	= await this.$store.dispatch("fetchZomeVersion", this.id );
+		async refresh () {
+		    this.$openstate.read( this.zomepath );
+		    this.$openstate.read( this.versionreviewspath );
+		    await this.$openstate.read( this.versionpath );
 
-			this.updateChangelogMarkdown();
-		    } catch (err) {
-			this.catchStatusCodes([ 404, 500 ], err );
+		    if ( this.version.review_summary )
+			this.$openstate.read( this.reviewsummarypath );
 
-			log.error("Failed to get zome version (%s): %s", String(this.id), err.message, err );
+		    // If there is not summary, or the review's length is greater than the review ref
+		    // list, then try to update the summary.
+		    if ( ( !this.version.review_summary && this.reviews.length > 1 )
+			 || ( this.summary && (
+			     this.reviews.length > Object.keys(this.summary.review_refs).length
+				 || this.summary.last_updated < this.pastTime( 24 ) ))
+		       ) {
+			await this.updateReviewSummaryReport();
 		    }
 		},
 		async downloadWasmBytes () {
 		    try {
-			const wasm_bytes	= await this.$store.dispatch("fetchZomeVersionWasm", this.version.mere_memory_addr );
+			const wasm_bytes	= await this.$openstate.get( this.wasmbytespath, {
+			    "rememberState": false,
+			});
 
 			this.download( this.wasm_filename, wasm_bytes );
 		    } catch (err) {
@@ -252,12 +207,172 @@ module.exports = async function ( client ) {
 		    }
 		},
 		async unpublish () {
-		    await this.$store.dispatch("unpublishZomeVersion", this.id );
+		    await this.$openstate.delete( this.versionpath );
 
 		    this.modal.hide();
 
-		    this.$store.dispatch("fetchVersionsForZome", this.zome_id );
+		    this.$openstate.read(`zome/${this.zome_id}/versions`);
 		    this.$router.push( `/zomes/${this.zome_id}` );
+		},
+		async postReview () {
+		    await this.$openstate.write( this.reviewinputpath );
+
+		    this.reviewinputpath	= `review/${this.$openstate.state[ this.reviewinputpath ].$id}`;
+
+		    this.reviewModal.hide();
+
+		    await this.$openstate.read(`agent/me/reviews`);
+		    await this.$openstate.read( this.versionreviewspath );
+
+		    if ( this.reviews.length > 1 )
+			this.updateReviewSummaryReport();
+		},
+		async updateReviewSummaryReport () {
+		    await this.$openstate.write( this.reviewsummarypath );
+		},
+
+		async doReaction ( review, reaction_type ) {
+		    log.normal("Do reaction for review: %s [%s]", review.$id, reaction_type, reaction );
+		    const reactionpath		= `subject/${review.$id}/reaction`;
+		    const reaction		= this.$openstate.state[ reactionpath ];
+		    const mutable		= this.$openstate.mutable[ reactionpath ];
+
+		    if ( reaction && !reaction.deleted && reaction.reaction_type === reaction_type ) {
+			log.debug("Delete reaction: %s", reaction.$id );
+			await this.$openstate.delete( reactionpath );
+		    }
+		    else {
+			mutable.subject_ids[0]	= [ review.$id, review.$action ];
+			mutable.reaction_type	= reaction_type;
+
+			log.debug("Create/update reaction: %s", reactionpath );
+			await this.$openstate.write( reactionpath );
+		    }
+
+		    await this.$openstate.read(`agent/me/reactions`);
+
+		    this.updateReactionSummaryReport( review );
+		},
+		async updateReactionSummaryReport ( review ) {
+		    const summarypath		= `subject/${review.$id}/reaction/summary`;
+
+		    if ( review.reaction_summary )
+			await this.$openstate.get( `reaction/summary/${review.reaction_summary}` );
+		    else {
+			const mutable		= this.$openstate.mutable[ summarypath ];
+			mutable.subject_action	= review.$action;
+		    }
+
+		    await this.$openstate.write( summarypath );
+		},
+
+		editReview () {
+		    this.reviewModal.show();
+		},
+		updateReviewRating ( rating_type, value ) {
+		    if ( value === undefined )
+			delete this.review_input$.ratings[rating_type];
+		    else
+			this.review_input$.ratings[rating_type] = value;
+		},
+		starClass ( rating_type, i ) {
+		    return {
+			"bi-star-fill":	i <= this.review_input$.ratings[ rating_type ],
+			"bi-star":	i >  this.review_input$.ratings[ rating_type ],
+		    };
+		},
+		async resetReviewEdit () {
+		    this.$openstate.resetMutable( this.reviewinputpath );
+
+		    await this.$openstate.get( this.versionpath );
+		    await this.$openstate.get( this.zomepath );
+
+		    this.review_input$.subject_ids.push(
+			[ this.version.$id,	this.version.$action ],
+			[ this.zome.$id,	this.zome.$action ],
+		    );
+		},
+	    },
+	};
+    };
+
+    async function update () {
+	return {
+	    "template": await common.load_html("/templates/zomes/versions/update.html"),
+	    "data": function() {
+		const id		= this.getPathId("id");
+		const zome_id		= this.getPathId("zome");
+
+		return {
+		    id,
+		    zome_id,
+		    "error": null,
+		    "show_changelog_preview": false,
+
+		    "zomepath":			`zome/${zome_id}`,
+		    "versionpath":		`zome/version/${id}`,
+		};
+	    },
+	    "computed": {
+		...common.scopedPathComputed( c => c.zomepath,			"zome", { "get": true } ),
+		...common.scopedPathComputed( c => c.versionpath,		"version", { "get": true } ),
+
+		sc_url_datapath () {
+		    return this.version$.source_code_commit_url
+			? `url/info/${this.version$.source_code_commit_url.replaceAll("/", "|")}`
+			: this.$openstate.DEADEND;
+		},
+		...common.scopedPathComputed( c => c.sc_url_datapath,		"sc_url_preview" ),
+
+		preview_toggle_text () {
+		    return this.show_changelog_preview ? "editor" : "preview";
+		}
+	    },
+	    async created () {
+		await this.mustGet(async () => {
+		    await Promise.all([
+			this.$openstate.get( this.versionpath ),
+			this.$openstate.get( this.zomepath ),
+		    ]);
+		});
+	    },
+	    "methods": {
+		toggleChangelogPreview () {
+		    this.show_changelog_preview = !this.show_changelog_preview;
+		    this.updateChangelogMarkdown();
+		},
+		updateChangelogMarkdown () {
+		    this.version$.changelog_html = common.mdHTML( this.version$.changelog );
+		},
+		async createSourceCodeUrlPreview ( url ) {
+		    if ( !url ) {
+			delete this.version$.metadata.source_code_url_preview;
+			return;
+		    }
+
+		    const url_info		= await this.$openstate.read( this.sc_url_datapath );
+
+		    Object.assign( this.version$.metadata, {
+			"source_code_url_preview": {
+			    "title":		url_info.title,
+			    "description":	url_info.description,
+			    "image":		url_info.image,
+			},
+		    });
+		    log.debug("Updated preview metadata:", this.version$ );
+
+		    return url_info;
+		},
+		async update () {
+		    try {
+			await this.$openstate.write( this.versionpath );
+
+			this.$openstate.read(`zome/${this.zome_id}/versions`);
+			this.$router.push( `/zomes/${this.zome_id}/versions/${this.id}` );
+		    } catch ( err ) {
+			log.error("Failed to update Zome Version (%s):", String(this.id), err );
+			this.error	= err;
+		    }
 		},
 	    },
 	};

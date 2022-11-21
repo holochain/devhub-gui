@@ -1,0 +1,112 @@
+<page-view id="update-gui release-page" class="d-flex flex-column">
+    <breadcrumbs v-if="release && gui" :skip-base="true" :path-mapping="breadcrumb_mapping"
+		 :sub-1="gui.display_name || gui.name" :sub-3="'v' + release.version"></breadcrumbs>
+
+    <hr>
+
+    <display-error class="mt-5" :error="error" :debug="true"></display-error>
+
+    <form :class="{ 'was-validated': $release.failed }"
+	  class="flex-grow-1 d-flex flex-column">
+
+	<div v-if="$rejections.length && $release.failed"
+	     class="alert alert-danger d-flex align-items-center mt-5" role="alert">
+	    <i class="bi-exclamation-triangle-fill me-3"></i>
+	    <div>
+		<strong>Invalid Content</strong>
+		<br>
+		<p class="m-0"><em>Please correct the following issues</em></p>
+		<ul>
+		    <li v-for="message in $rejections">{{ message }}</li>
+		</ul>
+	    </div>
+	</div>
+
+	<div class="mb-4">
+	    <h1 class="fs-2"><placeholder :when="!$gui.present" size="fill">{{ gui.display_name || gui.name }}</placeholder></h1>
+	</div>
+
+	<page-header class="mb-2 py-3">
+	    <template #default>
+		<h2 class="fs-5 text-nowrap">
+		    <placeholder :when="!$release.present" size="fill">
+			<input-feedback class="w-auto">
+			    <div class="input-group">
+				<span class="input-group-text">v</span>
+				<input v-model="release$.version"
+				       class="form-control d-inline-block" style="width: 6em;"
+				       :disabled="$release.writing" required readonly>
+			    </div>
+			</input-feedback>
+			<span class="fw-3 ms-3">({{ $filters.time( release.published_at, "date" ) }})</span>
+		    </placeholder>
+		</h2>
+	    </template>
+
+	    <template #title-extras>
+		<router-link :to="'/guis/' + gui_id + '/releases/' + id" class="btn btn-outline-primary">Cancel</router-link>
+
+		<a @click="update()" class="btn btn-primary ms-5"
+		   :class="{ 'disabled': $release.writing || !$release.changed }">
+		    <span v-if="$release.writing"
+			  class="spinner-border spinner-border-sm me-3"></span>
+		    Save changes
+		</a>
+	    </template>
+	</page-header>
+
+	<div class="flex-grow-1 row align-items-stretch">
+	    <div class="col-8">
+		<div class="card h-100">
+		    <div class="card-header">
+			Changelog
+			<a class="text-primary fw-2 ms-3 cursor-pointer"
+			   @click="toggleChangelogPreview()">{{ preview_toggle_text }}</a>
+		    </div>
+		    <div class="card-body">
+			<placeholder :when="!$release.present" size="p">
+			    <div v-if="show_changelog_preview" v-html="changelog_html"></div>
+			    <input-feedback v-else class="h-100">
+				<textarea v-model="release$.changelog" class="form-control font-monospace h-100 border-0 shadow-none" rows="10"
+					  @keyup="debounce( updateChangelogMarkdown, 500 )"
+					  :disabled="$release.writing"></textarea>
+			    </input-feedback>
+			</placeholder>
+		    </div>
+		</div>
+	    </div>
+
+	    <div class="col-4">
+		<div class="card">
+		    <div class="card-header">
+			Details
+		    </div>
+		    <div class="card-body">
+			<dl class="row">
+			    <dt class="col-sm-12">Created</dt>
+			    <dd class="col-sm-12">
+				<placeholder :when="!$release.present">
+				    <datetime :datetime="release.published_at" format="weekday+date+time"></datetime>
+				</placeholder>
+			    </dd>
+
+			    <dt class="col-sm-12">Last Updated</dt>
+			    <dd class="col-sm-12">
+				<placeholder :when="!$release.present">
+				    <datetime :datetime="release.last_updated" format="weekday+date+time"></datetime>
+				</placeholder>
+			    </dd>
+			</dl>
+
+			<a v-if="$release.changed"
+			   @click="$modwc.resetMutable( datapath )"
+			   class="btn btn-outline-warning">
+			    Reset Changes
+			</a>
+		    </div>
+		</div>
+	    </div>
+	</div>
+
+    </form>
+</page-view>

@@ -14,6 +14,7 @@
 
 */
 
+
 body {
   margin: 0;
   font-family: 'Mulish', sans-serif;
@@ -49,6 +50,14 @@ hr {
 .h4, .h5, .h6, h4, h5, h6 {
   font-weight: 700;
 }
+
+dl.row {
+  margin-bottom: 0;
+}
+dl dd:last-child {
+  margin-bottom: 0;
+}
+
 a {
   color: inherit;
   cursor: pointer;
@@ -73,6 +82,13 @@ a.text-primary:hover {
 }
 .bg-secondary {
    background-color: #5C5F6B !important;
+}
+
+.text-bigger {
+  font-size: 1.2em;
+}
+.text-smaller {
+  font-size: .8em;
 }
 
 .cursor-pointer {
@@ -250,6 +266,7 @@ a.text-primary:hover {
 .bg-btn {
   cursor: pointer;
 }
+
 
 /*
 
@@ -446,6 +463,9 @@ a.text-primary:hover {
 
 
 
+/*
+  Entity Cards
+*/
 .card-header {
   font-size: 1.1rem;
   font-weight: 600;
@@ -560,6 +580,61 @@ a.text-primary:hover {
 }
 
 
+/*
+  Entity Reference Cards (New Entity Cards)
+*/
+.entity-ref {
+  padding: 30px 20px 15px;
+  box-shadow: #eee 0 0 3px;
+}
+.entity-ref > * {
+  z-index: 1;
+}
+.entity-ref::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+}
+.entity-ref::before {
+  padding: 15px 20px;
+  font-size: .7em;
+}
+
+.zome-ref::before,
+.zome-version-ref::before {
+  color: #00a1df;
+  border-bottom: 4px solid #00a1df;
+}
+.dna-ref::before,
+.dna-version-ref::before {
+  color: #c000ff;
+  border-bottom: 4px solid #c000ff;
+}
+.happ-ref::before,
+.happ-release-ref::before {
+  color: #6e00e0;
+  border-bottom: 4px solid #6e00e0;
+}
+.gui-ref::before,
+.gui-release-ref::before {
+  color: #ebbe44;
+  border-bottom: 4px solid #ebbe44;
+}
+.zome-ref::before {		content: "Zome"; }
+.zome-version-ref::before {	content: "Zome Version"; }
+.dna-ref::before {		content: "DNA"; }
+.dna-version-ref::before {	content: "DNA Version"; }
+.happ-ref::before {		content: "hApp"; }
+.happ-release-ref::before {	content: "hApp Release"; }
+.gui-ref::before {		content: "GUI"; }
+.gui-release-ref::before {	content: "GUI Release"; }
+
+
+
 dl dt {
   font-weight: bolder;
 }
@@ -619,6 +694,12 @@ dl dt {
 
 .flip-x {
   transform: scaleX(-1);
+}
+
+
+.identicon {
+  border-radius: 50%;
+  margin: .5em;
 }
 
 

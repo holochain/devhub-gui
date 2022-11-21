@@ -6,7 +6,7 @@ module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": Uint8Array,
+		// "type": Uint8Array,
 		"required": true,
 	    },
 	    "title": {
@@ -52,9 +52,7 @@ module.exports = function ( element_local_name, component_name ) {
 		return this.title || "Release";
 	    },
 	    parent_id () {
-		return this.release.for_happ instanceof Uint8Array
-		    ? this.release.for_happ
-		    : this.release.for_happ.$id;
+		return this.release.for_happ;
 	    },
 	    child_expand_depth () {
 		return this.expandDepth - 1;

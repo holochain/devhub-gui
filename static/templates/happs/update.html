@@ -1,30 +1,27 @@
 <page-view id="update-happ-page">
-    <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="happ.name"></breadcrumbs>
+    <breadcrumbs v-if="happ" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="happ.title"></breadcrumbs>
 
     <hr>
 
     <div class="row">
-	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
+	<form class="col-6" :class="{ 'was-validated': $happ.failed }">
 	    <template v-if="happ">
 		<label class="form-label fw-6">hApp Title</label>
-		<input-feedback valid-message="That's a great title!">
-		    <input type="text" v-model="happ.title" class="form-control"
-			   @change="copy(happ, input, 'title')"
-			   :disabled="$happ.updating" required>
+		<input-feedback>
+		    <input type="text" v-model="happ$.title" class="form-control"
+			   :disabled="$happ.writing" required>
 		</input-feedback>
 
 		<label class="form-label fw-6">hApp Subtitle</label>
 		<input-feedback>
-		    <input type="text" v-model="happ.subtitle" class="form-control"
-			   @change="copy(happ, input, 'subtitle')"
-			   :disabled="$happ.updating" required>
+		    <input type="text" v-model="happ$.subtitle" class="form-control"
+			   :disabled="$happ.writing" required>
 		</input-feedback>
 
 		<label class="form-label fw-6">hApp Description</label>
 		<input-feedback>
-		    <textarea v-model="happ.description" class="form-control" rows="3"
-			      @change="copy(happ, input, 'description')"
-			      :disabled="$happ.updating" required></textarea>
+		    <textarea v-model="happ$.description" class="form-control" rows="3"
+			      :disabled="$happ.writing"></textarea>
 		</input-feedback>
 
 		<div>
@@ -35,7 +32,7 @@
 		    </div>
 
 		    <div class="p-3">
-			<div v-for="tag in tags" class="badge-group ms-2">
+			<div v-for="tag in happ$.tags" class="badge-group ms-2">
 			    <span class="badge bg-secondary">{{ tag }}</span>
 			    <span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
 				<i class="bi-x-lg"></i>
@@ -52,8 +49,9 @@
 			<router-link :to="'/happs/' + id" class="btn btn-outline-primary w-100">Cancel</router-link>
 		    </div>
 		    <div class="col-3">
-			<a @click="update()" class="btn btn-primary w-100" :class="{ 'disabled': $happ.updating }">
-			    <span v-if="$happ.updating"
+			<a @click="update()" class="btn btn-primary w-100"
+			   :class="{ 'disabled': $happ.writing || ($happ.failed && $happ.invalid) || !$happ.changed }">
+			    <span v-if="$happ.writing"
 				  class="spinner-border spinner-border-sm me-3"></span>
 			    Save
 			</a>

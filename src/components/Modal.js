@@ -16,6 +16,14 @@ module.exports = function ( element_local_name, component_name ) {
 	    "action": {
 		"type": Function,
 	    },
+	    "onclose": {
+		"type": Function,
+		"default": () => null,
+	    },
+	    "cancelText": {
+		"type": String,
+		"default": "Cancel",
+	    },
 	    "cancel": {
 		"type": Function,
 		"default": () => null,
@@ -42,7 +50,7 @@ module.exports = function ( element_local_name, component_name ) {
 		if ( !this._modal && typeof bootstrap !== "undefined" )
 		    this._modal		= new bootstrap.Modal( this.$el );
 		return this._modal;
-	    }
+	    },
 	},
 	"methods": {
 	    resetFormValidation ( $el ) {
@@ -51,16 +59,25 @@ module.exports = function ( element_local_name, component_name ) {
 		    el.classList.remove("was-validated");
 		});
 	    },
+	    async runCancel () {
+		try {
+		    await this.cancel();
+		    this.onclose();
+		} catch (err) {
+		    console.error( err );
+		}
+	    },
 	    async runAction () {
 		this.running_action		= true;
 		try {
 		    await this.action( this );
+		    this.onclose();
 		} catch (err) {
 		    console.error( err );
 		} finally {
 		    this.running_action	= false;
 		}
-	    }
+	    },
 	},
     };
 }

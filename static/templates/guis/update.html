@@ -1,0 +1,79 @@
+<page-view id="update-gui-page">
+    <breadcrumbs v-if="gui" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="gui.display_name || gui.name"></breadcrumbs>
+
+    <hr>
+
+    <div class="row">
+	<form class="col-6" :class="{ 'was-validated': $gui.failed }">
+	    <template v-if="gui">
+		<label class="form-label fw-6">GUI Name</label>
+		<input-feedback>
+		    <input type="text" v-model="input.name"
+			   class="form-control" :disabled="$gui.writing" required>
+		</input-feedback>
+
+		<label class="form-label fw-6">GUI Description</label>
+		<input-feedback>
+		    <textarea v-model="input.description"
+			      class="form-control" rows="3" :disabled="$gui.writing" required></textarea>
+		</input-feedback>
+
+		<div>
+		    <label class="form-label fw-6">Tags</label>
+		    <div class="form-input-search">
+			<input type="text" class="form-control no-validate" placeholder="search and add tags"
+			       v-model="tag_search_text" @keyup.keydown.enter.prevent="addTag( tag_search_text )">
+		    </div>
+
+		    <div class="p-3">
+			<div v-for="tag in input.tags" class="badge-group ms-2">
+			    <span class="badge bg-secondary">{{ tag }}</span>
+			    <span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
+				<i class="bi-x-lg"></i>
+			    </span>
+			</div>
+		    </div>
+		</div>
+
+		<div v-if="!$gui.changed" class="alert alert-info d-flex align-items-center" role="alert">
+		    <p class="m-0">Change something to activate the save button</p>
+		</div>
+		<div v-if="$rejections.length" class="alert alert-danger d-flex align-items-center" role="alert">
+		    <i class="bi-exclamation-triangle-fill me-3"></i>
+		    <div>
+			<strong>Invalid Content</strong>
+			<br>
+			<p class="m-0"><em>Please correct the following issues</em></p>
+			<ul>
+			    <li v-for="message in $rejections">{{ message }}</li>
+			</ul>
+		    </div>
+		</div>
+
+		<div class="row mt-5">
+		    <div class="col-6"></div>
+		    <div class="col-3">
+			<router-link :to="'/guis/' + id" class="btn btn-outline-primary w-100">Cancel</router-link>
+		    </div>
+		    <div class="col-3">
+			<a @click="update()" class="btn btn-primary w-100" :class="{ 'disabled': $gui.writing || $gui.invalid || !$gui.changed }">
+			    <span v-if="$gui.writing"
+				  class="spinner-border spinner-border-sm me-3"></span>
+			    Save
+			</a>
+		    </div>
+		</div>
+
+		<display-error class="mt-5" :error="error"></display-error>
+	    </template>
+	    <div v-else class="card">
+		<div class="card-body text-center p-4">
+		    <div class="spinner-border mt-1" role="status">
+			<span class="visually-hidden">Loading...</span>
+		    </div>
+		</div>
+	    </div>
+	</form>
+    </div>
+
+</page-view>

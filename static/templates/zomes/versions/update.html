@@ -1,26 +1,32 @@
 <page-view id="update-zome version-page" class="d-flex flex-column">
     <breadcrumbs v-if="version && zome" :skip-base="true" :path-mapping="breadcrumb_mapping"
-		 :sub-1="zome.name" :sub-3="'v' + version.version"></breadcrumbs>
+		 :sub-1="zome.display_name || zome.name" :sub-3="'v' + version.version"></breadcrumbs>
 
     <hr>
 
     <display-error class="mt-5" :error="error"></display-error>
 
-    <form ref="form" :class="{ 'was-validated': validated }"
+    <form :class="{ 'was-validated': $version.failed }"
 	  class="flex-grow-1 d-flex flex-column">
 	<div class="mb-4">
-	    <h1 class="fs-2"><placeholder :when="!$zome.current" size="fill">{{ zome.name }}</placeholder></h1>
+	    <h1 class="fs-2">
+		<placeholder :when="!$zome.present" size="fill">
+		    {{ zome.display_name || zome.name }}
+		</placeholder>
+	    </h1>
 	</div>
 
 	<page-header class="mb-2 py-3">
 	    <template #default>
 		<h2 class="fs-5 text-nowrap">
-		    <placeholder :when="!$version.current" size="fill">
+		    <placeholder :when="!$version.present" size="fill">
 			<input-feedback class="w-auto">
-			    <input type="number" v-model.number="version.version"
-				   class="form-control d-inline-block" style="width: 6em;"
-				   @change="copy(version, input, 'version')"
-				   :disabled="$version.updating" required readonly>
+			    <div class="input-group">
+				<span class="input-group-text">v</span>
+				<input v-model="version.version"
+				       class="form-control d-inline-block" style="width: 6em;"
+				       required readonly>
+			    </div>
 			</input-feedback>
 			<span class="fw-3 ms-3">({{ $filters.time( version.published_at, "date" ) }})</span>
 		    </placeholder>
@@ -28,10 +34,12 @@
 	    </template>
 
 	    <template #title-extras>
-		<router-link :to="'/zomes/' + zome_id + '/versions/' + id" class="btn btn-outline-primary">Cancel</router-link>
+		<router-link :to="'/zomes/' + zome_id + '/versions/' + id"
+			     class="btn btn-outline-primary">Cancel</router-link>
 
-		<a @click="update()" class="btn btn-primary ms-5" :class="{ 'disabled': $version.updating }">
-		    <span v-if="$version.updating"
+		<a @click="update()" class="btn btn-primary ms-5"
+		   :class="{ 'disabled': $version.writing || ($version.failed && $version.invalid) }">
+		    <span v-if="$version.writing"
 			  class="spinner-border spinner-border-sm me-3"></span>
 		    Save changes
 		</a>
@@ -47,13 +55,14 @@
 			   @click="toggleChangelogPreview()">{{ preview_toggle_text }}</a>
 		    </div>
 		    <div class="card-body">
-			<placeholder :when="!$version.current" size="p">
-			    <div v-if="show_changelog_preview" v-html="changelog_html"></div>
+			<placeholder :when="!$version.present" size="p">
+			    <div v-if="show_changelog_preview"
+				 v-html="version$.changelog_html"></div>
 			    <input-feedback v-else class="h-100">
-				<textarea v-model="version.changelog" class="form-control font-monospace h-100 border-0 shadow-none" rows="10"
-					  @change="copy(version, input, 'changelog')"
+				<textarea v-model="version$.changelog" rows="10"
+					  class="form-control font-monospace h-100 border-0 shadow-none"
 					  @keyup="debounce( updateChangelogMarkdown, 500 )"
-					  :disabled="$version.updating"></textarea>
+					  :disabled="$version.writing"></textarea>
 			    </input-feedback>
 			</placeholder>
 		    </div>
@@ -68,11 +77,80 @@
 		    <div class="card-body">
 			<dl class="row">
 			    <dt class="col-sm-12">Created</dt>
-			    <dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.published_at, "weekday+date" ) }}</placeholder></dd>
+			    <dd class="col-sm-12">
+				<placeholder :when="!$version.present">
+				    <datetime :datetime="version.published_at" format="weekday+date+time"></datetime>
+				</placeholder>
+			    </dd>
 
 			    <dt class="col-sm-12">Last Updated</dt>
-			    <dd class="col-sm-12"><placeholder :when="!$version.current">{{ $filters.time( version.last_updated, "weekday+date" ) }}</placeholder></dd>
+			    <dd class="col-sm-12">
+				<placeholder :when="!$version.present">
+				    <datetime :datetime="version.last_updated" format="weekday+date+time"></datetime>
+				</placeholder>
+			    </dd>
 			</dl>
+
+			<label class="form-label fw-6">Ordering</label>
+			<placeholder :when="!$version.present">
+			    <input-feedback>
+				<input type="number" v-model.number="version$.ordering"
+				       class="form-control" required>
+			    </input-feedback>
+			</placeholder>
+
+
+			<label class="form-label fw-6">Source Code (commit) URL</label>
+			<placeholder :when="!$version.present">
+			    <input-feedback class="mb-3">
+				<input v-model="version$.source_code_commit_url" class="form-control"
+				       @change="createSourceCodeUrlPreview( version$.source_code_commit_url )">
+			    </input-feedback>
+			</placeholder>
+
+			<loading :when="!$version.present || $sc_url_preview.reading">
+			    <!-- Is there a preview? -->
+			    <div v-if="version.metadata.source_code_url_preview || (version$.metadata && version$.metadata.source_code_url_preview)">
+				<!-- Preview is changing -->
+				<template v-if="version$.metadata && version$.metadata.source_code_url_preview">
+				    <h4>New Preview</h4>
+				    <link-preview :info="version$.metadata.source_code_url_preview"></link-preview>
+				</template>
+
+				<!-- Display current preview -->
+				<template v-else>
+				    <h4>Preview</h4>
+				    <link-preview :info="version.metadata.source_code_url_preview"></link-preview>
+				</template>
+
+				<!-- Update or Remove preview info -->
+				<div class="row mt-3">
+				    <div class="col-6">
+					<a @click="createSourceCodeUrlPreview( version.source_code_commit_url )"
+					   class="btn btn-outline-primary w-100"
+					   :class="{ 'disabled': $version.writing }">
+					    Update URL Preview
+					</a>
+				    </div>
+				    <div class="col-6">
+					<a @click="createSourceCodeUrlPreview( null )"
+					   class="btn btn-outline-secondary w-100">
+					    Remove Preview
+					</a>
+				    </div>
+				</div>
+			    </div>
+			    <!-- No preview yet -->
+			    <div v-else>
+				<a @click="createSourceCodeUrlPreview( version.source_code_commit_url )"
+				   class="btn btn-outline-primary w-100">
+				    Create URL Preview
+				</a>
+			    </div>
+
+			    <!-- <pre>{{ $debug(version) }}</pre> -->
+			    <!-- <pre>{{ $debug(input) }}</pre> -->
+			</loading>
 		    </div>
 		</div>
 	    </div>

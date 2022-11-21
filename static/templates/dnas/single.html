@@ -1,31 +1,41 @@
 <page-view id="single-dna-page">
-    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.name">
-	<a v-if="$dna.loaded" @click="fetchDna()" class="ms-2 fs-4">
-	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.loading }"></i>
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.display_name || dna.name">
+	<a v-if="$dna.present" @click="refresh()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.reading }"></i>
 	</a>
     </breadcrumbs>
 
     <hr>
 
-    <deprecation-alert v-if="deprecated && $dna.current"
+    <deprecation-alert v-if="dna?.deprecation"
 		       title="This DNA has been deprecated"
 		       :message="dna.deprecation.message"></deprecation-alert>
 
     <page-header class="mb-3">
 	<template #default>
-	    <h1 class="fs-2"><placeholder :when="!$dna.current" size="fill">{{ dna.name }}</placeholder></h1>
+	    <h1 class="fs-2">
+		<placeholder :when="!$dna.current" size="fill">
+		    {{ dna.display_name || dna.name }}
+		    <small v-if="dna.display_name"
+			   class="fw-2 text-monospace">"{{ dna.name }}"</small>
+		</placeholder>
+	    </h1>
 	</template>
 
-	<template #title-extras v-if="!deprecated && $dna.writable">
+	<template #title-extras v-if="$dna.writable">
             <router-link :to="'/dnas/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
 		<i class="bi-pencil"></i>
 		Edit
             </router-link>
 
-            <a @click="modal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
+            <a @click="deprecationModal.show()" class="btn btn-outline-primary ms-3 text-nowrap">
 		<i class="bi-x-lg"></i>
 		Deprecate
             </a>
+	</template>
+
+	<template #controls>
+	    <identicon :seed="id" :size="50"></identicon>
 	</template>
     </page-header>
 
@@ -52,10 +62,14 @@
 			</dd>
 
 			<dt class="col-sm-4">Created</dt>
-			<dd class="col-sm-8"><placeholder :when="!$dna.current">{{ $filters.time( dna.published_at, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$dna.current"><datetime :datetime="dna.published_at" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 
 			<dt class="col-sm-4">Last Updated</dt>
-			<dd class="col-sm-8"><placeholder :when="!$dna.current">{{ $filters.time( dna.last_updated, "weekday+date" ) }}</placeholder></dd>
+			<dd class="col-sm-8">
+			    <placeholder :when="!$dna.current"><datetime :datetime="dna.last_updated" format="weekday+date+time"></datetime></placeholder>
+			</dd>
 		    </dl>
 		</div>
 	    </div>
@@ -73,20 +87,17 @@
 			</dt>
 			<dd class="col-sm-12">
 			    <placeholder :when="!$dna.current">
-				<holo-hash :hash="dna.developer.pubkey"></holo-hash>
+				<holo-hash :hash="dna.developer"></holo-hash>
 			    </placeholder>
 			</dd>
-			<dt class="col-sm-12">
-			    External Links
-			</dt>
-			<dd class="col-sm-12">
-			    <placeholder :when="!$dna.current">
-				<span v-if="dna.developer.website">
-				    <a href="#" target="_blank">website</a>
-				</span>
-				<span v-else>None</span>
-			    </placeholder>
-			</dd>
+			<!-- <dt class="col-sm-12"> -->
+			<!--     External Links -->
+			<!-- </dt> -->
+			<!-- <dd class="col-sm-12"> -->
+			<!--     <placeholder :when="!$dna.current"> -->
+			<!-- 	None -->
+			<!--     </placeholder> -->
+			<!-- </dd> -->
 		    </dl>
 		</div>
 	    </div>
@@ -97,35 +108,38 @@
 	<div class="d-flex mb-4">
 	    <h2 class="fs-4 flex-grow-1">
 		DNA Versions
-		<a v-if="$versions.loaded" @click="fetchDnaVersions()" class="ms-2 fs-4">
-		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.loading }"></i>
+		<a v-if="$versions.present" @click="$openstate.read( versions_datapath )" class="ms-2 fs-4">
+		    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $versions.reading }"></i>
 		</a>
 	    </h2>
 
             <router-link v-if="dna && $dna.writable" :to="'/dnas/' + id + '/upload'"
 			 class="btn btn-primary text-nowrap me-3"
-			 :class="{ 'disabled': deprecated }">
+			 :class="{ 'disabled': dna?.deprecation }">
 		<i class="bi-upload"></i>
 		Upload Bundle
             </router-link>
 
             <router-link v-if="dna && $dna.writable" :to="'/dnas/' + id + '/versions/new'"
 			 class="btn btn-primary text-nowrap"
-			 :class="{ 'disabled': deprecated }">
+			 :class="{ 'disabled': dna?.deprecation }">
 		<i class="bi-plus-lg"></i>
 		Create new version
             </router-link>
 	</div>
 
-	<list-group :list="versions" no-result-text="No DNA Versions" :loading="$versions.loading">
+	<list-group :list="versions" no-result-text="No DNA Versions" :loading="$versions.reading">
 	    <div class="row px-3">
 		<div class="col-2 fw-7">
 		    Version #
 		</div>
-		<div class="col-4 fw-7">
+		<div class="col-3 fw-7">
 		    Created
 		</div>
 		<div class="col-2 fw-7">
+		    Last Updated
+		</div>
+		<div class="col-1 fw-7">
 		    HDK Version
 		</div>
 		<div class="col"></div>
@@ -138,10 +152,13 @@
 		    <div class="col-2">
 			<h3 class="fs-6 m-0">{{ version.version }}</h3>
 		    </div>
-		    <div class="col-4">
-			Created on {{ $filters.time( version.published_at, "weekday+date" ) }}
+		    <div class="col-3">
+			<datetime :datetime="version.published_at" format="weekday+date+time"></datetime>
 		    </div>
 		    <div class="col-2">
+			<datetime :datetime="version.last_updated"></datetime>
+		    </div>
+		    <div class="col-1">
 			<div class="badge bg-light text-dark font-monospace">v{{ version.hdk_version }}</div>
 		    </div>
 		    <div class="col text-end text-nowrap">
@@ -160,14 +177,19 @@
 
     <modal v-if="dna" title="Deprecate DNA" ref="modal"
 	   action-text="Deprecate" :action="deprecate" data-bs-backdrop="static">
-	<form ref="form" :class="{ 'was-validated': validated }">
+	<form :class="{ 'was-validated': $dna.failed }">
 	    <div class="mb-4">
 		<p>Are you sure you want to deprecate the <strong>{{ dna.name }}</strong> DNA?</p>
 	    </div>
 	    <input-feedback>
-		<textarea v-model="deprecation.message" class="form-control" rows="4"
-			  placeholder="Reason (optional)" required :disabled="$dna.deprecating"></textarea>
+		<textarea v-model="dna$.deprecation" class="form-control" rows="4"
+			  placeholder="Reason" required :disabled="$dna.writing"></textarea>
 	    </input-feedback>
+
+	    <input-rejections v-if="$dna.failed" class="mt-5"
+			      :rejections="dna_rejections"></input-rejections>
+
+	    <display-error class="mt-5" :error="dna_errors.deprecation" :debug="true"></display-error>
 	</form>
     </modal>
 

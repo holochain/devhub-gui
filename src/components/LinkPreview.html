@@ -1,0 +1,9 @@
+<loading :when="!$url_info.present">
+    <div class="card">
+	<img v-if="image" class="card-img-top" :src="image">
+	<div class="card-body">
+	    <h5 class="card-title">{{ title }}</h5>
+	    <p class="card-text">{{ description }}</p>
+	</div>
+    </div>
+</loading>

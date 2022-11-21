@@ -4,20 +4,20 @@
     <hr>
 
     <div class="row">
-	<form ref="form" class="col-6" :class="{ 'was-validated': validated }">
+	<form class="col-6" :class="{ 'was-validated': $happ.failed }">
 	    <label class="form-label fw-6">hApp Title</label>
-	    <input-feedback valid-message="That's a great title!">
-		<input type="text" v-model="input.title" class="form-control" :disabled="saving" required>
+	    <input-feedback>
+		<input type="text" v-model="happ$.title" class="form-control" :disabled="$happ.writing" required>
 	    </input-feedback>
 
 	    <label class="form-label fw-6">hApp Subtitle</label>
 	    <input-feedback>
-		<input type="text" v-model="input.subtitle" class="form-control" :disabled="saving" required>
+		<input type="text" v-model="happ$.subtitle" class="form-control" :disabled="$happ.writing" required>
 	    </input-feedback>
 
 	    <label class="form-label fw-6">hApp Description</label>
 	    <input-feedback>
-		<textarea v-model="input.description" class="form-control" rows="3" :disabled="saving" required></textarea>
+		<textarea v-model="happ$.description" class="form-control" rows="3" :disabled="$happ.writing"></textarea>
 	    </input-feedback>
 
 	    <div>
@@ -28,7 +28,7 @@
 		</div>
 
 		<div class="p-3">
-		    <div v-for="tag in input.tags" class="badge-group ms-2">
+		    <div v-for="tag in happ$.tags" class="badge-group ms-2">
 			<span class="badge bg-secondary">{{ tag }}</span>
 			<span class="badge bg-secondary bg-btn" @click="removeTag( tag )">
 			    <i class="bi-x-lg"></i>
@@ -37,7 +37,7 @@
 		</div>
 	    </div>
 
-	    <display-error class="mt-5" :error="error"></display-error>
+	    <input-rejections v-if="$happ.failed" :rejections="happ_rejections"></input-rejections>
 
 	    <div class="row mt-5">
 		<div class="col-6"></div>
@@ -45,13 +45,16 @@
 		    <router-link to="/happs" class="btn btn-outline-primary w-100">Cancel</router-link>
 		</div>
 		<div class="col-3">
-		    <a @click="create()" class="btn btn-primary w-100" :class="{ 'disabled': saving }">
-			<span v-if="saving"
+		    <a @click="create()" class="btn btn-primary w-100"
+		       :class="{ 'disabled': $happ.writing || ($happ.failed && $happ.invalid) }">
+			<span v-if="$happ.writing"
 			      class="spinner-border spinner-border-sm me-3"></span>
 			Save
 		    </a>
 		</div>
 	    </div>
+
+	    <display-error class="mt-5" :error="happ_errors.write"></display-error>
 	</form>
     </div>
 

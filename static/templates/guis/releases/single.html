@@ -1,0 +1,108 @@
+<page-view id="single-gui release-page">
+    <breadcrumbs v-if="release && gui" :skip-base="true" :path-mapping="breadcrumb_mapping"
+		 :sub-1="gui?.display_name || gui.name" :sub-3="'v' + release.version">
+	<a v-if="$release.present" @click="refresh()" class="ms-2 fs-4">
+	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $release.reading }"></i>
+	</a>
+    </breadcrumbs>
+
+    <hr>
+
+    <deprecation-alert v-if="gui?.deprecation"
+		       title="The parent Gui has been deprecated"></deprecation-alert>
+
+    <div class="mb-4">
+	<h1 class="fs-2"><placeholder :when="!$gui.current" size="25%">{{ gui.display_name || gui.name }}</placeholder></h1>
+    </div>
+
+    <page-header class="mb-2 p-3">
+	<template #default>
+            <h2 class="fs-5 text-nowrap">
+		<placeholder :when="!$release.present || $release.reading" size="fill">v{{ release.version }}
+		    <span class="fw-3 ms-3">({{ $filters.time( release.published_at, "date" ) }})</span>
+		</placeholder>
+	    </h2>
+	</template>
+
+	<template #title-extras v-if="$release.writable">
+            <router-link :to="'/guis/' + gui_id + '/releases/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
+		<i class="bi-pencil"></i>
+		Edit release
+            </router-link>
+
+            <a @click="unpublish_modal.show()" class="btn btn-secondary ms-5 text-nowrap">
+		Unpublish
+            </a>
+	</template>
+
+	<template #controls>
+	    <identicon :seed="id" :size="50"></identicon>
+	</template>
+    </page-header>
+
+    <div class="row align-items-stretch">
+	<div class="col-8">
+	    <div class="card h-100">
+		<div class="card-header">
+		    Changelog
+		</div>
+		<div class="card-body">
+		    <placeholder :when="!$release.present || $release.reading">
+			<div v-html="release.changelog_html"></div>
+		    </placeholder>
+		</div>
+	    </div>
+	</div>
+
+	<div class="col-4">
+	    <div class="card">
+		<div class="card-header">
+		    Details
+		</div>
+		<div class="card-body">
+		    <dl class="row">
+			<dt class="col-sm-12">Created</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$release.present || $release.reading">
+				<datetime :datetime="release.published_at" format="weekday+date+time"></datetime>
+			    </placeholder>
+			</dd>
+
+			<dt class="col-sm-12">Last Updated</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$release.present || $release.reading">
+				<datetime :datetime="release.last_updated" format="weekday+date+time"></datetime>
+			    </placeholder>
+			</dd>
+
+			<dt class="col-sm-12">Resource Hash</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$webasset.present || $webasset.reading">
+				<code>{{ webasset.mere_memory_hash }}</code>
+			    </placeholder>
+			</dd>
+		    </dl>
+
+		    <loading :when="!$release.present || $release.reading">
+			<div class="mx-3 my-5">
+			    <a class="btn btn-primary w-100" @click="downloadFile()">
+				<span v-if="$webasset.reading"
+				      class="spinner-border spinner-border-sm me-3"></span>
+				<i v-else class="bi-download"></i>
+				Download File
+			    </a>
+			</div>
+		    </loading>
+		</div>
+	    </div>
+	</div>
+    </div>
+
+    <modal v-if="release && gui" title="Unpublish GUI Release" ref="unpublish_modal"
+	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
+	<p>Are you sure you want to unpublish the {{ gui.name }} GUI Release <strong>{{ release.version }}</strong>?</p>
+
+	<display-error class="mt-5" :error="unpublish_error" :debug="true"></display-error>
+    </modal>
+
+</page-view>

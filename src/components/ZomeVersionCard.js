@@ -1,12 +1,14 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("comp/zome-version-card");
 
+const common				= require('../common.js');
+
 
 module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": Uint8Array,
+		// "type": Uint8Array,
 		"required": true,
 	    },
 	    "title": {
@@ -58,35 +60,36 @@ module.exports = function ( element_local_name, component_name ) {
 	    },
 	},
 	data () {
-	    log.info("Zome Version Card: %s", String(this.id) );
+	    log.info("Zome Version Card: initial ID %s", String(this.id) );
 	    return {
-		"not_found": false,
-		"error": null,
-		"expanded": this.expand || this.expandDepth > 0,
-		"show_parent_ref": this.parentRef,
+		"not_found":		false,
+		"error":		null,
+		"expanded":		this.expand || this.expandDepth > 0,
+		"show_parent_ref":	this.parentRef,
 	    };
 	},
 	"computed": {
-	    version () {
-		return this.$store.getters.zome_version( this.id );
+	    datapath () {
+		return `zome/version/${this.id}`;
 	    },
-	    $version () {
-		return this.$store.getters.$zome_version( this.id );
-	    },
+	    ...common.scopedPathComputed( c => c.datapath, "version" ),
 
 	    header_prefix () {
 		return this.title || "Version";
 	    },
 	    parent_id () {
-		return this.version.for_zome instanceof Uint8Array
-		    ? this.version.for_zome
-		    : this.version.for_zome.$id;
+		return this.version.for_zome;
+	    },
+	},
+	watch: {
+	    "datapath" ( new_path ) {
+		this.$openstate.get( new_path );
 	    },
 	},
 	async created () {
 	    try {
-		if ( !this.version )
-		    await this.$store.dispatch("fetchZomeVersion", this.id );
+		log.normal("Get Zome Version with datapath: %s", this.datapath );
+		await this.$openstate.get( this.datapath );
 	    } catch (err) {
 		if ( err.name === "EntryNotFoundError" )
 		    this.not_found	= true;

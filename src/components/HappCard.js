@@ -6,7 +6,7 @@ module.exports = function ( element_local_name, component_name ) {
     return {
 	"props": {
 	    "id": {
-		"type": Uint8Array,
+		// "type": Uint8Array,
 		"required": true,
 	    },
 	    "link": {
@@ -53,10 +53,10 @@ module.exports = function ( element_local_name, component_name ) {
 		return "more release" + ( this.more_release_count > 1 ? "s" : "" );
 	    },
 	    recent_releases () {
-		return this.releases.items( -5, -1 );
+		return this.releases.slice( -5, -1 );
 	    },
 	    latest_release () {
-		return this.releases.items( -1 )[0];
+		return this.releases.slice( -1 )[0];
 	    },
 	    child_expand_depth () {
 		return this.expandDepth - 1;

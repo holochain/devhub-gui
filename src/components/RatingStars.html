@@ -1,0 +1,8 @@
+<div class="d-flex" :rating="rating">
+    <template v-for="i in 5">
+	<i v-if="i-.25 < rating" class="bi-star-fill"></i>
+	<i v-else-if="i-.75 <= rating" class="bi-star-half"></i>
+	<i v-else class="bi-star"></i>
+    </template>
+    <span class="ms-1">{{ end_text_content }}</span>
+</div>

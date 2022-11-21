@@ -2,8 +2,8 @@
     <page-header controls-col="7">
 	<template #default>
 	    <h1 class="fs-2">{{ title }}</h1>
-	    <a v-if="$dnas.loaded" @click="fetchDnas()" class="ms-2 fs-4">
-		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $dnas.loading }"></i>
+	    <a v-if="$dnas.present" @click="refresh()" class="ms-2 fs-4">
+		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $dnas.reading }"></i>
 	    </a>
 	</template>
 
@@ -40,15 +40,25 @@
 
     <hr>
 
-    <list-group :list="dnas" no-result-text="No DNAs" :loading="$dnas.loading">
+    <list-group :list="dnas" no-result-text="No DNAs" :loading="$dnas.reading">
 	<list-group-item v-for="dna in dnas">
 	    <div class="row align-items-center">
-		<div class="col pt-3">
-		    <h3 class="fs-6">{{ dna.name }}</h3>
-		    <p>{{ dna.description }}</p>
+		<div class="col d-flex align-items-center">
+		    <identicon :seed="dna.$id" :size="50"></identicon>
+		    <div>
+			<h3 class="fs-6">{{ dna.display_name || dna.name }}</h3>
+			<p class="m-0">{{ dna.description }}</p>
+		    </div>
 		</div>
-		<div class="col-4">
-		    <span class="badge badge-md bg-secondary">Created {{ $filters.time( dna.published_at ) }}</span>
+		<div class="col-2 text-center">
+		    <template v-if="dna.tags && dna.tags.length">
+			<span v-for="tag in dna.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
+		    </template>
+		    <span v-else>No tags</span>
+		</div>
+		<div class="col-2 text-center">
+		    <span class="fw-lighter">Last updated</span>
+		    <br><datetime :datetime="dna.last_updated"></datetime>
 		</div>
 		<div class="col-auto">
 		    <router-link :to="'/dnas/' + dna.$id" class="btn btn-light">

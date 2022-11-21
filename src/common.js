@@ -30,6 +30,27 @@ function fallbackCopyTextToClipboard ( text ) {
     }
 }
 
+
+const RATING_TERMS = {
+    "accuracy": [
+	"Anti-truth",
+	"Inaccurate", // Wrong, False, Untrue
+	"Vague", // Ambiguous, Unclear
+	"Clear", // Factual, Appropriate
+	"Thorough", // Proper, Good
+	"Meticulous", // Detailed, Precise, Exceptional
+    ],
+    "efficiency": [
+	"Sadistic",
+	"Wasteful", // Wasteful, Heavy
+	"Costly", // Costly, Expensive, Substantial
+	"Expected", // Practical
+	"Efficient", // Economical, Cost-effective, Frugal, Prudent
+	"Optimal", // Light-weight, Slender
+    ],
+};
+
+
 const common				= {
     sort_by_object_key ( list_of_objects, key ) {
 	return list_of_objects.sort( (a,b) => {
@@ -155,6 +176,26 @@ const common				= {
 	return true;
     },
 
+    hashesAreEqual ( hash1, hash2 ) {
+	if ( hash1 instanceof Uint8Array )
+	    hash1		= new HoloHash( hash1 )
+	if ( hash1 instanceof HoloHash )
+	    hash1		= hash1.toString();
+
+	if ( hash2 instanceof Uint8Array )
+	    hash2		= new HoloHash( hash2 )
+	if ( hash2 instanceof HoloHash )
+	    hash2		= hash2.toString();
+
+	if ( typeof hash1 !== "string" )
+	    throw new TypeError(`Invalid first argument; expected string or Uint8Array; not type of ${typeof hash1}`);
+
+	if ( typeof hash2 !== "string" )
+	    throw new TypeError(`Invalid second argument; expected string or Uint8Array; not type of ${typeof hash2}`);
+
+	return hash1 === hash2;
+    },
+
     toHex ( uint8_array ) {
 	return [].map.call( uint8_array, n => n.toString(16).padStart(2,"0") ).join("");
     },
@@ -195,10 +236,7 @@ const common				= {
     },
 
     snip ( str, length = 4 ) {
-	const snipped			= str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
-
-	log.trace("Snipping string:", str, length, snipped );
-	return snipped;
+	return str.slice( 0, length ) + "\u2026" + str.slice( -Math.abs(length) );
     },
 
     compareText ( text1, text2, case_sensitive = false ) {
@@ -257,9 +295,9 @@ const common				= {
 
     sort_version ( reverse = false ) {
 	return (a,b) => {
-	    if( a.version > b.version )
+	    if( a.ordering > b.ordering )
 		return reverse ? -1 : 1;
-	    if( a.version < b.version )
+	    if( a.ordering < b.ordering )
 		return reverse ? 1 : -1;
 
 	    if( a.published_at > b.published_at )
@@ -295,6 +333,228 @@ const common				= {
 
     mdHTML ( md_text ) {
 	return md_converter.makeHtml( md_text );
+    },
+
+    async http_info( url ) {
+	log.info("Fetching URL info for: {}", url );
+	const resp		= await fetch(`https://api.codetabs.com/v1/proxy/?quest=${url}`, {
+	});
+
+	const parser		= new DOMParser();
+	const doc		= parser.parseFromString( await resp.text(), "text/html" );
+
+	const title		= doc.querySelector("title");
+	const favicon		= doc.querySelector("link[rel=icon]");
+	const metas		= doc.querySelectorAll("meta");
+
+	log.debug("URL info title: {}", title );
+
+	const metadata		= {};
+	const metaprop		= {};
+
+	for ( let el of metas ) {
+	    const attr		= el.attributes;
+
+	    if ( attr.name && attr.content ) {
+		const name	= attr.name.value;
+		const content	= attr.content.value;
+
+		metadata[name]	= content;
+	    }
+	    else if ( attr.property && attr.content ) {
+		const name	= attr.property.value;
+		const content	= attr.content.value;
+
+		metaprop[name]	= content;
+	    }
+	}
+
+	return {
+	    "title":		title.textContent,
+	    "description":	metadata.description,
+	    "favicon":		favicon ? favicon.href : null,
+	    "image":		metaprop["og:image"] || metadata["twitter:image"] || null,
+	    "meta":		metadata,
+	};
+    },
+
+    capitalize ( str ) {
+	return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+
+    rating_term ( rtype, rating ) {
+	if ( isNaN(rating) )
+	    return "None";
+
+	if ( RATING_TERMS[ rtype ] === undefined )
+	    throw new Error(`No terms defined for type: ${rtype}`);
+
+	const terms			= RATING_TERMS[ rtype ];
+	const i				= Math.round( rating );
+
+	if ( terms[ i ] === undefined )
+	    throw new Error(`No '{{ rtype }}' term for rating: ${i}`);
+
+	return terms[ i ];
+    },
+
+
+    //
+    // Math
+    //
+    average ( ...numbers ) {
+	return common.sum( ...numbers ) / numbers.length;
+    },
+
+    sum ( ...numbers ) {
+	return numbers.reduce( (a,v) => a + v, 0 );
+    },
+
+
+    //
+    // Date
+    //
+    pastTime ( hours_ago ) {
+	return Date.now() - (1000 * 60 * 60 * hours_ago);
+    },
+
+    scopedPath ( openstate, path, name = null ) {
+	const state_name		= name ? `${name}`		: "state";
+	const metastate_name		= name ? `$${name}`		: "metastate";
+	const errors_name		= name ? `${name}_errors`	: "errors";
+	const mutable_name		= name ? `${name}$`		: "mutable";
+	const rejections_name		= name ? `${name}_rejections`	: "rejections";
+
+	const scoped_obj		= {
+	    get [state_name] () {
+		return openstate.state[ path ];
+	    },
+	    get [metastate_name] () {
+		return openstate.metastate[ path ];
+	    },
+	    get [errors_name] () {
+		return openstate.errors[ path ];
+	    },
+	};
+
+	const handler			= openstate.getPathHandler( path );
+
+	console.log( handler, handler.readonly );
+	if ( !handler.readonly ) {
+	    Object.defineProperties( scoped_obj, {
+		[mutable_name]: {
+		    "enumerable": true,
+		    get () {
+			return openstate.mutable[ path ];
+		    },
+		},
+		[rejections_name]: {
+		    "enumerable": true,
+		    get () {
+			return openstate.rejections[ path ];
+		    },
+		},
+	    });
+	}
+
+	return scoped_obj;
+    },
+
+    scopedPathComputed ( path, name, opts = {} ) {
+	const state_name		= name ? `${name}`		: "state";
+	const metastate_name		= name ? `$${name}`		: "metastate";
+	const errors_name		= name ? `${name}_errors`	: "errors";
+	const mutable_name		= name ? `${name}$`		: "mutable";
+	const rejections_name		= name ? `${name}_rejections`	: "rejections";
+
+	if ( opts.state && typeof opts.state !== "function" )
+	    throw new Error(`scopedPathComputed 'options.state' value must be a function; not type ${typeof opts.state}`);
+
+	let __getting			= false; // ensure 'get' is only triggered once
+	function resolvePath ( ctx ) {
+	    const computed_path		= typeof path === "function"
+		? path( ctx )
+		: path;
+
+	    if ( opts.get === true && __getting === false ) {
+		__getting		= true;
+		ctx.$openstate.get( computed_path ).catch(err => {
+		    console.error("Failed to read for scoped path '%s': %s", name, String(err) );
+		});
+	    }
+
+	    return computed_path;
+	}
+
+	return {
+	    [state_name] () {
+		try {
+		    const state		= this.$openstate.state[ resolvePath( this ) ] || opts.default || null;
+		    if ( opts.state )
+			return opts.state.call( this, state ) || state;
+		    else
+			return state;
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	    [metastate_name] () {
+		try {
+		    return this.$openstate.metastate[ resolvePath( this ) ];
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	    [errors_name] () {
+		try {
+		    return this.$openstate.errors[ resolvePath( this ) ];
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	    [mutable_name] () {
+		try {
+		    const path			= resolvePath( this );
+		    if ( path === this.$openstate.DEADEND )
+			return null;
+
+		    const metastate		= this.$openstate.metastate[ path ];
+		    const handler		= this.$openstate.getPathHandler( path );
+
+		    if ( handler.readonly || !metastate.writable )
+			return null;
+
+		    return this.$openstate.mutable[ path ];
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	    [rejections_name] () {
+		try {
+		    return this.$openstate.rejections[ resolvePath( this ) ];
+		} catch ( err ) {
+		    console.error(err);
+		    throw err;
+		}
+	    },
+	};
+    },
+
+    isEmpty ( value ) {
+	if ( [null,undefined].includes( value ) )
+	    return false;
+	else if ( Array.isArray( value ) )
+	    return value.length === 0;
+	else if ( typeof value === "string" )
+	    return value.trim().length === 0;
+	else if ( typeof value === "object" )
+	    return Object.keys(value).length === 0;
+	else
+	    throw new Error(`Emptiness of type '${typeof value}' cannot be determined`);
     },
 };
 

@@ -1,5 +1,5 @@
 <page-view id="upload-dna-bundle-page">
-    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.name">
+    <breadcrumbs v-if="dna" :skip-base="true" :path-mapping="breadcrumb_mapping" :sub-1="dna.display_name || dna.name">
 	<a v-if="$dna.loaded" @click="fetchDna()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $dna.loading }"></i>
 	</a>
@@ -10,7 +10,7 @@
     <page-header class="mb-3">
 	<template #default>
 	    <div v-if="dna">
-		<h1 class="fs-2">{{ dna.name }}</h1>
+		<h1 class="fs-2">{{ dna.display_name || dna.name }}</h1>
 	    </div>
 	</template>
     </page-header>
@@ -30,7 +30,7 @@
 	<h3>Upload</h3>
 	<div class="row">
 	    <div class="col-6">
-		<loading :when="$bundle.loading">
+		<loading :when="$uploaded_file.loading || $bundle.loading">
 		    <label class="form-label fw-6">Drag and drop DNA bundle here</label>
 		    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
 			<input type="file" @change="file_selected" class="form-control form-input-file" required>
@@ -75,7 +75,8 @@
 	    </div>
 	</form>
 
-	<div v-for="zome in bundle.zomes" class="row mb-5">
+	<h4>Integrity Zomes</h4>
+	<div v-for="zome in bundle.integrity.zomes" class="row mb-5">
 	    <div class="col-6">
 		<zome-version-card v-if="zome.selected_zome_version"
 				   class="mb-3"
@@ -99,9 +100,19 @@
 				<div class="col-6">
 				    <p v-if="zome.selected_zome" class="card-text text-truncate mb-1">{{ zome.selected_zome.description || "No description" }}</p>
 				    <template v-else>
+					<label class="form-label fw-6">Name <small>(from Manifest)</small></label>
+					<input-feedback>
+					    <input type="text" v-model="zome.name" class="form-control" required readonly>
+					</input-feedback>
+
+					<label class="form-label fw-6">Display Name (optional)</label>
+					<input-feedback>
+					    <input type="text" v-model="zome.display_name" class="form-control" :disabled="zome.saving">
+					</input-feedback>
+
 					<label class="form-label fw-6">Description</label>
 					<input-feedback>
-					    <textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving" required></textarea>
+					    <textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving"></textarea>
 					</input-feedback>
 				    </template>
 				</div>
@@ -128,7 +139,7 @@
 			    <dl class="row mb-0">
 				<dt class="col-3">Author ID</dt>
 				<dd class="col-9 mb-1" style="margin-left: -0.5em;">
-				    <holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.developer.pubkey" class="agent-badge"></holo-hash>
+				    <holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.developer" class="agent-badge"></holo-hash>
 				    <input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
 				</dd>
 			    </dl>
@@ -138,7 +149,7 @@
 					 class="card entity-card entity-card-layered zome-card">
 					<div class="entity-card-header">... {{ versions_for_zome(zome.selected_zome.$id).length - 4 }} more versions</div>
 				    </div>
-				    <div v-for="zome_version in versions_for_zome(zome.selected_zome.$id).items(-4)"
+				    <div v-for="zome_version in versions_for_zome(zome.selected_zome.$id).slice(-4)"
 					 class="card entity-card entity-card-layered zome-card">
 					<div class="entity-card-header">Version: <strong>{{ zome_version.version }}</strong></div>
 				    </div>
@@ -155,7 +166,7 @@
 							<input-feedback>
 							    <div class="input-group mb-3">
 								<span class="input-group-text">v</span>
-								<input type="number" v-model.number="zome.version" class="form-control"
+								<input v-model="zome.version" class="form-control"
 								       :disabled="zome.saving" required>
 							    </div>
 							</input-feedback>
@@ -164,14 +175,6 @@
 					    </div>
 					    <div class="col text-end">
 						<div class="row g-2">
-						    <div class="col-12">
-							<span v-if="zome.saving"
-							      class="spinner-border spinner-border-sm me-3"></span>
-							<a @click="create_zome_version( zome )"
-							   title="Upload new Zome Version">
-							    <i class="bi-upload"></i>
-							</a>
-						    </div>
 						    <template v-if="!zome.selected_zome">
 							<div v-if="!$zome_versions(zome.hash).current || zome_versions(zome.hash).length > 0" class="col-12">
 							    <a class="btn btn-outline-secondary btn-sm position-relative"
@@ -205,6 +208,169 @@
 				    </div>
 				</div>
 			    </div>
+
+			    <div class="d-flex justify-content-end mb-3">
+				<a @click="create_zome_version( zome, 0 )"
+				   class="btn btn-outline-primary"
+				   title="Upload new Zome Version">
+				    <span v-if="zome.saving"
+					  class="spinner-border spinner-border-sm me-3"></span>
+				    <i v-else class="bi-upload"></i>
+				    Create Zome Version
+				</a>
+			    </div>
+			</div>
+		    </div>
+		</form>
+	    </div>
+	    <div class="col-6">
+	    </div>
+	</div>
+
+	<h4>Coordinator Zomes</h4>
+	<div v-for="zome in bundle.coordinator.zomes" class="row mb-5">
+	    <div class="col-6">
+		<zome-version-card v-if="zome.selected_zome_version"
+				   class="mb-3"
+				   :id="zome.selected_zome_version.$id"
+				   :link="false"
+				   :actions="[ unselectAction( zome ) ]"></zome-version-card>
+		<form v-else
+		      :ref="'form_' + zome.name"
+		      :class="{ 'was-validated': zome.validated }">
+		    <div class="card entity-card zome-card">
+			<div class="entity-card-header"><strong>{{ zome.name }}</strong></div>
+			<div v-if="zome.selected_zome" class="entity-card-actions">
+			    <a class="float-start"
+			       title="Change parent Zome"
+			       @click="unassign_parent_zome_for( zome )">
+				<i class="bi-x-lg"></i>
+			    </a>
+			</div>
+			<div class="card-body">
+			    <div class="row mb-2">
+				<div class="col-6">
+				    <p v-if="zome.selected_zome" class="card-text text-truncate mb-1">{{ zome.selected_zome.description || "No description" }}</p>
+				    <template v-else>
+					<label class="form-label fw-6">Name <small>(from Manifest)</small></label>
+					<input-feedback>
+					    <input type="text" v-model="zome.name" class="form-control" required readonly>
+					</input-feedback>
+
+					<label class="form-label fw-6">Display Name (optional)</label>
+					<input-feedback>
+					    <input type="text" v-model="zome.display_name" class="form-control" :disabled="zome.saving">
+					</input-feedback>
+
+					<label class="form-label fw-6">Description</label>
+					<input-feedback>
+					    <textarea v-model="zome.description" class="form-control" rows="4" :disabled="zome.saving"></textarea>
+					</input-feedback>
+				    </template>
+				</div>
+				<div class="col text-end">
+				    <holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.$id" class="float-end ms-3"></holo-hash>
+				    <template v-else>
+					<div v-if="!$zomes(zome.name).current || zomes(zome.name).length > 0">
+					    <a class="btn btn-outline-secondary btn-sm position-relative"
+					       @click="prompt_select_zome( zome )">
+						<span v-if="$zome_versions(zome.hash).loading"
+						      class="spinner-border spinner-border-sm"></span>
+						<template v-else>
+						    Existing parent Zome?
+						    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
+							{{ zomes(zome.name).length }}
+						    </span>
+						</template>
+					    </a>
+					</div>
+				    </template>
+				</div>
+			    </div>
+
+			    <dl class="row mb-0">
+				<dt class="col-3">Author ID</dt>
+				<dd class="col-9 mb-1" style="margin-left: -0.5em;">
+				    <holo-hash v-if="zome.selected_zome" :hash="zome.selected_zome.developer" class="agent-badge"></holo-hash>
+				    <input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
+				</dd>
+			    </dl>
+			    <div style="margin: 1rem 0 2.5rem 0;">
+				<template v-if="zome.selected_zome && versions_for_zome(zome.selected_zome.$id).length">
+				    <div v-if="versions_for_zome(zome.selected_zome.$id).length > 4"
+					 class="card entity-card entity-card-layered zome-card">
+					<div class="entity-card-header">... {{ versions_for_zome(zome.selected_zome.$id).length - 4 }} more versions</div>
+				    </div>
+				    <div v-for="zome_version in versions_for_zome(zome.selected_zome.$id).slice(-4)"
+					 class="card entity-card entity-card-layered zome-card">
+					<div class="entity-card-header">Version: <strong>{{ zome_version.version }}</strong></div>
+				    </div>
+				</template>
+
+				<div class="card entity-card zome-version-card">
+				    <div class="entity-card-header">New version</div>
+				    <div class="card-body">
+					<div class="row mb-2">
+					    <div class="col-auto">
+						<div class="row">
+						    <div class="col-12">
+							<label class="form-label fw-6">Zome Version</label>
+							<input-feedback>
+							    <div class="input-group mb-3">
+								<span class="input-group-text">v</span>
+								<input v-model="zome.version" class="form-control"
+								       :disabled="zome.saving" required>
+							    </div>
+							</input-feedback>
+						    </div>
+						</div>
+					    </div>
+					    <div class="col text-end">
+						<div class="row g-2">
+						    <template v-if="!zome.selected_zome">
+							<div v-if="!$zome_versions(zome.hash).current || zome_versions(zome.hash).length > 0" class="col-12">
+							    <a class="btn btn-outline-secondary btn-sm position-relative"
+							       @click="prompt_select_zome_version( zome )">
+								<span v-if="$zome_versions(zome.hash).loading"
+								      class="spinner-border spinner-border-sm"></span>
+								<template v-else>
+								    Use existing version
+								    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark">
+									{{ zome_versions(zome.hash).length }}
+								    </span>
+								</template>
+							    </a>
+							</div>
+						    </template>
+						</div>
+					    </div>
+					</div>
+
+					<dl class="row mb-0">
+					    <dt class="col-3">Resource Size</dt>
+					    <dd class="col-9 mb-1 text-truncate">
+						{{ $filters.number( zome.bytes.length ) }} bytes
+					    </dd>
+
+					    <dt class="col-3">Resource Hash</dt>
+					    <dd class="col-9 mb-1 text-truncate">
+						<code>{{ zome.hash }}</code>
+					    </dd>
+					</dl>
+				    </div>
+				</div>
+			    </div>
+
+			    <div class="d-flex justify-content-end mb-3">
+				<a @click="create_zome_version( zome, 1 )"
+				   class="btn btn-outline-primary"
+				   title="Upload new Zome Version">
+				    <span v-if="zome.saving"
+					  class="spinner-border spinner-border-sm me-3"></span>
+				    <i v-else class="bi-upload"></i>
+				    Create Zome Version
+				</a>
+			    </div>
 			</div>
 		    </div>
 		</form>
@@ -215,11 +381,17 @@
 
 	<div class="row">
 	    <div class="col-6">
+		<div v-if="missingZomes()" class="alert alert-info" role="alert">
+		    <p class="m-0">Finish selecting or creating zomes to continue</p>
+		</div>
+
 		<div class="row">
 		    <div class="col-6">
 		    </div>
 		    <div class="col-6 text-end">
-			<a @click="zome_selection_confirmed = true" class="btn btn-outline-primary" :class="{ 'disabled': missingZomes() }">
+			<a @click="zome_selection_confirmed = true"
+			   class="btn btn-outline-primary"
+			   :class="{ 'disabled': missingZomes() }">
 			    Continue
 			    <i class="bi-chevron-right"></i>
 			</a>
@@ -229,7 +401,7 @@
 	</div>
     </div>
 
-    <form ref="form" :class="{ 'was-validated': validated }">
+    <form :class="{ 'was-validated': validated }">
 	<div v-if="step === 2">
 	    <div class="row mb-5">
 		<div class="col-6">
@@ -238,7 +410,15 @@
 		    <div v-if="uploaded_file" class="row">
 			<label class="form-label fw-6">Version</label>
 			<input-feedback>
-			    <input type="text" v-model="input.version" class="form-control" required>
+			    <div class="input-group">
+				<span class="input-group-text">v</span>
+				<input type="number" v-model="input.version" class="form-control" required>
+			    </div>
+			</input-feedback>
+
+			<label class="form-label fw-6">Ordering</label>
+			<input-feedback>
+			    <input type="number" v-model.number="input.ordering" class="form-control" :disabled="saving" required>
 			</input-feedback>
 
 			<label class="form-label fw-6">Changelog</label>
@@ -347,8 +527,19 @@
 				</table>
 			    </div>
 
+			    <strong>Integrity</strong>
 			    <div class="row gy-3" style="margin: 1rem 0 2.5rem 0;">
-				<div v-for="zome in bundle.zomes"
+				<div v-for="zome in bundle.integrity.zomes"
+				     class="col-12 px-0">
+				    <zome-version-card :id="zome.selected_zome_version.$id"
+						       :title="zome.name"
+						       :link="false"></zome-version-card>
+				</div>
+			    </div>
+
+			    <strong>Coordinator</strong>
+			    <div class="row gy-3" style="margin: 1rem 0 2.5rem 0;">
+				<div v-for="zome in bundle.coordinator.zomes"
 				     class="col-12 px-0">
 				    <zome-version-card :id="zome.selected_zome_version.$id"
 						       :title="zome.name"

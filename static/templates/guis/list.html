@@ -1,0 +1,71 @@
+<page-view id="list-guis-page">
+    <page-header controls-col="7">
+	<template #default>
+	    <h1 class="fs-2">{{ title }}</h1>
+	    <a v-if="$guis.present" @click="refresh()" class="ms-2 fs-4">
+		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $guis.reading }"></i>
+	    </a>
+	</template>
+
+	<template #title-extras>
+            <router-link to="/guis/new" class="btn btn-primary me-5 text-nowrap">
+		<i class="bi-plus-lg"></i>
+		Add GUI
+            </router-link>
+	</template>
+
+	<template #controls>
+            <div class="row row-cols g-3 align-items-center justify-content-end">
+		<div class="col-4">
+		    <select class="form-select" v-model="order_by" placeholder="Sort by">
+			<optgroup label="Sort by">
+			    <option value="name">GUI name</option>
+			    <option value="published_at">Date created</option>
+			    <option value="last_updated">Last updated</option>
+			</optgroup>
+		    </select>
+		</div>
+		<div class="col-2">
+		    <div class="form-check form-check-inline">
+			<input class="form-check-input" id="reverseOrder" type="checkbox" v-model="reverse_order">
+			<label class="form-check-label" for="reverseOrder">Reverse</label>
+		    </div>
+		</div>
+		<div class="col-6">
+		    <search v-model="list_filter" placeholder="Search list..."></search>
+		</div>
+	    </div>
+	</template>
+    </page-header>
+
+    <hr>
+
+    <list-group :list="guis" no-result-text="No guis" :loading="$guis.reading">
+	<list-group-item v-for="gui in guis">
+	    <div class="row align-items-center pt-3">
+		<div class="col d-flex align-items-center">
+		    <identicon :seed="gui.$id" :size="50"></identicon>
+		    <div>
+			<h3 class="fs-6">{{ gui.name }}</h3>
+			<p class="m-0">{{ gui.description }}</p>
+		    </div>
+		</div>
+		<div class="col-2 text-center">
+		    <template v-if="gui.tags && gui.tags.length">
+			<span v-for="tag in gui.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
+		    </template>
+		    <span v-else>No tags</span>
+		</div>
+		<div class="col-2 text-center">
+		    <span class="fw-lighter">Last updated</span>
+		    <br><datetime :datetime="gui.last_updated"></datetime>
+		</div>
+		<div class="col-auto">
+		    <router-link :to="'/guis/' + gui.$id" class="btn btn-light">
+			More info
+		    </router-link>
+		</div>
+	    </div>
+	</list-group-item>
+    </list-group>
+</page-view>

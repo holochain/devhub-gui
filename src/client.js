@@ -49,7 +49,7 @@ module.exports = async function () {
 	client				=  new AgentClient( AGENT_PUBKEY, {
 	    "dnarepo":         DNAREPO_HASH,
 	    "happs":           HAPPS_HASH,
-	    "webassets":       WEBASSETS_HASH,
+	    "web_assets":       WEBASSETS_HASH,
 	}, CONDUCTOR_URI );
     }
 
@@ -63,7 +63,7 @@ module.exports = async function () {
     });
 
     client.addProcessor("input", async function (input) {
-	let keys			= input ? ` ${Object.keys( input ).join(", ")} ` : "";
+	let keys			= input ? `{ ${Object.keys( input ).join(", ")} }` : "";
 	log.trace("Calling %s::%s->%s(%s)", this.dna, this.zome, this.func, keys );
 	return input;
     });
@@ -71,13 +71,6 @@ module.exports = async function () {
 	log.trace("Response for %s::%s->%s(%s)", this.dna, this.zome, this.func, this.input ? " ... " : "", output );
 	return output;
     });
-
-    if ( WEBPACK_MODE === "development" ) {
-	client.addProcessor("input", async function (input) {
-	    await new Promise( f => setTimeout(f, (Math.random() * 1_000) + 500) ); // range 500ms to 1500ms
-	    return input;
-	});
-    }
 
     crux_config.upgrade( client );
 

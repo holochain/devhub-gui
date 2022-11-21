@@ -2,8 +2,8 @@
     <page-header controls-col="7">
 	<template #default>
 	    <h1 class="fs-2">{{ title }}</h1>
-	    <a v-if="$zomes.loaded" @click="fetchZomes()" class="ms-2 fs-4">
-		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $zomes.loading }"></i>
+	    <a v-if="$zomes.present" @click="refresh()" class="ms-2 fs-4">
+		<i class="bi-arrow-repeat" :class="{ 'animate-spin': $zomes.reading }"></i>
 	    </a>
 	</template>
 
@@ -40,15 +40,25 @@
 
     <hr>
 
-    <list-group :list="zomes" no-result-text="No Zomes" :loading="$zomes.loading">
+    <list-group :list="zomes" no-result-text="No Zomes" :loading="$zomes.reading">
 	<list-group-item v-for="zome in zomes">
 	    <div class="row align-items-center">
-		<div class="col pt-3">
-		    <h3 class="fs-6">{{ zome.name }}</h3>
-		    <p>{{ zome.description }}</p>
+		<div class="col d-flex align-items-center">
+		    <identicon :seed="zome.$id" :size="50"></identicon>
+		    <div>
+			<h3 class="fs-6">{{ zome.display_name || zome.name }}</h3>
+			<p class="m-0">{{ zome.description }}</p>
+		    </div>
 		</div>
-		<div class="col-4">
-		    <span class="badge badge-md bg-secondary">Created {{ $filters.time( zome.published_at ) }}</span>
+		<div class="col-2 text-center">
+		    <template v-if="zome.tags && zome.tags.length">
+			<span v-for="tag in zome.tags" class="badge bg-light text-dark me-1">{{ tag }}</span>
+		    </template>
+		    <span v-else>No tags</span>
+		</div>
+		<div class="col-2 text-center">
+		    <span class="fw-lighter">Last updated</span>
+		    <br><datetime :datetime="zome.last_updated"></datetime>
 		</div>
 		<div class="col-auto">
 		    <router-link :to="'/zomes/' + zome.$id" class="btn btn-light">
