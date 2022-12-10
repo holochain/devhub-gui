@@ -130,13 +130,13 @@ run-simple-http-server:
 #
 use-local-crux:
 	npm uninstall @whi/crux-payload-parser
-	npm install ../devhub-dnas/js-crux-payload-parser
+	npm install ../js-crux-payload-parser
 use-npm-crux:
 	npm uninstall @whi/crux-payload-parser
 	npm install @whi/crux-payload-parser
 use-local-client:
 	npm uninstall @whi/holochain-client
-	npm install ../devhub-dnas/js-holochain-client
+	npm install ../js-holochain-client/whi-holochain-client-0.75.0.tgz
 use-npm-client:
 	npm uninstall @whi/holochain-client
 	npm install @whi/holochain-client
