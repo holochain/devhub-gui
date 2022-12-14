@@ -5,6 +5,7 @@ const { DnaHash,
 	AgentPubKey }			= holohash;
 const { AgentClient }			= HolochainClient;
 const { CruxConfig }			= CruxPayloadParser;
+const { invoke }			= require('@tauri-apps/api/tauri');
 const entity_types			= require('./entity_architecture.js');
 
 
@@ -28,8 +29,7 @@ module.exports = async function () {
 
     let  client;
     try {
-	const resp			= await fetch("./.launcher-env.json");
-	const launcher_config		= await resp.json();
+	const launcher_config		= window.__HC_LAUNCHER_ENV__;
 
 	client				= await AgentClient.createFromAppInfo(
 	    launcher_config.INSTALLED_APP_ID,
@@ -46,10 +46,10 @@ module.exports = async function () {
 	log.warn("Using Agent hash: %s", AGENT_HASH );
 	const AGENT_PUBKEY		= new AgentPubKey( AGENT_HASH );
 
-	client				=  new AgentClient( AGENT_PUBKEY, {
-	    "dnarepo":         DNAREPO_HASH,
-	    "happs":           HAPPS_HASH,
-	    "web_assets":       WEBASSETS_HASH,
+	client				= new AgentClient( AGENT_PUBKEY, {
+	    "dnarepo":		DNAREPO_HASH,
+	    "happs":		HAPPS_HASH,
+	    "web_assets":	WEBASSETS_HASH,
 	}, CONDUCTOR_URI );
     }
 
@@ -60,6 +60,36 @@ module.exports = async function () {
 	log.level.info && Object.entries( schema._zomes ).forEach( ([name, zome_api]) => {
 	    log.info("  %s : %s", name.padStart( 10 ), zome_api._name );
 	});
+    });
+
+    client.signingHandler( async zomeCallUnsigned => {
+	if ( !(typeof window === "object" && "__HC_LAUNCHER_ENV__" in window ) )
+	    throw new Error(`Sorry, zome call signing has only been implemented for Launcher at this point`);
+
+	zomeCallUnsigned.provenance	= Array.from( zomeCallUnsigned.provenance );
+	zomeCallUnsigned.cell_id	= [
+	    Array.from( zomeCallUnsigned.cell_id[0] ),
+	    Array.from( zomeCallUnsigned.cell_id[1] ),
+	];
+	zomeCallUnsigned.payload	= Array.from( zomeCallUnsigned.payload );
+	zomeCallUnsigned.nonce		= Array.from( zomeCallUnsigned.nonce );
+
+	const signedZomeCall		= await invoke("sign_zome_call", {
+	    zomeCallUnsigned,
+	});
+
+	signedZomeCall.cap_secret	= null;
+	signedZomeCall.provenance	= Uint8Array.from( signedZomeCall.provenance );
+	signedZomeCall.cell_id		= [
+	    Uint8Array.from( signedZomeCall.cell_id[0] ),
+	    Uint8Array.from( signedZomeCall.cell_id[1] ),
+	];
+	signedZomeCall.payload		= Uint8Array.from( signedZomeCall.payload );
+	signedZomeCall.signature	= Uint8Array.from( signedZomeCall.signature || [] );
+	signedZomeCall.nonce		= Uint8Array.from( signedZomeCall.nonce );
+
+	log.trace("Signed request input:", signedZomeCall );
+	return signedZomeCall;
     });
 
     client.addProcessor("input", async function (input) {
