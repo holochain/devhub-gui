@@ -3,19 +3,14 @@ const log				= new Logger("client");
 
 const { DnaHash,
 	AgentPubKey }			= holohash;
-const { AgentClient }			= HolochainClient;
 const { CruxConfig }			= CruxPayloadParser;
 const { invoke }			= require('@tauri-apps/api/tauri');
 const entity_types			= require('./entity_architecture.js');
 
 
-const DNAREPO_HASH			= new DnaHash( process.env.DNAREPO_HASH );
-const HAPPS_HASH			= new DnaHash( process.env.HAPPS_HASH );
-const WEBASSETS_HASH			= new DnaHash( process.env.WEBASSETS_HASH );
-
-const AGENT_HASH			= localStorage.getItem("AGENT_PUBKEY");
 const HOST_VALUE			= localStorage.getItem("APP_HOST");
 const PORT_VALUE			= localStorage.getItem("APP_PORT");
+const APP_ID				= localStorage.getItem("APP_ID") || "devhub";
 const APP_PORT				= parseInt( PORT_VALUE ) || 44001;
 const APP_HOST				= HOST_VALUE || "localhost";
 const CONDUCTOR_URI			= `${APP_HOST}:${APP_PORT}`;
@@ -25,6 +20,7 @@ if ( isNaN( APP_PORT ) )
 
 
 module.exports = async function () {
+    const { AgentClient }		= await HolochainClient;
     const crux_config			= new CruxConfig( entity_types, [] );
 
     let  client;
@@ -40,17 +36,8 @@ module.exports = async function () {
     }
 
     if ( !client ) {
-	if ( typeof AGENT_HASH !== "string" )
-	    throw new Error(`Missing "AGENT_PUBKEY" in local storage; run 'localStorage.setItem( "AGENT_PUBKEY", "<holo hash>" );`);
-
-	log.warn("Using Agent hash: %s", AGENT_HASH );
-	const AGENT_PUBKEY		= new AgentPubKey( AGENT_HASH );
-
-	client				= new AgentClient( AGENT_PUBKEY, {
-	    "dnarepo":		DNAREPO_HASH,
-	    "happs":		HAPPS_HASH,
-	    "web_assets":	WEBASSETS_HASH,
-	}, CONDUCTOR_URI );
+	log.warn("Using App ID: %s", APP_ID );
+	client				= await AgentClient.createFromAppInfo( APP_ID, CONDUCTOR_URI );
     }
 
     log.normal("App schema");
@@ -62,8 +49,24 @@ module.exports = async function () {
 	});
     });
 
-    client.signingHandler( async zomeCallUnsigned => {
-	if ( !(typeof window === "object" && "__HC_LAUNCHER_ENV__" in window ) )
+    client.addProcessor("input", async function (input) {
+	let keys			= input ? `{ ${Object.keys( input ).join(", ")} }` : "";
+	log.trace("Calling %s::%s->%s(%s)", this.dna, this.zome, this.func, keys );
+	return input;
+    });
+    client.addProcessor("output", async function (output) {
+	log.trace("Response for %s::%s->%s(%s)", this.dna, this.zome, this.func, this.input ? " ... " : "", output );
+	return output;
+    });
+
+    crux_config.upgrade( client );
+
+    // If we are in development mode, assume an unrestricted capability grant was made
+    if ( localStorage.getItem("ENVIRONMENT") === "development" )
+	return client;
+
+    client.setSigningHandler( async zomeCallUnsigned => {
+	if ( !("__HC_LAUNCHER_ENV__" in window) )
 	    throw new Error(`Sorry, zome call signing has only been implemented for Launcher at this point`);
 
 	zomeCallUnsigned.provenance	= Array.from( zomeCallUnsigned.provenance );
@@ -91,18 +94,6 @@ module.exports = async function () {
 	log.trace("Signed request input:", signedZomeCall );
 	return signedZomeCall;
     });
-
-    client.addProcessor("input", async function (input) {
-	let keys			= input ? `{ ${Object.keys( input ).join(", ")} }` : "";
-	log.trace("Calling %s::%s->%s(%s)", this.dna, this.zome, this.func, keys );
-	return input;
-    });
-    client.addProcessor("output", async function (output) {
-	log.trace("Response for %s::%s->%s(%s)", this.dna, this.zome, this.func, this.input ? " ... " : "", output );
-	return output;
-    });
-
-    crux_config.upgrade( client );
 
     return client;
 }

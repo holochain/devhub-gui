@@ -4,7 +4,6 @@ const log				= new Logger("main");
 const json				= require('@whi/json');
 const { EntityArchitect,
 	...crux }			= CruxPayloadParser;
-const { TimeoutError }			= HolochainClient;
 const { AgentPubKey }			= holohash;
 
 Error.stackTraceLimit = Infinity;
@@ -70,6 +69,8 @@ window.PersistentStorage		= {
     //   agent			- Local storage
     //   connection		- Local storage
     //
+    const { TimeoutError }		= await HolochainClient;
+
     const client			= await client_init();
     log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(client._agent), client._conn._uri, WEBPACK_MODE );
 
