@@ -5,9 +5,6 @@ const fs			= require('fs');
 
 const Copy			= require('copy-webpack-plugin');
 
-const DNAREPO_HASH		= fs.readFileSync("./tests/DNAREPO_HASH",	"utf8").trim();
-const HAPPS_HASH		= fs.readFileSync("./tests/HAPPS_HASH",		"utf8").trim();
-const WEBASSETS_HASH		= fs.readFileSync("./tests/WEB_ASSETS_HASH",	"utf8").trim();
 const WEBPACK_MODE		= process.env.WEBPACK_MODE || "production";
 
 
@@ -55,11 +52,6 @@ module.exports = {
 	    "WEBPACK_MODE":		JSON.stringify( WEBPACK_MODE ),
 	    "__VUE_OPTIONS_API__":	JSON.stringify( true ),
 	    "__VUE_PROD_DEVTOOLS__":	JSON.stringify( false ),
-	    "process.env": {
-		"DNAREPO_HASH":		JSON.stringify( DNAREPO_HASH ),
-		"HAPPS_HASH":		JSON.stringify( HAPPS_HASH ),
-		"WEBASSETS_HASH":	JSON.stringify( WEBASSETS_HASH ),
-	    },
 	}),
 	new Copy({
 	    patterns: [{

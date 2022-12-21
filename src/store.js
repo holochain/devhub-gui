@@ -191,6 +191,27 @@ module.exports = async function ( client, app ) {
 		delete content.agent_latest_pubkey;
 	    },
 	},
+	"hApps for Agent": {
+	    "path": "agent/:id/happs",
+	    "readonly": true,
+	    async read ({ id }) {
+		let list;
+
+		if ( id === "me" )
+		    list		= await client.call("happs", "happ_library", "get_my_happs");
+		else
+		    list		= await client.call("happs", "happ_library", "get_happs", {
+			"agent": id,
+		    });
+
+		for ( let happ of list ) {
+		    const path		= `happ/${happ.$id}`;
+		    this.openstate.state[path]	= happ;
+		}
+
+		return list;
+	    },
+	},
 	"GUIs for Agent": {
 	    "path": "agent/:id/guis",
 	    "readonly": true,
@@ -532,10 +553,10 @@ module.exports = async function ( client, app ) {
 	    async read () {
 		const list		= await client.call("happs", "happ_library", "get_all_happs");
 
-		// for ( let happ of list ) {
-		//     const path		= `happ/${happ.$id}`;
-		//     this.openstate.state[path]	= happ;
-		// }
+		for ( let happ of list ) {
+		    const path		= `happ/${happ.$id}`;
+		    this.openstate.state[path]	= happ;
+		}
 
 		return list;
 	    },
