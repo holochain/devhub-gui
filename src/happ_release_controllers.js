@@ -645,7 +645,7 @@ module.exports = async function ( client ) {
 		},
 
 		reset_file () {
-		    if ( this.bundle.roles ) {
+		    if ( this.bundle?.roles ) {
 			for ( let role of this.bundle.roles ) {
 			    role.saving			= false;
 			    role.validated		= false;
@@ -710,11 +710,11 @@ module.exports = async function ( client ) {
 
 			const ui_file		= await this.bundle.ui.source();
 
-			log.debug("Set GUI:", this.bundle.ui );
-			this.set_gui({
-			    "name": this.bundle.ui.name,
-			    "size": ui_file.bytes.length,
-			}, ui_file.bytes );
+			// log.debug("Set GUI:", this.bundle.ui );
+			// this.set_gui({
+			//     "name": this.bundle.ui.name,
+			//     "size": ui_file.bytes.length,
+			// }, ui_file.bytes );
 
 			const happ_file		= await this.bundle.happ.source();
 			await this.bundle.happ.bundle();
@@ -742,10 +742,10 @@ module.exports = async function ( client ) {
 			role.hash			= role.bundle.dna_hash;
 			role.file			= await role.dna.source();
 
-			if ( this.previous_dnas[role.id] ) {
-			    const prev_dna_ref			= this.previous_dnas[role.id];
+			if ( this.previous_dnas[role.name] ) {
+			    const prev_dna_ref			= this.previous_dnas[role.name];
 
-			    log.normal("Previous role match '%s':", role.id, prev_dna_ref );
+			    log.normal("Previous role match '%s':", role.name, prev_dna_ref );
 			    if ( prev_dna_ref.wasm_hash === role.hash ) {
 				// Auto-select the previous role DNA Version
 				this.$store.dispatch("getDnaVersion", prev_dna_ref.version )
@@ -779,10 +779,10 @@ module.exports = async function ( client ) {
 			    zome_ref.version		= "";
 			    zome_ref.ordering		= 1;
 
-			    if ( this.previous_dnas[ role.id ] && this.previous_dnas[ role.id ].integrity_zomes[ zome_ref.name ] ) {
-				const prev_zome		= this.previous_dnas[ role.id ].integrity_zomes[ zome_ref.name ];
+			    if ( this.previous_dnas[ role.name ] && this.previous_dnas[ role.name ].integrity_zomes[ zome_ref.name ] ) {
+				const prev_zome		= this.previous_dnas[ role.name ].integrity_zomes[ zome_ref.name ];
 
-				log.normal("Previous zome match (%s) in role '%s':", zome_ref.name, role.id, prev_zome );
+				log.normal("Previous zome match (%s) in role '%s':", zome_ref.name, role.name, prev_zome );
 				if ( prev_zome.mere_memory_hash === zome_ref.hash
 				     && prev_zome.hdk_version === this.input.hdk_version) {
 				    // Auto-select the previous role->zome Version
@@ -814,10 +814,10 @@ module.exports = async function ( client ) {
 			    zome_ref.version		= "";
 			    zome_ref.ordering		= 1;
 
-			    if ( this.previous_dnas[ role.id ] && this.previous_dnas[ role.id ].zomes[ zome_ref.name ] ) {
-				const prev_zome		= this.previous_dnas[ role.id ].zomes[ zome_ref.name ];
+			    if ( this.previous_dnas[ role.name ] && this.previous_dnas[ role.name ].zomes[ zome_ref.name ] ) {
+				const prev_zome		= this.previous_dnas[ role.name ].zomes[ zome_ref.name ];
 
-				log.normal("Previous zome match (%s) in role '%s':", zome_ref.name, role.id, prev_zome );
+				log.normal("Previous zome match (%s) in role '%s':", zome_ref.name, role.name, prev_zome );
 				if ( prev_zome.mere_memory_hash === zome_ref.hash
 				     && prev_zome.hdk_version === this.input.hdk_version) {
 				    // Auto-select the previous role->zome Version
@@ -901,7 +901,7 @@ module.exports = async function ( client ) {
 		},
 
 		async assign_parent_dna_for ( role, dna ) {
-		    log.normal("Assign parent DNA for '%s':", role.id, dna );
+		    log.normal("Assign parent DNA for '%s':", role.name, dna );
 
 		    role.selected_dna		= dna;
 		    this.select_dna_context	= null;
@@ -911,7 +911,7 @@ module.exports = async function ( client ) {
 		    role.ordering		= version ? version.ordering + 1 : 1;
 		},
 		async unassign_parent_dna_for ( role ) {
-		    log.normal("Unassign parent DNA for '%s'", role.id );
+		    log.normal("Unassign parent DNA for '%s'", role.name );
 
 		    role.ordering		= 1;
 
@@ -1055,7 +1055,7 @@ module.exports = async function ( client ) {
 		    this.validated		= true;
 		    role.validated		= true;
 
-		    const form			= this.dna_form( role.id );
+		    const form			= this.dna_form( role.name );
 
 		    if ( !form || form.checkValidity() === false )
 			return;
@@ -1075,7 +1075,7 @@ module.exports = async function ( client ) {
 				    "description": role.description || "",
 				}
 			    );
-			    this.$store.dispatch("fetchDnasByName", role.id );
+			    this.$store.dispatch("fetchDnasByName", role.name );
 			}
 
 			// Create the new version
@@ -1126,6 +1126,7 @@ module.exports = async function ( client ) {
 		    try {
 			log.normal("Creating hApp release: %s", this.input.name );
 
+			console.log( this.bundle );
 			const input			= {
 			    "name":		this.input.name,
 			    "description":	this.input.description,
@@ -1135,7 +1136,7 @@ module.exports = async function ( client ) {
 			    "dnas": this.bundle.roles.map( role => {
 				const version		= role.selected_dna_version;
 				return {
-				    "role_id":		role.id,
+				    "role_name":	role.name,
 				    "dna":		version.for_dna,
 				    "version":		version.$id,
 				    "wasm_hash":	version.wasm_hash,

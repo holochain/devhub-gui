@@ -697,10 +697,9 @@ module.exports = async function ( client, app ) {
 	    "path": "happ/release/:id/bundle",
 	    "readonly": true,
 	    async read ({ id }, opts ) {
-		return await client.call( "happs", "happ_library", "get_release_package", { id }, 300_000 );
-	    },
-	    adapter ( bytes ) {
-		return new Uint8Array( bytes );
+		return new Uint8Array(
+		    await client.call( "happs", "happ_library", "get_release_package", { id }, 300_000 )
+		);
 	    },
 	},
 	"Webhapp Bundle for hApp Release": {
@@ -710,14 +709,13 @@ module.exports = async function ( client, app ) {
 		const release		= await this.openstate.get(`happ/release/${id}`);
 		const happ		= await this.openstate.get(`happ/${release.for_happ}`);
 
-		return await client.call( "happs", "happ_library", "get_webhapp_package", {
-		    "name": happ.title,
-		    "happ_release_id": new EntryHash( id ),
-		    "gui_release_id": new EntryHash( gui ),
-		}, 300_000 );
-	    },
-	    adapter ( bytes ) {
-		return new Uint8Array( bytes );
+		return new Uint8Array(
+		    await client.call( "happs", "happ_library", "get_webhapp_package", {
+			"name": happ.title,
+			"happ_release_id": new EntryHash( id ),
+			"gui_release_id": new EntryHash( gui ),
+		    }, 300_000 )
+		);
 	    },
 	},
 	"Releases for hApp": {
@@ -973,10 +971,8 @@ module.exports = async function ( client, app ) {
 	    "path": "dna/version/:id/bundle",
 	    "readonly": true,
 	    async read ({ id }, opts ) {
-		return await client.call( "dnarepo", "dna_library", "get_dna_package", { id });
-	    },
-	    adapter ( bytes ) {
-		return new Uint8Array( bytes );
+		const pack		=  await client.call( "dnarepo", "dna_library", "get_dna_package", { id });
+		return new Uint8Array( pack.bytes );
 	    },
 	},
 	"All Zomes": {

@@ -124,8 +124,8 @@ const common				= {
 	});
     },
 
-    download ( filename, ...bytes ) {
-	const blob			= new Blob( bytes );
+    download ( filename, ...byte_arrays ) {
+	const blob			= new Blob( byte_arrays );
 	log.normal("Downloading bytes (%s bytes) as '%s'", blob.size, filename );
 
 	const link			= document.createElement("a");

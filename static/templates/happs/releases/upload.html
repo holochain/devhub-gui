@@ -254,7 +254,7 @@
 						    <form v-else
 							  :ref="'form_zome_' + zome.name"
 							  :class="{ 'was-validated': zome.validated }">
-							<div class="card entity-card zome-card"
+							<div class="card entity-card zome-card mb-3"
 							     :class="{ 'border-danger': role.validated && missingZomes( role ) && !zome.selected_zome }">
 							    <div class="entity-card-header"><strong>{{ zome.name }}</strong></div>
 							    <div v-if="zome.selected_zome" class="entity-card-actions">
@@ -410,7 +410,7 @@
 						    <form v-else
 							  :ref="'form_zome_' + zome.name"
 							  :class="{ 'was-validated': zome.validated }">
-							<div class="card entity-card zome-card"
+							<div class="card entity-card zome-card mb-3"
 							     :class="{ 'border-danger': role.validated && missingZomes( role ) && !zome.selected_zome }">
 							    <div class="entity-card-header"><strong>{{ zome.name }}</strong></div>
 							    <div v-if="zome.selected_zome" class="entity-card-actions">

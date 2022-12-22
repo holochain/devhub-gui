@@ -143,7 +143,7 @@
 				    <input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
 				</dd>
 			    </dl>
-			    <div style="margin: 1rem 0 2.5rem 0;">
+			    <div style="margin: 1rem 0 1.5rem 0;">
 				<template v-if="zome.selected_zome && versions_for_zome(zome.selected_zome.$id).length">
 				    <div v-if="versions_for_zome(zome.selected_zome.$id).length > 4"
 					 class="card entity-card entity-card-layered zome-card">
@@ -209,9 +209,14 @@
 				</div>
 			    </div>
 
+			    <div v-if="!(input.hdk_version && zome.version )" class="alert alert-warning" role="alert">
+				<p class="m-0">Missing HDK Version or Zome Version</p>
+			    </div>
+
 			    <div class="d-flex justify-content-end mb-3">
 				<a @click="create_zome_version( zome, 0 )"
 				   class="btn btn-outline-primary"
+				   :class="{ 'disabled': !(input.hdk_version && zome.version ) }"
 				   title="Upload new Zome Version">
 				    <span v-if="zome.saving"
 					  class="spinner-border spinner-border-sm me-3"></span>
@@ -295,7 +300,7 @@
 				    <input v-else class="form-control" :value="$root.agent.pubkey.current" readonly>
 				</dd>
 			    </dl>
-			    <div style="margin: 1rem 0 2.5rem 0;">
+			    <div style="margin: 1rem 0 1.5rem 0;">
 				<template v-if="zome.selected_zome && versions_for_zome(zome.selected_zome.$id).length">
 				    <div v-if="versions_for_zome(zome.selected_zome.$id).length > 4"
 					 class="card entity-card entity-card-layered zome-card">
@@ -361,9 +366,14 @@
 				</div>
 			    </div>
 
+			    <div v-if="!(input.hdk_version && zome.version )" class="alert alert-warning" role="alert">
+				<p class="m-0">Missing HDK Version or Zome Version</p>
+			    </div>
+
 			    <div class="d-flex justify-content-end mb-3">
 				<a @click="create_zome_version( zome, 1 )"
 				   class="btn btn-outline-primary"
+				   :class="{ 'disabled': !(input.hdk_version && zome.version ) }"
 				   title="Upload new Zome Version">
 				    <span v-if="zome.saving"
 					  class="spinner-border spinner-border-sm me-3"></span>
@@ -412,7 +422,7 @@
 			<input-feedback>
 			    <div class="input-group">
 				<span class="input-group-text">v</span>
-				<input type="number" v-model="input.version" class="form-control" required>
+				<input v-model="input.version" class="form-control" required>
 			    </div>
 			</input-feedback>
 
