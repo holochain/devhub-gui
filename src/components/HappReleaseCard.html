@@ -57,10 +57,10 @@
 
 	    <div v-if="expanded" class="row gy-3" style="margin: 1rem 0 2.5rem 0;">
 		<div v-if="dna_ids.length"
-		     v-for="(dna_version_id, role_id) in dnas"
+		     v-for="(dna_version_id, role_name) in dnas"
 		     class="col-12 px-0">
 		    <dna-version-card :id="dna_version_id"
-				      :title="role_id"
+				      :title="role_name"
 				      :link="link"
 				      :expand-depth="child_expand_depth"></dna-version-card>
 		</div>

@@ -96,10 +96,10 @@
 				  :link="false"
 				  :actions="[ unselectAction( role ) ]"></dna-version-card>
 		<form v-else
-		      :ref="'form_' + role.id"
+		      :ref="'form_' + role.name"
 		      :class="{ 'was-validated': role.validated }">
 		    <div class="card entity-card dna-card">
-			<div class="entity-card-header"><strong>{{ role.id }}</strong></div>
+			<div class="entity-card-header"><strong>{{ role.name }}</strong></div>
 			<div v-if="role.selected_dna" class="entity-card-actions">
 			    <a class="float-start"
 			       title="Change parent DNA"
@@ -688,7 +688,7 @@
 				<div v-for="role in bundle.roles"
 				     class="col-12 px-0">
 				    <dna-version-card :id="role.selected_dna_version.$id"
-						      :title="role.id"
+						      :title="role.name"
 						      :link="false"></dna-version-card>
 				</div>
 			    </div>

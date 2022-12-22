@@ -66,10 +66,10 @@ module.exports = function ( element_local_name, component_name ) {
 
 		if ( Array.isArray( this.release.dnas ) ) {
 		    for ( let ref of this.release.dnas )
-			dnas[ref.role_id] = ref.version;
+			dnas[ref.role_name] = ref.version;
 		} else {
-		    for ( let role_id in this.release.dnas )
-			dnas[role_id]	= this.release.dnas[role_id].$id;
+		    for ( let role_name in this.release.dnas )
+			dnas[role_name]	= this.release.dnas[role_name].$id;
 		}
 
 		return dnas;

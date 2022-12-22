@@ -146,7 +146,7 @@ function HappEntry ( cell_state = {}, opts = {} ) {
 
 function RandomDnaRef () {
     return {
-	"role_id":		faker.lorem.word().toLowerCase(),
+	"role_name":		faker.lorem.word().toLowerCase(),
 	"dna":			new EntryHash( crypto.randomBytes(32) ),
 	"version":		new EntryHash( crypto.randomBytes(32) ),
 	"wasm_hash":		faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),
@@ -157,8 +157,8 @@ function HappReleaseEntry ( cell_state = {}, opts = {} ) {
     if ( String(cell_state) !== "[object Object]" )
 	throw new Error(`State must be an object; not typeof '${repr( cell_state )}'`);
 
-    const role_id_1			= faker.lorem.word().toLowerCase();
-    const role_id_2			= faker.lorem.word().toLowerCase();
+    const role_name_1			= faker.lorem.word().toLowerCase();
+    const role_name_2			= faker.lorem.word().toLowerCase();
     const roles				= [];
     const dnas				= [];
 
@@ -170,7 +170,7 @@ function HappReleaseEntry ( cell_state = {}, opts = {} ) {
 	const dna_ref			= Object.assign( RandomDnaRef(), dna );
 
 	roles.push({
-	    "id":			dna_ref.role_id,
+	    "id":			dna_ref.role_name,
 	    "dna": {
 		"bundled":		`./resource_${i}_path.dna`,
 		"clone_limit":		0,

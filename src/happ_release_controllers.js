@@ -115,7 +115,7 @@ module.exports = async function ( client ) {
 			log.info("Push dna:", dna );
 			this.release$.dnas.push({
 			    "version_count":	versions.length,
-			    "role_id":		dna.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
+			    "role_name":		dna.name.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_'),
 			    "dna":		String( dna.$id ),
 			    "version":		String( latest_version.$id ),
 			    "title":		latest_version.version,
@@ -149,9 +149,9 @@ module.exports = async function ( client ) {
 
 			for ( let dna_ref of release$.dnas ) {
 			    release$.manifest.roles.push({
-				"id":		dna_ref.role_id,
+				"name":		dna_ref.role_name,
 				"dna": {
-				    "bundled":	`./${dna_ref.role_id}.dna`,
+				    "bundled":	`./${dna_ref.role_name}.dna`,
 				    "clone_limit": 0,
 				},
 				"provisioning": {
@@ -606,7 +606,7 @@ module.exports = async function ( client ) {
 
 		    log.info("Make reverse-lookup for previous DNAs:", this.happ_release );
 		    this.happ_release.dnas.forEach( async dna_ref => {
-			const prev_dna_info	= this.previous_dnas[dna_ref.role_id]	= this.copy( dna_ref );
+			const prev_dna_info	= this.previous_dnas[dna_ref.role_name]	= this.copy( dna_ref );
 			prev_dna_info.integrity_zomes	= {};
 			prev_dna_info.zomes		= {};
 
@@ -1057,6 +1057,7 @@ module.exports = async function ( client ) {
 
 		    const form			= this.dna_form( role.name );
 
+		    log.info("Check DNA form validatity: %s", form.checkValidity() );
 		    if ( !form || form.checkValidity() === false )
 			return;
 
