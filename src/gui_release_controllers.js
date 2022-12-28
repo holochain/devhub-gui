@@ -290,10 +290,9 @@ module.exports = async function ( client ) {
 		    this.$openstate.get( this.webasset_datapath );
 		},
 		async downloadFile () {
-		    console.log(`webasset/mere_memory/${this.webasset.mere_memory_addr}`);
-		    const bytes		= await this.$openstate.get(`webasset/mere_memory/${this.webasset.mere_memory_addr}`);
+		    const bytes		= await this.$openstate.get(`web_assets/mere_memory/${this.webasset.mere_memory_addr}`);
 
-		    this.download( "GUI File.zip", bytes );
+		    this.download( `${this.gui.name}.zip`, bytes );
 		},
 		async unpublish () {
 		    await this.$openstate.delete( this.datapath, "unpublish" );

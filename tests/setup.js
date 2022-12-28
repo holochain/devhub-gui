@@ -93,6 +93,9 @@ const CAP_GRANT_CONFIG			= {
 
 	    "create_file", "get_file",
 	],
+	"mere_memory": [
+	    "retrieve_bytes",
+	],
     },
 };
 
