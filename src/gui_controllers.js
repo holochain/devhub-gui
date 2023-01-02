@@ -100,17 +100,17 @@ module.exports = async function ( client ) {
 	    },
 	    "methods": {
 		addTag ( tag ) {
-		    if ( this.input.tags.indexOf( tag ) !== -1 )
+		    if ( this.gui$.tags.indexOf( tag ) !== -1 )
 			return;
 
 		    log.info("Adding tag:", tag );
-		    this.input.tags.push( tag );
-		    this.input.tags.sort();
+		    this.gui$.tags.push( tag );
+		    this.gui$.tags.sort();
 		    this.tag_search_text	= "";
 		},
 		removeTag ( tag ) {
 		    log.info("Removing tag:", tag );
-		    this.input.tags.splice( this.input.tags.indexOf( tag ), 1 );
+		    this.gui$.tags.splice( this.gui$.tags.indexOf( tag ), 1 );
 		},
 		async write () {
 		    try {
