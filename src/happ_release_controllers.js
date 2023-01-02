@@ -397,6 +397,8 @@ module.exports = async function ( client ) {
 
 		    "setup": null,
 		    "previous_dnas": {},
+		    "previous_gui": null,
+		    "next_gui": {},
 		};
 	    },
 	    "computed": {
@@ -600,6 +602,15 @@ module.exports = async function ( client ) {
 		    await this.$store.dispatch("fetchHappRelease", this.latest_release.$id );
 		    log.info("Latest hApp release:", this.happ_release );
 
+		    console.log("LDKJSLFKJDLFKJ", this.happ_release );
+		    if ( this.happ_release.official_gui ) {
+			this.$openstate.get(`gui/release/${this.happ_release.official_gui}`)
+			    .then( async gui_release => {
+				console.log("Previous GUI release:", gui_release );
+				this.previous_gui	= await this.$openstate.get(`gui/${gui_release.for_gui}`);
+			    });
+		    }
+
 		    // We will use the last release name as the default value for the next release.
 		    // this.input.name		= this.happ_release.name;
 		    this.input.ordering		= this.happ_release.ordering + 1;
@@ -710,11 +721,11 @@ module.exports = async function ( client ) {
 
 			const ui_file		= await this.bundle.ui.source();
 
-			// log.debug("Set GUI:", this.bundle.ui );
-			// this.set_gui({
-			//     "name": this.bundle.ui.name,
-			//     "size": ui_file.bytes.length,
-			// }, ui_file.bytes );
+			log.debug("Set GUI:", this.bundle.ui );
+			this.set_gui({
+			    "name": this.bundle.ui.name,
+			    "size": ui_file.bytes.length,
+			}, ui_file.bytes );
 
 			const happ_file		= await this.bundle.happ.source();
 			await this.bundle.happ.bundle();
@@ -996,7 +1007,7 @@ module.exports = async function ( client ) {
 		async readyForReview () {
 		    this.validated		= true;
 
-		    if ( this.missingDnas() )
+		    if ( this.missingDnasOrGui() )
 			return;
 
 		    this.ready_for_review	= true;
@@ -1146,12 +1157,34 @@ module.exports = async function ( client ) {
 			};
 
 			if ( this.gui_bytes ) {
-			    const web_asset	= await this.$store.dispatch("createWebAsset", this.gui_bytes );
+			    this.next_gui.saving		= true;
+			    try {
+				const datapath			= 'gui/release/new';
+				const gui_release$		= this.$openstate.mutable[ datapath ];
+				gui_release$.version		= this.next_gui.version;
 
-			    input.gui		= {
-				"asset_group_id": web_asset.$id,
-				"uses_web_sdk": false,
-			    };
+				if ( this.previous_gui )
+				    gui_release$.for_gui	= this.previous_gui.$id;
+				else {
+				    const gui_datapath		= `gui/new`;
+				    const gui$			= this.$openstate.mutable[ gui_datapath ];
+				    gui$.name			= this.next_gui.name;
+				    const gui			= await this.$openstate.write( gui_datapath );
+				    gui_release$.for_gui	= gui.$id;
+				}
+
+				const webasset			= await this.createWebAsset( this.gui_bytes );
+				gui_release$.web_asset_id	= webasset.$id;
+
+				const gui_release		= await this.$openstate.write( datapath );
+
+				input.official_gui		= gui_release.$id;
+			    } catch ( err ) {
+				log.error("Failed to create GUI Release:", err );
+				throw err;
+			    } finally {
+				this.next_gui.saving		= false;
+			    }
 			}
 
 			log.debug("Create hApp release '%s': (%s DNAs):", this.input.name, this.input.dnas.length, this.input );
@@ -1179,7 +1212,7 @@ module.exports = async function ( client ) {
 		    return version.hdk_version === this.input.hdk_version;
 		},
 
-		missingDnas () {
+		missingDnasOrGui () {
 		    if ( !(this.bundle && this.bundle.roles) )
 			return false;
 
@@ -1187,6 +1220,12 @@ module.exports = async function ( client ) {
 			if ( !role.selected_dna_version )
 			    return true;
 		    }
+
+		    if ( !this.previous_gui && !this.next_gui.name )
+			return true;
+
+		    if ( this.gui_bytes && !this.next_gui.version )
+			return true;
 
 		    return false;
 		},
@@ -1220,8 +1259,8 @@ module.exports = async function ( client ) {
 		    this.gui_file               = file;
 		    this.gui_bytes              = bytes;
 
-		    this.$refs.gui_input.showFeedback   = true;
-		    this.$refs.gui_input.blurred        = true;
+		    // this.$refs.gui_input.showFeedback   = true;
+		    // this.$refs.gui_input.blurred        = true;
 		},
 
 		async gui_selected ( event ) {

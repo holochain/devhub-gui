@@ -556,6 +556,17 @@ const common				= {
 	else
 	    throw new Error(`Emptiness of type '${typeof value}' cannot be determined`);
     },
+
+    async createWebAsset ( bytes ) {
+	const digest				= await common.digest( bytes );
+	const hash				= common.toHex( digest );
+	const datapath				= `webasset/${hash}`;
+	const input				= this.$openstate.mutable[ datapath ];
+
+	input.file_bytes			= bytes;
+
+	return await this.$openstate.write( datapath );
+    },
 };
 
 
