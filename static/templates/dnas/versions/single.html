@@ -72,13 +72,36 @@
 			</dd>
 
 			<dt class="col-sm-12">HDK Version</dt>
-			<dd class="col-sm-12"><placeholder :when="!$version.current">{{ version.hdk_version }}</placeholder></dd>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.current">
+				{{ version.hdk_version }}
+			    </placeholder>
+			</dd>
 
 			<dt class="col-sm-12">Resource Hash</dt>
-			<dd class="col-sm-12"><placeholder :when="!$version.current"><code>{{ version.wasm_hash }}</code></placeholder></dd>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.current">
+				<code>{{ version.wasm_hash }}</code>
+			    </placeholder>
+			</dd>
+
+			<dt class="col-sm-12">Origin Time</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.current">
+				<code>{{ version.origin_time }}</code>
+			    </placeholder>
+			</dd>
+
+			<dt class="col-sm-12">Network Seed</dt>
+			<dd class="col-sm-12">
+			    <placeholder :when="!$version.current">
+				<code v-if="version.network_seed">{{ version.network_seed }}</code>
+				<span v-else>None</span>
+			    </placeholder>
+			</dd>
 		    </dl>
 
-		    <h4 class="fs-6">Properties</h4>
+		    <h4 class="fs-6 mt-5">Properties</h4>
 		    <dl v-if="version && version.properties" class="row">
 			<template v-for="(value, name) in version.properties">
 			    <dt class="col-sm-12">{{ name }}</dt>

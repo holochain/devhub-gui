@@ -101,7 +101,9 @@ module.exports = async function ( client ) {
 		addTag ( tag ) {
 		    if ( !Array.isArray( this.happ$.tags ) )
 			this.happ$.tags		= [];
-		    if ( this.happ$.tags.indexOf( tag ) !== -1 )
+
+		    // Tag is empty or exists
+		    if ( tag.trim() === "" || this.happ$.tags.indexOf( tag ) !== -1 )
 			return;
 
 		    log.info("Adding tag:", tag );
@@ -222,7 +224,9 @@ module.exports = async function ( client ) {
 		addTag ( tag ) {
 		    if ( !Array.isArray( this.happ$.tags ) )
 			this.happ$.tags		= [];
-		    if ( this.happ$.tags.indexOf( tag ) !== -1 )
+
+		    // Tag is empty or exists
+		    if ( tag.trim() === "" || this.happ$.tags.indexOf( tag ) !== -1 )
 			return;
 
 		    log.info("Adding tag:", tag );

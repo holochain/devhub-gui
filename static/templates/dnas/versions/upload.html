@@ -33,7 +33,7 @@
 		<loading :when="$uploaded_file.loading || $bundle.loading">
 		    <label class="form-label fw-6">Drag and drop DNA bundle here</label>
 		    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-			<input type="file" @change="file_selected" class="form-control form-input-file" required>
+			<input type="file" accept=".dna" @change="file_selected" class="form-control form-input-file" required>
 		    </input-feedback>
 		</loading>
 	    </div>
@@ -441,6 +441,16 @@
 			    <input v-model="input.hdk_version" class="form-control" readonly required>
 			</input-feedback>
 
+			<label class="form-label fw-6">Origin Time</label>
+			<input-feedback>
+			    <input v-model="input.origin_time" class="form-control" readonly required>
+			</input-feedback>
+
+			<label class="form-label fw-6">Network Seed</label>
+			<input-feedback>
+			    <input v-model="input.network_seed" class="form-control" readonly required>
+			</input-feedback>
+
 			<label class="form-label fw-6">Properties</label>
 			<div class="px-3">
 			    <table v-if="input.properties" class="table">
@@ -517,6 +527,12 @@
 
 				<dt class="col-3">Last Updated</dt>
 				<dd class="col-9 mb-1">TBD</dd>
+
+				<dt class="col-3">Origin Time</dt>
+				<dd class="col-9 mb-1">{{ input.origin_time }}</dd>
+
+				<dt class="col-3">Network Seed</dt>
+				<dd class="col-9 mb-1">{{ input.network_seed }}</dd>
 			    </dl>
 
 			    <div v-if="input.properties">

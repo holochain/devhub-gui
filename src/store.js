@@ -906,6 +906,8 @@ module.exports = async function ( client, app ) {
 		    "ordering": null,
 		    "changelog": null,
 		    "hdk_version": null,
+		    "origin_time": (new Date()).toISOString(),
+		    "network_seed": null,
 		    "integrity_zomes": [],
 		    "zomes": [],
 		    "metadata": {},
@@ -936,13 +938,14 @@ module.exports = async function ( client, app ) {
 		    "for_dna": "For DNA",
 		    "version": "Version",
 		    "ordering": "Ordering",
+		    "origin_time": "Origin Time",
 		    "changelog": "Changelog",
 		    "hdk_version": "HDK Version",
 		    "integrity_zomes": "Integrity Zomes",
 		    "zomes": "Coordinator Zomes",
 		};
-		const required_props	= ["for_dna", "version", "ordering", "hdk_version"];
-		const nonempty_props	= ["hdk_version"];
+		const required_props	= ["for_dna", "version", "ordering", "origin_time", "hdk_version"];
+		const nonempty_props	= ["origin_time", "hdk_version"];
 
 		if ( intent === "create" ) {
 		    required_props.push("integrity_zomes");
@@ -3222,6 +3225,8 @@ module.exports = async function ( client, app ) {
 		const path		= dataTypePath.file( id );
 
 		commit("signalLoading", path );
+
+		await common.delay();
 
 		const bytes		= await common.load_file( file );
 

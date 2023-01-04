@@ -75,7 +75,8 @@
 		    <loading :when="$uploaded_file.loading || $bundle.loading">
 			<label class="form-label fw-6">Drag and drop hApp bundle here</label>
 			<input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-			    <input type="file" @change="file_selected" class="form-control form-input-file" required>
+			    <input type="file" accept=".happ,.webhapp"
+				   @change="file_selected" class="form-control form-input-file" required>
 			</input-feedback>
 		    </loading>
 		</div>
@@ -594,7 +595,6 @@
 
 			<input-feedback>
 			    <div class="input-group mb-3">
-				<span class="input-group-text">v</span>
 				<input v-model="next_gui.name" class="form-control"
 				       :disabled="next_gui.saving" required>
 			    </div>
@@ -680,7 +680,7 @@
 	    </div>
 	    <div class="row mb-5">
 		<div class="col-6">
-		    <label class="form-label fw-6">Description</label>
+		    <label class="form-label fw-6">Changelog</label>
 		    <input-feedback>
 			<textarea v-model="input.description" class="form-control" rows="10" required></textarea>
 		    </input-feedback>

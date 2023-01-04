@@ -47,6 +47,16 @@
 		    <textarea v-model="version$.changelog" class="form-control font-monospace" rows="10" :disabled="$version.writing"></textarea>
 		</input-feedback>
 
+		<label class="form-label fw-6">Origin Time</label>
+		<input-feedback>
+		    <input v-model="version$.origin_time" class="form-control" :disabled="$version.writing" required>
+		</input-feedback>
+
+		<label class="form-label fw-6">Network Seed</label>
+		<input-feedback>
+		    <input v-model="version$.network_seed" class="form-control" :disabled="$version.writing">
+		</input-feedback>
+
 		<label class="form-label fw-6">Integrity Zomes</label>
 
 		<list-group :list="version$.integrity_zomes" no-result-text="No Integrity Zomes have been added"

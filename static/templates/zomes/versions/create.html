@@ -55,7 +55,7 @@
 
 	    <label class="form-label fw-6">Drag and drop Zome here</label>
 	    <input-feedback style="height: 10rem;" :valid-message="file_valid_feedback">
-		<input type="file" @change="file_selected" class="form-control form-input-file"
+		<input type="file" accept=".wasm" @change="file_selected" class="form-control form-input-file"
 		       :disabled="$version.writing" required>
 	    </input-feedback>
 

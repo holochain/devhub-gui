@@ -1097,6 +1097,8 @@ module.exports = async function ( client ) {
 				"version":		role.version,
 				"ordering":		role.ordering,
 				"hdk_version":		this.input.hdk_version,
+				"origin_time":		role.bundle.integrity.origin_time,
+				"network_seed": 	role.bundle.integrity.network_seed,
 				"properties":		role.bundle.integrity.properties,
 				"integrity_zomes":	role.bundle.integrity.zomes.map( zome_info => {
 				    return {

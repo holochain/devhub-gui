@@ -99,7 +99,11 @@ module.exports = async function ( client ) {
 	    },
 	    "methods": {
 		addTag ( tag ) {
-		    if ( this.zome$.tags.indexOf( tag ) !== -1 )
+		    if ( !Array.isArray( this.zome$.tags ) )
+			this.zome$.tags		= [];
+
+		    // Tag is empty or exists
+		    if ( tag.trim() === "" || this.zome$.tags.indexOf( tag ) !== -1 )
 			return;
 
 		    log.info("Adding tag:", tag );
@@ -229,7 +233,9 @@ module.exports = async function ( client ) {
 		addTag ( tag ) {
 		    if ( !Array.isArray( this.zome$.tags ) )
 			this.zome$.tags		= [];
-		    if ( this.zome$.tags.indexOf( tag ) !== -1 )
+
+		    // Tag is empty or exists
+		    if ( tag.trim() === "" || this.zome$.tags.indexOf( tag ) !== -1 )
 			return;
 
 		    log.info("Adding tag:", tag );

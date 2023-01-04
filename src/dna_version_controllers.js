@@ -576,8 +576,17 @@ module.exports = async function ( client ) {
 		},
 
 		reset_file () {
-		    if ( this.bundle.zomes ) {
-			for ( let zome of this.bundle.zomes ) {
+		    if ( this.bundle.integrity.zomes ) {
+			for ( let zome of this.bundle.integrity.zomes ) {
+			    zome.saving			= false;
+			    zome.validated		= false;
+			    zome.selected_zome		= null;
+			    zome.selected_zome_version	= null;
+			}
+		    }
+
+		    if ( this.bundle.coordinator.zomes ) {
+			for ( let zome of this.bundle.coordinator.zomes ) {
 			    zome.saving			= false;
 			    zome.validated		= false;
 			    zome.selected_zome		= null;
@@ -625,6 +634,12 @@ module.exports = async function ( client ) {
 			return this.reset_file();
 		    }
 
+		    console.log( this.bundle );
+
+		    this.input.origin_time	= this.bundle.integrity.origin_time;
+
+		    if ( this.bundle.integrity.network_seed )
+			this.input.network_seed	= this.bundle.integrity.network_seed;
 		    if ( this.bundle.integrity.properties )
 			this.input.properties	= Object.assign( {}, this.bundle.integrity.properties );
 
@@ -793,6 +808,8 @@ module.exports = async function ( client ) {
 			    "version": String( this.input.version ),
 			    "ordering":	this.input.ordering,
 			    "hdk_version": this.input.hdk_version,
+			    "origin_time": this.input.origin_time,
+			    "network_seed": this.input.network_seed,
 			    "properties": this.input.properties,
 			    "changelog": this.input.changelog,
 			    "integrity_zomes": this.bundle.integrity.zomes.map( info => {
