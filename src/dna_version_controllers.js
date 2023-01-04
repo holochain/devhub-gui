@@ -103,7 +103,7 @@ module.exports = async function ( client ) {
 		});
 		this.version$.for_dna	= this.dna_id;
 
-		const version		= await this.$openstate.get(`dna/${this.dna_id}/versions/latest`);
+		const version		= await this.$openstate.read(`dna/${this.dna_id}/versions/latest`);
 		this.version$.ordering	= version ? version.ordering + 1 : 1;
 	    },
 	    "methods": {
@@ -118,8 +118,8 @@ module.exports = async function ( client ) {
 		    return !this.added_zomes.find( id => id === String(item.$id) );
 		},
 		async getZomesByHDKVersion ( hdk_version ) {
-		    this.$openstate.get(`hdk/${hdk_version}/zomes/integrity`);
-		    this.$openstate.get(`hdk/${hdk_version}/zomes/coordinator`);
+		    this.$openstate.read(`hdk/${hdk_version}/zomes/integrity`);
+		    this.$openstate.read(`hdk/${hdk_version}/zomes/coordinator`);
 		},
 
 		addZomeAction ( zome, zome_list ) {
@@ -139,7 +139,7 @@ module.exports = async function ( client ) {
 			return;
 
 		    // Get latest version for a specific HDK Version
-		    const latest_version	= await this.$openstate.get(`zome/${zome.$id}/versions/hdk/${this.version$.hdk_version}/latest`);
+		    const latest_version	= await this.$openstate.read(`zome/${zome.$id}/versions/hdk/${this.version$.hdk_version}/latest`);
 
 		    log.normal("Adding zome version:", zome, latest_version );
 		    this.added_zomes.push( String(zome.$id) );

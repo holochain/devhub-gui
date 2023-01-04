@@ -68,6 +68,10 @@ module.exports = async function ( client ) {
 		$input () {
 		    return this.$openstate.metastate[ this.release_datapath ];
 		},
+
+		$writing () {
+		    return this.$input.writing || this.$webasset.writing;
+		},
 		$rejections () {
 		    return [
 			...this.$openstate.rejections[ this.release_datapath ],
@@ -93,7 +97,7 @@ module.exports = async function ( client ) {
 		if ( !this.gui )
 		    this.fetchGUI();
 
-		this.$openstate.get(`happs`);
+		this.$openstate.read(`happs`);
 
 		this.input.for_gui	= String( this.gui_id );
 		this.input.web_asset_id	= "temporary value";
@@ -110,7 +114,7 @@ module.exports = async function ( client ) {
 		},
 
 		async getHappReleases ( happ_id ) {
-		    await this.$openstate.get(`happ/${happ_id}/releases`);
+		    await this.$openstate.read(`happ/${happ_id}/releases`);
 		},
 
 		async file_selected ( event ) {
@@ -147,8 +151,6 @@ module.exports = async function ( client ) {
 		    } catch ( err ) {
 			log.error("Failed to create GUI Release:", err );
 			this.error	= err;
-		    } finally {
-			this.saving	= false;
 		    }
 		},
 	    },

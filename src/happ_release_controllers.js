@@ -97,7 +97,7 @@ module.exports = async function ( client ) {
 		async updateDnaList () {
 		    log.info("Configure added DNAs:", this.added_dnas );
 		    this.added_dnas.forEach( dna => {
-			this.$openstate.get(`dna/${dna.$id}/versions`);
+			this.$openstate.read(`dna/${dna.$id}/versions`);
 		    });
 		    const prev_dnas			= new Set( this.release$.dnas.map( dna_ref => dna_ref.dna ) );
 		    const new_dnas			= new Set( this.added_dnas.map( dna => String(dna.$id) ) );
@@ -109,8 +109,8 @@ module.exports = async function ( client ) {
 			    continue;
 			}
 
-			const versions			= await this.$openstate.get(`dna/${dna.$id}/versions/hdk/${this.release$.hdk_version}`);
-			const latest_version		= await this.$openstate.get(`dna/${dna.$id}/versions/hdk/${this.release$.hdk_version}/latest`);
+			const versions			= await this.$openstate.read(`dna/${dna.$id}/versions/hdk/${this.release$.hdk_version}`);
+			const latest_version		= await this.$openstate.read(`dna/${dna.$id}/versions/hdk/${this.release$.hdk_version}/latest`);
 
 			log.info("Push dna:", dna );
 			this.release$.dnas.push({
@@ -134,7 +134,7 @@ module.exports = async function ( client ) {
 		},
 
 		async getGUIReleases ( gui_id ) {
-		    await this.$openstate.get(`gui/${gui_id}/releases`);
+		    await this.$openstate.read(`gui/${gui_id}/releases`);
 		},
 
 		async create () {
@@ -335,7 +335,7 @@ module.exports = async function ( client ) {
 	    },
 	    "methods": {
 		async getGUIReleases ( gui_id ) {
-		    await this.$openstate.get(`gui/${gui_id}/releases`);
+		    await this.$openstate.read(`gui/${gui_id}/releases`);
 		},
 		togglePreview () {
 		    this.show_preview		= !this.show_preview;

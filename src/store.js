@@ -738,7 +738,7 @@ module.exports = async function ( client, app ) {
 	    "path": "happ/:id/releases/latest",
 	    "readonly": true,
 	    async read ({ id }) {
-		const releases		= await this.openstate.get(`happ/${id}/releases`);
+		const releases		= await this.openstate.read(`happ/${id}/releases`);
 
 		return releases.reduce( (acc, release, i) => {
 		    if ( acc === null )
@@ -867,7 +867,7 @@ module.exports = async function ( client, app ) {
 	    "path": "dna/:id/versions/latest",
 	    "readonly": true,
 	    async read ({ id }) {
-		const versions		= await this.openstate.get(`dna/${id}/versions`);
+		const versions		= await this.openstate.read(`dna/${id}/versions`);
 
 		return versions.reduce( reduceLatestVersion, null );
 	    },
@@ -876,7 +876,7 @@ module.exports = async function ( client, app ) {
 	    "path": "dna/:id/versions/hdk/:hdk_version",
 	    "readonly": true,
 	    async read ({ id, hdk_version }) {
-		const versions		= (await this.openstate.get(`dna/${id}/versions`))
+		const versions		= (await this.openstate.read(`dna/${id}/versions`))
 		      .filter( dna_version => dna_version.hdk_version === hdk_version );
 
 		return versions;
@@ -886,7 +886,7 @@ module.exports = async function ( client, app ) {
 	    "path": "dna/:id/versions/hdk/:hdk_version/latest",
 	    "readonly": true,
 	    async read ({ id, hdk_version }) {
-		const versions		= await this.openstate.get(`dna/${id}/versions/hdk/${hdk_version}`);
+		const versions		= await this.openstate.read(`dna/${id}/versions/hdk/${hdk_version}`);
 
 		return versions.reduce( reduceLatestVersion, null );
 	    },
@@ -995,7 +995,7 @@ module.exports = async function ( client, app ) {
 	    "path": "zomes/integrity",
 	    "readonly": true,
 	    async read () {
-		return (await this.openstate.get("zomes"))
+		return (await this.openstate.read("zomes"))
 		    .filter( zome => zome.zome_type === 0 );
 	    },
 	},
@@ -1003,7 +1003,7 @@ module.exports = async function ( client, app ) {
 	    "path": "zomes/coordinator",
 	    "readonly": true,
 	    async read () {
-		return (await this.openstate.get("zomes"))
+		return (await this.openstate.read("zomes"))
 		    .filter( zome => zome.zome_type === 1 );
 	    },
 	},
@@ -1098,7 +1098,7 @@ module.exports = async function ( client, app ) {
 	    "path": "zome/:id/versions/latest",
 	    "readonly": true,
 	    async read ({ id }) {
-		const versions		= await this.openstate.get(`zome/${id}/versions`);
+		const versions		= await this.openstate.read(`zome/${id}/versions`);
 
 		return versions.reduce( reduceLatestVersion, null );
 	    },
@@ -1107,7 +1107,7 @@ module.exports = async function ( client, app ) {
 	    "path": "zome/:id/versions/hdk/:hdk_version",
 	    "readonly": true,
 	    async read ({ id, hdk_version }) {
-		const versions		= (await this.openstate.get(`zome/${id}/versions`))
+		const versions		= (await this.openstate.read(`zome/${id}/versions`))
 		      .filter( zome_version => zome_version.hdk_version === hdk_version );
 
 		return versions;
@@ -1117,7 +1117,7 @@ module.exports = async function ( client, app ) {
 	    "path": "zome/:id/versions/hdk/:hdk_version/latest",
 	    "readonly": true,
 	    async read ({ id, hdk_version }) {
-		const versions		= await this.openstate.get(`zome/${id}/versions/hdk/${hdk_version}`);
+		const versions		= await this.openstate.read(`zome/${id}/versions/hdk/${hdk_version}`);
 
 		return versions.reduce( reduceLatestVersion, null );
 	    },
@@ -1450,7 +1450,7 @@ module.exports = async function ( client, app ) {
 	"Subject Reaction": {
 	    "path": "subject/:addr/reaction",
 	    async read ({ addr }) {
-		const my_reactions	= await this.$openstate.get(`agent/me/reactions`);
+		const my_reactions	= await this.$openstate.read(`agent/me/reactions`);
 		return my_reactions[ addr ];
 	    },
 	    defaultMutable () {
@@ -1656,7 +1656,7 @@ module.exports = async function ( client, app ) {
 	    "path": "hdk/:version/zomes/integrity",
 	    "readonly": true,
 	    async read ({ version }) {
-		return (await this.openstate.get(`hdk/${version}/zomes`))
+		return (await this.openstate.read(`hdk/${version}/zomes`))
 		    .filter( zome => zome.zome_type === 0 );
 	    },
 	},
@@ -1664,7 +1664,7 @@ module.exports = async function ( client, app ) {
 	    "path": "hdk/:version/zomes/coordinator",
 	    "readonly": true,
 	    async read ({ version }) {
-		return (await this.openstate.get(`hdk/${version}/zomes`))
+		return (await this.openstate.read(`hdk/${version}/zomes`))
 		    .filter( zome => zome.zome_type === 1 );
 	    },
 	},

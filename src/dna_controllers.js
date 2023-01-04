@@ -26,8 +26,8 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.mustGet(async () => {
 		    this.agent
-			? await this.$openstate.get( this.agent_datapath )
-			: await this.$openstate.get(`dnas`);
+			? await this.$openstate.read( this.agent_datapath )
+			: await this.$openstate.read(`dnas`);
 		});
 	    },
 	    "computed": {
@@ -149,7 +149,7 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.mustGet(async () => {
 		    await this.$openstate.get( this.datapath );
-		    await this.$openstate.get( this.versions_datapath );
+		    await this.$openstate.read( this.versions_datapath );
 		});
 	    },
 	    "computed": {

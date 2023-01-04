@@ -10,13 +10,13 @@
 	    <input-feedback>
 		<div class="input-group">
 		    <span class="input-group-text">v</span>
-		    <input v-model="input.version" class="form-control" :disabled="$input.writing" required>
+		    <input v-model="input.version" class="form-control" :disabled="$writing" required>
 		</div>
 	    </input-feedback>
 
 	    <label class="form-label fw-6">Changelog</label>
 	    <input-feedback>
-		<textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="$input.writing"></textarea>
+		<textarea v-model="input.changelog" class="form-control font-monospace" rows="10" :disabled="$writing"></textarea>
 	    </input-feedback>
 
 	    <div class="mt-5">
@@ -31,7 +31,7 @@
 
 	    <label class="form-label fw-6">Drag and drop GUI here</label>
 	    <input-feedback style="height: 10rem; overflow: hidden;" :valid-message="file_valid_feedback">
-		<input type="file" accept=".zip" @change="file_selected" class="form-control form-input-file" :disabled="$input.writing" required>
+		<input type="file" accept=".zip" @change="file_selected" class="form-control form-input-file" :disabled="$writing" required>
 	    </input-feedback>
 
 	    <div v-if="$rejections.length && ($input.failed || $webasset.failed)"
@@ -54,8 +54,8 @@
 		</div>
 		<div class="col-3">
 		    <a @click="create()" class="btn btn-primary w-100"
-		       :class="{ 'disabled': $input.writing }">
-			<span v-if="$input.writing"
+		       :class="{ 'disabled': $writing }">
+			<span v-if="$writing"
 			      class="spinner-border spinner-border-sm me-3"></span>
 			Save
 		    </a>

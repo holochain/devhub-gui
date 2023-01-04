@@ -28,8 +28,8 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.mustGet(async () => {
 		    this.agent
-			? await this.$openstate.get(`agent/${this.agent}/guis`)
-			: await this.$openstate.get(`guis`);
+			? await this.$openstate.read(`agent/${this.agent}/guis`)
+			: await this.$openstate.read(`guis`);
 		});
 	    },
 	    "computed": {
@@ -148,7 +148,7 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.mustGet(async () => {
 		    await this.$openstate.get( this.datapath );
-		    await this.$openstate.get( this.releases_datapath );
+		    await this.$openstate.read( this.releases_datapath );
 		});
 	    },
 	    "computed": {

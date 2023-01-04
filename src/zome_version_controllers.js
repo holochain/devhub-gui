@@ -137,7 +137,7 @@ module.exports = async function ( client ) {
 			this.$openstate.get( this.reviewsummarypath );
 		});
 
-		await this.$openstate.get( `agent/me/reviews` );
+		await this.$openstate.read( `agent/me/reviews` );
 
 		if ( this.myReviewMap[ this.id ] ) {
 		    this.my_review		= this.myReviewMap[ this.id ];
