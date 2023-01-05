@@ -584,37 +584,38 @@
 
 	<div class="row mb-4">
 	    <div class="col-6">
-		<h2>GUI</h2>
+		<h2>Web UI</h2>
 
-		<div v-if="input.official_gui">
-		    <div class="alert alert-info" role="alert">
-			<p class="m-0">Bundle UI is the same as previous hApp Release</p>
+		<div v-if="gui_bytes" class="mt-3">
+		    <div v-if="input.official_gui">
+			<div class="alert alert-info" role="alert">
+			    <p class="m-0">Bundle UI is the same as previous hApp Release</p>
+			</div>
+			<gui-release-ref v-if="input.official_gui"
+					 :id="input.official_gui.toString()"></gui-release-ref>
 		    </div>
-		    <gui-release-ref v-if="input.official_gui"
-				     :id="input.official_gui.toString()"></gui-release-ref>
-		</div>
-		<div v-else class="form-check">
-		    <input id="skip-gui-control" class="form-check-input"
-			   type="checkbox" v-model="skip_gui">
-		    <label for="skip-gui-control" class="form-check-label">
-			Add GUI later
-		    </label>
-		</div>
-
-		<div v-if="!skip_gui">
-		    <div v-if="previous_gui" class="mt-3">
-			<h4>Official GUI <small class="fw-lighter">from latest hApp Release</small></h4>
-			<gui-release-ref v-if="happ_release.official_gui"
-					 :id="happ_release.official_gui.toString()"></gui-release-ref>
+		    <div v-else class="form-check">
+			<input id="skip-gui-control" class="form-check-input"
+			       type="checkbox" v-model="skip_gui">
+			<label for="skip-gui-control" class="form-check-label">
+			    Add Web UI later
+			</label>
 		    </div>
 
-		    <div v-if="gui_bytes" class="mt-3">
-			<div v-if="previous_gui">
+		    <div v-if="!skip_gui">
+			<div v-if="previous_gui" class="mt-3">
+			    <h4>Official GUI <small class="fw-lighter">from latest hApp Release</small></h4>
+			    <gui-release-ref v-if="happ_release.official_gui"
+					     :id="happ_release.official_gui.toString()"></gui-release-ref>
+
 			    <h4>New Release for {{ previous_gui.name }} GUI</h4>
 			</div>
 			<div v-else>
-			    <h4>New GUI</h4>
+			    <h4>New Web UI</h4>
 
+			    <label for="skip-gui-control" class="form-check-label">
+				Web UI Name
+			    </label>
 			    <input-feedback>
 				<div class="input-group mb-3">
 				    <input v-model="next_gui.name" class="form-control"
@@ -625,7 +626,7 @@
 
 			<div class="card entity-ref gui-release-ref">
 			    <div class="col-12">
-				<label class="form-label fw-6">GUI Version</label>
+				<label class="form-label fw-6">{{ next_gui.name || 'Web UI' }} Version</label>
 				<input-feedback>
 				    <div class="input-group mb-3">
 					<span class="input-group-text">v</span>
@@ -643,12 +644,11 @@
 			    </div>
 			</div>
 		    </div>
-		    <div v-else class="mt-3">
-			<h4>New GUI</h4>
-			<div class="card">
-			    <div class="card-body text-center">
-				No GUI in uploaded bundle
-			    </div>
+		</div>
+		<div v-else class="mt-3">
+		    <div class="card">
+			<div class="card-body text-center">
+			    No UI in uploaded bundle
 			</div>
 		    </div>
 		</div>
@@ -658,7 +658,7 @@
 	<div class="row">
 	    <div class="col-6">
 		<div v-if="missingDnasOrGui()" class="alert alert-warning" role="alert">
-		    <p class="m-0">Finish selecting or creating DNAs and/or GUI to continue</p>
+		    <p class="m-0">Finish selecting or creating DNAs {{ gui_bytes ? "and/or UI" : "" }} to continue</p>
 		</div>
 
 		<div class="row">
@@ -773,7 +773,7 @@
 				</div>
 			    </div>
 
-			    <div v-if="!skip_gui && gui_file" class="row mb-4">
+			    <div v-if="!skip_gui && gui_file" class="row mb-3">
 				<div class="col-12">
 				    <div class="card">
 					<div class="card-body text-center p-4">
@@ -781,6 +781,9 @@
 					</div>
 				    </div>
 				</div>
+			    </div>
+			    <div v-else-if="input.official_gui" class="mb-3">
+				<gui-release-ref :id="input.official_gui.toString()"></gui-release-ref>
 			    </div>
 			</div>
 		    </div>

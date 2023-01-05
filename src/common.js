@@ -558,7 +558,7 @@ const common				= {
     },
 
     async createWebAsset ( bytes ) {
-	const digest				= await common.digest( bytes );
+	const digest				= common.digest( bytes );
 	const hash				= common.toHex( digest );
 	const datapath				= `webasset/${hash}`;
 	const input				= this.$openstate.mutable[ datapath ];

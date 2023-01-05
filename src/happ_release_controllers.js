@@ -1218,6 +1218,9 @@ module.exports = async function ( client ) {
 				    const gui$			= this.$openstate.mutable[ gui_datapath ];
 				    gui$.name			= this.next_gui.name;
 				    const gui			= await this.$openstate.write( gui_datapath );
+
+				    this.$openstate.purge( gui_datapath );
+
 				    gui_release$.for_gui	= gui.$id;
 				}
 
@@ -1225,6 +1228,8 @@ module.exports = async function ( client ) {
 				gui_release$.web_asset_id	= webasset.$id;
 
 				const gui_release		= await this.$openstate.write( datapath );
+
+				this.$openstate.purge( datapath );
 
 				input.official_gui		= gui_release.$id;
 			    } catch ( err ) {
