@@ -89,6 +89,12 @@
 	    <a class="btn btn-outline-warning btn-sm" @click="reset_file()">Reset</a>
 	</h3>
 
+	<div class="row my-4">
+	    <div class="col-6">
+		<loading :when="unpacking_webhapp"></loading>
+	    </div>
+	</div>
+
 	<div v-for="role in bundle.roles" class="row mt-4 mb-4">
 	    <div class="col-6">
 		<dna-version-card v-if="role.selected_dna_version"
@@ -579,7 +585,15 @@
 	<div class="row mb-4">
 	    <div class="col-6">
 		<h2>GUI</h2>
-		<div class="form-check">
+
+		<div v-if="input.official_gui">
+		    <div class="alert alert-info" role="alert">
+			<p class="m-0">Bundle UI is the same as previous hApp Release</p>
+		    </div>
+		    <gui-release-ref v-if="input.official_gui"
+				     :id="input.official_gui.toString()"></gui-release-ref>
+		</div>
+		<div v-else class="form-check">
 		    <input id="skip-gui-control" class="form-check-input"
 			   type="checkbox" v-model="skip_gui">
 		    <label for="skip-gui-control" class="form-check-label">
@@ -801,7 +815,7 @@
 	   title="Select Existing DNA Version">
 	<loading v-if="select_dna_version_context"
 		 :when="!$dna_versions(select_dna_version_context.hash).current">
-	    <template v-for="entity in dna_versions(select_dna_version_context.hash)">
+	    <template v-for="entity in dna_versions(select_dna_version_context.hash, select_dna_version_context)">
 		<dna-version-card v-if="hdkVersionMatches( entity )"
 				   class="mb-3" style="cursor: pointer;"
 				   @click="select_dna_version( select_dna_version_context, entity )"

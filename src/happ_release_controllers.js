@@ -372,6 +372,7 @@ module.exports = async function ( client ) {
 			"dnas": [],
 		    },
 		    "initial_step": this.$route.params.step,
+		    "unpacking_webhapp": false,
 		    "validated": false,
 		    "saving": false,
 		    "latest_release": null,
@@ -398,6 +399,7 @@ module.exports = async function ( client ) {
 		    "setup": null,
 		    "previous_dnas": {},
 		    "previous_gui": null,
+		    "previous_gui_hash": null,
 		    "skip_gui": false,
 		    "next_gui": {},
 		};
@@ -618,11 +620,16 @@ module.exports = async function ( client ) {
 		    await this.$store.dispatch("fetchHappRelease", this.latest_release.$id );
 		    log.info("Latest hApp release:", this.happ_release );
 
-		    console.log("LDKJSLFKJDLFKJ", this.happ_release );
 		    if ( this.happ_release.official_gui ) {
 			this.$openstate.get(`gui/release/${this.happ_release.official_gui}`)
 			    .then( async gui_release => {
 				console.log("Previous GUI release:", gui_release );
+				this.$openstate.get(`webasset/${gui_release.web_asset_id}`)
+				    .then( webasset => {
+					console.log("Previous GUI web asset:", webasset );
+					this.previous_gui_hash	= webasset.mere_memory_hash;
+				    });
+
 				this.previous_gui	= await this.$openstate.get(`gui/${gui_release.for_gui}`);
 			    });
 		    }
@@ -688,6 +695,7 @@ module.exports = async function ( client ) {
 		    this.input.ordering			= 1;
 		    this.input.hdk_version		= null;
 
+		    this.unpacking_webhapp			= false;
 		    this.validated			= false;
 		    this.zome_selection_confirmed	= false;
 		    this.ready_for_review		= false;
@@ -697,6 +705,8 @@ module.exports = async function ( client ) {
 
 		    this.file_id			= "uploaded_happ_bundle";
 		    this.skip_gui			= false;
+		    this.previous_gui			= null;
+		    this.previous_gui_hash		= null;
 		    this.gui_file			= null;
 		    this.gui_bytes			= null;
 
@@ -736,6 +746,8 @@ module.exports = async function ( client ) {
 		    await this.delay();
 
 		    if ( this.bundle.type === "webhapp" ) {
+			this.unpacking_webhapp	= true;
+
 			log.info("Found web app bundle:", this.bundle );
 
 			const ui_file		= await this.bundle.ui.source();
@@ -750,6 +762,8 @@ module.exports = async function ( client ) {
 			await this.bundle.happ.bundle();
 
 			this.file_id		= happ_file.hash;
+
+			this.unpacking_webhapp	= false;
 		    }
 
 		    log.normal("Uploaded hApp bundle:", this.bundle );
@@ -1187,9 +1201,10 @@ module.exports = async function ( client ) {
 				    "wasm_hash":	version.wasm_hash,
 				};
 			    }),
+			    "official_gui":	this.input.official_gui,
 			};
 
-			if ( this.skip_gui === false && this.gui_bytes ) {
+			if ( !input.official_gui && this.skip_gui === false && this.gui_bytes ) {
 			    this.next_gui.saving		= true;
 			    try {
 				const datapath			= 'gui/release/new';
@@ -1293,9 +1308,13 @@ module.exports = async function ( client ) {
 
 		    this.gui_file               = file;
 		    this.gui_bytes              = bytes;
+		    const gui_hash		= common.toHex( common.digest( this.gui_bytes ) );
 
-		    // this.$refs.gui_input.showFeedback   = true;
-		    // this.$refs.gui_input.blurred        = true;
+		    console.log("Comparing previous GUI hash: (%s) %s === %s", this.previous_gui_hash === gui_hash, this.previous_gui_hash, gui_hash );
+		    if ( this.previous_gui_hash === gui_hash ) {
+			this.skip_gui		= true;
+			this.input.official_gui	= this.happ_release.official_gui;
+		    }
 		},
 
 		async gui_selected ( event ) {
