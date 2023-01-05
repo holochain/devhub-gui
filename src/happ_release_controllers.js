@@ -398,6 +398,7 @@ module.exports = async function ( client ) {
 		    "setup": null,
 		    "previous_dnas": {},
 		    "previous_gui": null,
+		    "skip_gui": false,
 		    "next_gui": {},
 		};
 	    },
@@ -489,12 +490,25 @@ module.exports = async function ( client ) {
 		    };
 		},
 		dna_versions () {
-		    return ( hash ) => {
+		    return ( hash, role = null ) => {
 			return this.$store.getters.dna_versions_by_hash( hash )
 			    .filter( version => {
-				if ( !this.input.hdk_version )
-				    return true;
-				return version.hdk_version === this.input.hdk_version;
+				if ( this.input.hdk_version
+				     && version.hdk_version !== this.input.hdk_version )
+				    return false;
+
+				if ( role ) {
+				    const prev_info	= role.bundle.manifest.integrity;
+
+				    if ( version.origin_time !== prev_info.origin_time )
+					return false;
+				    if ( version.network_seed !== prev_info.network_seed )
+					return false;
+				    if ( JSON.stringify( version.properties ) !== JSON.stringify( prev_info.properties ) )
+					return false;
+				}
+
+				return true;
 			    });
 		    };
 		},
@@ -530,9 +544,11 @@ module.exports = async function ( client ) {
 		    return ( hash ) => {
 			return this.$store.getters.zome_versions_by_hash( hash )
 			    .filter( version => {
-				if ( !this.input.hdk_version )
-				    return true;
-				return version.hdk_version === this.input.hdk_version;
+				if ( this.input.hdk_version
+				     && version.hdk_version !== this.input.hdk_version )
+				    return false;
+
+				return true;
 			    });
 		    };
 		},
@@ -656,8 +672,10 @@ module.exports = async function ( client ) {
 		},
 
 		reset_file () {
+		    console.log( this.bundle );
 		    if ( this.bundle?.roles ) {
 			for ( let role of this.bundle.roles ) {
+			    console.log("Resetting role: %s", role );
 			    role.saving			= false;
 			    role.validated		= false;
 			    role.selected_dna		= null;
@@ -678,6 +696,7 @@ module.exports = async function ( client ) {
 		    this.select_zome_context		= null;
 
 		    this.file_id			= "uploaded_happ_bundle";
+		    this.skip_gui			= false;
 		    this.gui_file			= null;
 		    this.gui_bytes			= null;
 
@@ -761,8 +780,20 @@ module.exports = async function ( client ) {
 				// Auto-select the previous role DNA Version
 				this.$store.dispatch("getDnaVersion", prev_dna_ref.version )
 				    .then( version => {
-					if ( version.hdk_version === this.input.hdk_version )
+					const prop_changed	= JSON.stringify( version.properties ) === JSON.stringify( role.bundle.manifest.integrity.properties );
+
+					log.info("Compare previous version DHT factors for '%s'", role.name );
+					log.info("  - HDK Version  : (%s) %s === %s", version.hdk_version === this.input.hdk_version, version.hdk_version, this.input.hdk_version );
+					log.info("  - Origin Time  : (%s) %s === %s", version.origin_time === role.bundle.manifest.integrity.origin_time, version.origin_time, role.bundle.manifest.integrity.origin_time );
+					log.info("  - Network Seed : (%s) %s === %s", version.network_seed === role.bundle.manifest.integrity.network_seed, version.network_seed, role.bundle.manifest.integrity.network_seed );
+					log.info("  - Properties   : (%s)", prop_changed );
+
+					if ( version.hdk_version === this.input.hdk_version
+					     && version.origin_time === role.bundle.manifest.integrity.origin_time
+					     && version.network_seed === role.bundle.manifest.integrity.network_seed
+					     && prop_changed ) {
 					    this.select_dna_version( role, version );
+					}
 				    });
 			    }
 			    else {
@@ -883,7 +914,7 @@ module.exports = async function ( client ) {
 		    };
 		},
 		async select_dna_version ( upload, version ) {
-		    log.normal("Select DNA version for '%s':", upload.id, version );
+		    log.normal("Select DNA version for '%s':", upload.name, version );
 
 		    upload.selected_dna_version = version;
 
@@ -895,7 +926,7 @@ module.exports = async function ( client ) {
 		    this.select_dna_version_modal.hide();
 		},
 		async unselect_dna_version ( upload ) {
-		    log.normal("Unselect DNA version for '%s'", upload.id );
+		    log.normal("Unselect DNA version for '%s'", upload.name );
 
 		    delete upload.selected_dna_version;
 
@@ -1158,7 +1189,7 @@ module.exports = async function ( client ) {
 			    }),
 			};
 
-			if ( this.gui_bytes ) {
+			if ( this.skip_gui === false && this.gui_bytes ) {
 			    this.next_gui.saving		= true;
 			    try {
 				const datapath			= 'gui/release/new';
@@ -1223,11 +1254,13 @@ module.exports = async function ( client ) {
 			    return true;
 		    }
 
-		    if ( !this.previous_gui && !this.next_gui.name )
-			return true;
+		    if ( this.skip_gui === false ) {
+			if ( !this.previous_gui && !this.next_gui.name )
+			    return true;
 
-		    if ( this.gui_bytes && !this.next_gui.version )
-			return true;
+			if ( this.gui_bytes && !this.next_gui.version )
+			    return true;
+		    }
 
 		    return false;
 		},

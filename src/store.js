@@ -2581,8 +2581,7 @@ module.exports = async function ( client, app ) {
 	    async getLatestVersionForZome ({ dispatch, getters }, [ zome_id, hdk_version ] ) {
 		const path		= dataTypePath.zomeVersions( zome_id );
 
-		if ( getters.zome_versions( zome_id ).length === 0 )
-		    await dispatch("fetchVersionsForZome", zome_id );
+		await dispatch("fetchVersionsForZome", zome_id );
 
 		const versions		= getters.zome_versions( zome_id );
 
@@ -2823,8 +2822,7 @@ module.exports = async function ( client, app ) {
 	    async getLatestVersionForDna ({ dispatch, getters }, [ dna_id, hdk_version ] ) {
 		const path		= dataTypePath.dnaVersions( dna_id );
 
-		if ( getters.dna_versions( dna_id ).length === 0 )
-		    await dispatch("fetchVersionsForDna", dna_id );
+		await dispatch("fetchVersionsForDna", dna_id );
 
 		const versions		= getters.dna_versions( dna_id );
 
@@ -3025,8 +3023,7 @@ module.exports = async function ( client, app ) {
 	    async getLatestReleaseForHapp ({ dispatch, getters }, [ happ_id, hdk_version ] ) {
 		const path		= dataTypePath.happReleases( happ_id );
 
-		if ( getters.happ_releases( happ_id ).length === 0 )
-		    await dispatch("fetchReleasesForHapp", happ_id );
+		await dispatch("fetchReleasesForHapp", happ_id );
 
 		const releases		= getters.happ_releases( happ_id );
 
