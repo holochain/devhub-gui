@@ -144,6 +144,16 @@ function reduceLatestVersion ( key ) {
 }
 
 
+function handle_mr_bundle_location ( target, reject ) {
+    if ( target.path || target.url ) {
+	const err			= new TypeError(`Bundle contains path/url references which cannot be opened by the browser`);
+	reject( err );
+	throw err;
+    }
+
+    return target.bundled;
+}
+
 
 module.exports = async function ( client, app ) {
     const { reactive }			= Vue;
@@ -3297,91 +3307,100 @@ module.exports = async function ( client, app ) {
 		    resources[ key ]	= new Uint8Array( resources[ key ] );
 		}
 
-		if ( manifest.integrity && manifest.coordinator ) {
-		    log.trace("Detected a DNA bundle");
-		    manifest.type	= "dna";
+		return new Promise( (f,r) => {
+		    if ( manifest.integrity && manifest.coordinator ) {
+			log.trace("Detected a DNA bundle");
+			manifest.type		= "dna";
 
-		    manifest.integrity.zomes.forEach( zome => {
-			log.trace("Preparing resource Promises for zome: %s", zome.bundled );
+			for ( let zome of manifest.integrity.zomes ) {
+			    const location	= handle_mr_bundle_location( zome, r );
+			    log.trace("Preparing resource Promises for zome: %s", location );
 
-			zome.bytes	= resources[ zome.bundled ];
-			zome.digest	= common.digest( zome.bytes );
-			zome.hash	= common.toHex( zome.digest );
+			    zome.bytes		= resources[ location ];
+			    zome.digest		= common.digest( zome.bytes );
+			    zome.hash		= common.toHex( zome.digest );
 
-			delete zome.bundled;
-		    });
+			    delete zome.bundled;
+			}
 
-		    manifest.zome_digests	= manifest.integrity.zomes.map( zome => zome.digest );
+			manifest.zome_digests	= manifest.integrity.zomes.map( zome => zome.digest );
 
-		    const hashes	= manifest.zome_digests.slice();
-		    hashes.sort( common.array_compare );
-		    manifest.dna_digest	= common.digest( ...hashes );
-		    manifest.dna_hash	= common.toHex( manifest.dna_digest );
-
-		    manifest.coordinator.zomes.forEach( zome => {
-			log.trace("Preparing resource Promises for zome: %s", zome.bundled );
-
-			zome.bytes	= resources[ zome.bundled ];
-			zome.digest	= common.digest( zome.bytes );
-			zome.hash	= common.toHex( zome.digest );
-
-			delete zome.bundled;
-		    });
-		}
-		else if ( manifest.roles ) {
-		    log.trace("Detected a hApp bundle");
-		    manifest.type	= "happ";
-
-		    manifest.roles.forEach( role => {
-			const dna		= role.dna;
-			log.trace("Preparing Promises for role: %s", dna.bundled );
-			const bytes		= resources[ dna.bundled ];
-
-			dna.source	= common.once( () => dispatch("saveFile", bytes ) );
-			dna.manifest	= common.once( async () => dispatch("unpackBundle", (await dna.source()).hash ) );
-
-			delete dna.bundled;
-		    });
-
-		    manifest.dna_digests	= common.once( async () => {
-			return await Promise.all(
-			    manifest.roles.map( async role => {
-				const bundle	= await role.dna.manifest();
-				return bundle.dna_digest;
-			    })
-			);
-		    });
-		    manifest.happ_digest	= common.once( async () => {
-			const hashes		= await manifest.dna_digests();
+			const hashes		= manifest.zome_digests.slice();
 			hashes.sort( common.array_compare );
-			return common.digest( ...hashes );
-		    });
-		    manifest.happ_hash	= common.once( async () => {
-			return common.toHex( await manifest.happ_digest() );
-		    });
-		}
-		else if ( manifest.ui && manifest.happ_manifest ) {
-		    log.trace("Detected a Web hApp bundle");
-		    manifest.type	= "webhapp";
+			manifest.dna_digest	= common.digest( ...hashes );
+			manifest.dna_hash	= common.toHex( manifest.dna_digest );
 
-		    const ui			= resources[ manifest.ui.bundled ];
-		    const bytes			= resources[ manifest.happ_manifest.bundled ];
+			for ( let zome of manifest.coordinator.zomes ) {
+			    const location	= handle_mr_bundle_location( zome, r );
+			    log.trace("Preparing resource Promises for zome: %s", location );
 
-		    manifest.ui			= {
-			"name":		manifest.ui.bundled,
-			"source":	common.once( () => dispatch("saveFile", ui ) ),
-		    };
-		    manifest.happ		= {
-			"source":	common.once( () => dispatch("saveFile", bytes ) ),
-			"bundle":	common.once( async () => dispatch("unpackBundle", (await manifest.happ.source()).hash ) ),
-		    };
-		    delete manifest.happ_manifest;
-		}
+			    zome.bytes		= resources[ location ];
+			    zome.digest		= common.digest( zome.bytes );
+			    zome.hash		= common.toHex( zome.digest );
 
-		commit("cacheValue", [ path, manifest ] );
-		commit("recordLoaded", path );
+			    delete zome.bundled;
+			}
+		    }
+		    else if ( manifest.roles ) {
+			log.trace("Detected a hApp bundle");
+			manifest.type		= "happ";
 
-		return manifest;
+			for ( let role of manifest.roles ) {
+			    const dna		= role.dna;
+			    const location	= handle_mr_bundle_location( dna, r );
+
+			    log.trace("Preparing Promises for role: %s", location );
+			    const bytes		= resources[ location ];
+
+			    dna.source		= common.once( () => dispatch("saveFile", bytes ) );
+			    dna.manifest	= common.once( async () => dispatch("unpackBundle", (await dna.source()).hash ) );
+
+			    delete dna.bundled;
+			}
+
+			manifest.dna_digests	= common.once( async () => {
+			    return await Promise.all(
+				manifest.roles.map( async role => {
+				    const bundle	= await role.dna.manifest();
+				    return bundle.dna_digest;
+				})
+			    );
+			});
+			manifest.happ_digest	= common.once( async () => {
+			    const hashes	= await manifest.dna_digests();
+			    hashes.sort( common.array_compare );
+			    return common.digest( ...hashes );
+			});
+			manifest.happ_hash	= common.once( async () => {
+			    return common.toHex( await manifest.happ_digest() );
+			});
+		    }
+		    else if ( manifest.ui && manifest.happ_manifest ) {
+			log.trace("Detected a Web hApp bundle");
+			manifest.type		= "webhapp";
+
+			const ui_location	= handle_mr_bundle_location( manifest.ui, r );
+			const manifest_location	= handle_mr_bundle_location( manifest.happ_manifest, r );
+
+			const ui		= resources[ ui_location ];
+			const bytes		= resources[ manifest_location ];
+
+			manifest.ui		= {
+			    "name":		ui_location,
+			    "source":	common.once( () => dispatch("saveFile", ui ) ),
+			};
+			manifest.happ		= {
+			    "source":	common.once( () => dispatch("saveFile", bytes ) ),
+			    "bundle":	common.once( async () => dispatch("unpackBundle", (await manifest.happ.source()).hash ) ),
+			};
+			delete manifest.happ_manifest;
+		    }
+
+		    commit("cacheValue", [ path, manifest ] );
+		    commit("recordLoaded", path );
+
+		    f( manifest );
+		});
 	    },
 
 	    async getUrlPreview ({ dispatch, commit }, url ) {

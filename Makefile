@@ -107,6 +107,8 @@ test-build-components-watch:
 test-components-server:
 	python3 -m http.server 8765
 
+tests/DevHub-urls.happ:
+	hc app pack -o $@ ./tests/happ-with-urls/
 
 #
 # HTTP Server

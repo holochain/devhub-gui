@@ -596,6 +596,7 @@ module.exports = async function ( client ) {
 		},
 	    },
 	    async created () {
+		window.HappReleaseUpload = this;
 		this.id			= this.getPathId("id");
 
 		this.setup		= this.refresh();
@@ -712,6 +713,8 @@ module.exports = async function ( client ) {
 
 		    this.$store.dispatch("removeValue", [ "file", this.uploaded_file.hash ] );
 		    this.$store.dispatch("removeValue", [ "file", this.file_id ] );
+
+		    this.refresh();
 		},
 		reset_hdk_version () {
 		    this.input.hdk_version		= null;
@@ -740,39 +743,45 @@ module.exports = async function ( client ) {
 			return;
 		    }
 
-		    await this.$store.dispatch("uploadFile", [ this.file_id, file ] );
-		    await this.$store.dispatch("unpackBundle", this.uploaded_file.hash );
+		    try {
+			await this.$store.dispatch("uploadFile", [ this.file_id, file ] );
+			await this.$store.dispatch("unpackBundle", this.uploaded_file.hash );
 
-		    await this.delay();
+			await this.delay();
 
-		    if ( this.bundle.type === "webhapp" ) {
-			this.unpacking_webhapp	= true;
+			if ( this.bundle.type === "webhapp" ) {
+			    this.unpacking_webhapp	= true;
 
-			log.info("Found web app bundle:", this.bundle );
+			    log.info("Found web app bundle:", this.bundle );
 
-			const ui_file		= await this.bundle.ui.source();
+			    const ui_file		= await this.bundle.ui.source();
 
-			log.debug("Set GUI:", this.bundle.ui );
-			this.set_gui({
-			    "name": this.bundle.ui.name,
-			    "size": ui_file.bytes.length,
-			}, ui_file.bytes );
+			    log.debug("Set GUI:", this.bundle.ui );
+			    this.set_gui({
+				"name": this.bundle.ui.name,
+				"size": ui_file.bytes.length,
+			    }, ui_file.bytes );
 
-			const happ_file		= await this.bundle.happ.source();
-			await this.bundle.happ.bundle();
+			    const happ_file		= await this.bundle.happ.source();
+			    await this.bundle.happ.bundle();
 
-			this.file_id		= happ_file.hash;
+			    this.file_id		= happ_file.hash;
 
-			this.unpacking_webhapp	= false;
+			    this.unpacking_webhapp	= false;
+			}
+
+			log.normal("Uploaded hApp bundle:", this.bundle );
+			if ( this.bundle.type !== "happ" ) {
+			    alert(`Uploaded bundle is not a hApp bundle. found bundle type '${this.bundle.type}'`);
+			    return this.reset_file();
+			}
+
+			await this.delay();
+		    } catch ( err ) {
+			console.log("Show unpacking error:", err );
+			alert( err.message );
+			this.reset_file();
 		    }
-
-		    log.normal("Uploaded hApp bundle:", this.bundle );
-		    if ( this.bundle.type !== "happ" ) {
-			alert(`Uploaded bundle is not a hApp bundle. found bundle type '${this.bundle.type}'`);
-			return this.reset_file();
-		    }
-
-		    await this.delay();
 
 		    Object.values( this.bundle.roles ).forEach( async role => {
 			// This delay allows the UI to update a few things before saturating the CPU

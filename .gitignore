@@ -7,6 +7,7 @@ tests/*_HASH
 dnas/*.dna
 zome_wasm/*.wasm
 holochain
+tests/*.happ
 tests/demo_bundles
 tests/components/dist
 web_assets.zip
