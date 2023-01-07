@@ -79,5 +79,19 @@ module.exports = function ( element_local_name, component_name ) {
 		}, crumbs ),
 	    }
 	},
+	"methods": {
+	    parent_path () {
+		if ( window.history.length > 2 )
+		    return this.$router.back();
+
+		const current_path	= this.$router.currentRoute.value.fullPath;
+		if ( current_path === "/" )
+		    return;
+
+		log.info("Calculating parent path from %s", current_path );
+		const path		= current_path.split("/").slice(0,-1).join("/");
+		this.$router.push( path );
+	    },
+	},
     };
 }

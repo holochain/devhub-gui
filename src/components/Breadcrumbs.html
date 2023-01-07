@@ -2,7 +2,7 @@
     <router-link v-if="backLink" :to="backLink" class="text-primary fw-bolder">
         <i class="bi-arrow-left fs-4 me-3"></i>
     </router-link>
-    <a v-else href="#" @click="$router.back()" class="text-primary fw-bolder">
+    <a v-else @click="parent_path()" class="text-primary fw-bolder">
         <i class="bi-arrow-left fs-4 me-3"></i>
     </a>
     <nav style="--bs-breadcrumb-divider: '>';">
