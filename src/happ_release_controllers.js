@@ -153,6 +153,12 @@ module.exports = async function ( client ) {
 				"dna": {
 				    "bundled":	`./${dna_ref.role_name}.dna`,
 				    "clone_limit": 0,
+				    "modifiers": {
+					"network_seed": null,
+					"properties": null,
+					"origin_time": null,
+					"quantum_time": null,
+				    },
 				},
 				"provisioning": {
 				    "strategy": "create",
@@ -331,6 +337,19 @@ module.exports = async function ( client ) {
 	    async created () {
 		this.mustGet(async () => {
 		    await this.$openstate.get(`happ/release/${this.id}`);
+
+		    log.warn("Checking for null modifiers in release manifest", this.release );
+		    for ( let role of this.input.manifest.roles ) {
+			if ( role.dna.modifiers === null ) {
+			    log.warn("Fixing null modifiers for %s", role.name, role );
+			    role.dna.modifiers	= {
+				"network_seed": null,
+				"properties": null,
+				"origin_time": null,
+				"quantum_time": null,
+			    };
+			}
+		    }
 		});
 	    },
 	    "methods": {

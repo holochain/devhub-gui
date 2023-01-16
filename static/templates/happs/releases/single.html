@@ -24,7 +24,7 @@
 	    </h2>
 	</template>
 
-	<template #title-extras v-if="$release.writable">
+	<template #title-extras v-if="$happ.writable">
             <router-link :to="'/happs/' + happ_id + '/releases/' + id + '/update'" class="btn btn-outline-primary text-nowrap align-middle">
 		<i class="bi-pencil"></i>
 		Edit release
