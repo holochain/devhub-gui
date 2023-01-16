@@ -133,3 +133,57 @@ What that make target does...
 - Copy `./tests/nginx/devhub` into `/etc/nginx/sites-available/` while replacing `PWD` with the result of bash command `pwd`
 - Create symbolic link in `/etc/nginx/sites-enabled/` pointing to the copied config file
 - Reload nginx service
+
+
+## Dependencies
+
+- DevHub GUI
+  - DevHub DNAs
+  - `@whi/holochain-client`
+    - Holochain Conductor API
+  - dev / testing
+    - `@whi/holochain-backdrop`
+      - Holochain Conductor API
+      - Holochain App/DNA Manifest
+
+
+#### [DevHub DNAs](https://github.com/holochain/devhub-dnas)
+
+Sometimes a Holochain release does not require any architectural changes in which case swapping out
+the DNAs is the only task.  However, significant changes such as the addition of Link Types, or the
+integrity/coordinator zome split, may cause a redesign on the front-end.
+
+See more on
+[Contributing.md#dependencies](https://github.com/holochain/devhub-dnas/blob/master/CONTRIBUTING.md#dependencies)
+
+
+#### [`@whi/holochain-client`](https://github.com/mjbrisebois/js-holochain-client)
+
+If the Conductor API has changed, this library will most likely need to be updated.  DevHub GUI uses
+this for all its communications to the Holochain engine.
+
+
+#### [`@whi/holochain-backdrop`](https://github.com/mjbrisebois/node-holochain-backdrop)
+
+DevHub GUI uses this for development setup.  This library is used to programmatically run the
+Holochain binary, install hApps, creates agents, and make capability grants.  If the client
+(`@whi/holochain-client`) API or Holochain manifests have changed, this library might need to be
+updated.
+
+
+### Upgrading for a new Holochain release
+
+When there is a new Holochain release, we ony have to update affected parts.  This Causal Tree lists
+the downstream DevHub components for parts of the Holochain engine.
+
+#### Causal Tree
+
+- HDI / HDK
+  - DevHub DNAs
+    - DevHub Webhapp
+- Conductor API
+  - `@whi/holochain-client`
+    - DevHub Webhapp
+  - `@whi/holochain-backdrop`
+- WebApp/App/DNA Manifest
+  - `@whi/holochain-backdrop`
