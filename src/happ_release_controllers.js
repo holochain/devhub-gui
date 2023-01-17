@@ -710,12 +710,16 @@ module.exports = async function ( client ) {
 			}
 		    }
 
-		    this.input.name			= "";
-		    this.input.description		= "";
-		    this.input.ordering			= 1;
-		    this.input.hdk_version		= null;
+		    this.input				= {
+			"name": "",
+			"description": "",
+			"ordering": 1,
+			"manifest": null,
+			"hdk_version": null,
+			"dnas": [],
+		    };
 
-		    this.unpacking_webhapp			= false;
+		    this.unpacking_webhapp		= false;
 		    this.validated			= false;
 		    this.zome_selection_confirmed	= false;
 		    this.ready_for_review		= false;
@@ -1235,14 +1239,14 @@ module.exports = async function ( client ) {
 			if ( !input.official_gui && this.skip_gui === false && this.gui_bytes ) {
 			    this.next_gui.saving		= true;
 			    try {
-				const datapath			= 'gui/release/new';
+				const datapath			= `gui/release/${common.randomHex()}`;
 				const gui_release$		= this.$openstate.mutable[ datapath ];
 				gui_release$.version		= this.next_gui.version;
 
 				if ( this.previous_gui )
 				    gui_release$.for_gui	= this.previous_gui.$id;
 				else {
-				    const gui_datapath		= `gui/new`;
+				    const gui_datapath		= `gui/${common.randomHex()}`;
 				    const gui$			= this.$openstate.mutable[ gui_datapath ];
 				    gui$.name			= this.next_gui.name;
 				    const gui			= await this.$openstate.write( gui_datapath );

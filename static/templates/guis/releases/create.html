@@ -31,7 +31,7 @@
 
 	    <label class="form-label fw-6">Drag and drop GUI here</label>
 	    <input-feedback style="height: 10rem; overflow: hidden;" :valid-message="file_valid_feedback">
-		<input type="file" accept=".zip" @change="file_selected" class="form-control form-input-file" :disabled="$writing" required>
+		<input type="file" accept="application/zip" @change="file_selected" class="form-control form-input-file" :disabled="$writing" required>
 	    </input-feedback>
 
 	    <div v-if="$rejections.length && ($input.failed || $webasset.failed)"

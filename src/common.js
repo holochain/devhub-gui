@@ -200,6 +200,13 @@ const common				= {
 	return [].map.call( uint8_array, n => n.toString(16).padStart(2,"0") ).join("");
     },
 
+    randomHex ( length = 8 ) {
+	let hex = "";
+	while ( hex.length < length )
+	    hex		       += Math.random().toString( 16 ).slice(2);
+	return hex.slice(0,length);
+    },
+
     delay ( ms = 0 ) {
 	return new Promise( f => setTimeout(f,ms) );
     },
@@ -568,6 +575,5 @@ const common				= {
 	return await this.$openstate.write( datapath );
     },
 };
-
 
 module.exports = common;

@@ -140,11 +140,14 @@ module.exports = async function ( client ) {
 			    await this.$openstate.write( this.webasset_datapath );
 
 			    this.input.web_asset_id	= this.webasset.$id;
+
+			    this.$openstate.purge( this.webasset_datapath );
 			}
 
 			await this.$openstate.write( this.release_datapath );
 
 			const release		= this.$openstate.state[ this.release_datapath ];
+			this.$openstate.purge( this.release_datapath );
 
 			this.$openstate.read( `gui/${this.gui_id}/releases` );
 			this.$router.push( `/guis/${this.gui_id}/releases/${release.$id}` );

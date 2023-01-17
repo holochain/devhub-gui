@@ -35,7 +35,7 @@
 				<span class="input-group-text">v</span>
 				<input v-model="release$.version"
 				       class="form-control d-inline-block" style="width: 6em;"
-				       :disabled="$release.writing" required readonly>
+				       :disabled="$release.writing" required>
 			    </div>
 			</input-feedback>
 			<span class="fw-3 ms-3">({{ $filters.time( release.published_at, "date" ) }})</span>
