@@ -1306,7 +1306,7 @@ module.exports = async function ( client ) {
 			    return true;
 		    }
 
-		    if ( this.skip_gui === false ) {
+		    if ( this.skip_gui === false && this.gui_bytes ) {
 			if ( !this.previous_gui && !this.next_gui.name )
 			    return true;
 
