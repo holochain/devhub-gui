@@ -1,6 +1,6 @@
 {
   "name": "devhub-gui",
-  "version": "0.1.0",
+  "version": "0.10.6",
   "description": "A web-based UI that works with Holochain's collection of DevHub DNAs",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "@tauri-apps/api": "^1.2.0",
     "@whi/crux-payload-parser": "^0.2.2",
     "@whi/holo-hash": "^0.3.0",
-    "@whi/holochain-client": "^0.78.1",
+    "@whi/holochain-client": "^0.79.0",
     "@whi/identicons": "^0.1.0",
     "@whi/weblogger": "^0.1.5",
     "gzip-js": "^0.3.2",
@@ -39,7 +39,7 @@
     "@babel/plugin-transform-runtime": "^7.15.0",
     "@babel/preset-env": "^7.14.2",
     "@faker-js/faker": "^6.1.2",
-    "@whi/holochain-backdrop": "^0.69.0",
+    "@whi/holochain-backdrop": "^0.70.0",
     "@whi/holochain-conductor-cli": "^0.1.0",
     "@whi/json": "^0.1.5",
     "@whi/repr": "^0.1.0",

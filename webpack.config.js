@@ -2,6 +2,7 @@ const path			= require('path');
 const webpack			= require('webpack');
 const TerserPlugin		= require("terser-webpack-plugin");
 const fs			= require('fs');
+const pack_json			= require('./package.json');
 
 const Copy			= require('copy-webpack-plugin');
 
@@ -52,6 +53,7 @@ module.exports = {
 	    "WEBPACK_MODE":		JSON.stringify( WEBPACK_MODE ),
 	    "__VUE_OPTIONS_API__":	JSON.stringify( true ),
 	    "__VUE_PROD_DEVTOOLS__":	JSON.stringify( false ),
+	    "DEVHUB_GUI_VERSION":	JSON.stringify( pack_json.version ),
 	}),
 	new Copy({
 	    patterns: [{

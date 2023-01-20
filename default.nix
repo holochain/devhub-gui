@@ -1,7 +1,7 @@
 let
-  holonixPath = builtins.fetchTarball { # main as of Sep 1, 2022
-    url = "https://github.com/holochain/holonix/archive/a983ff292331d7553efadc5ab3916d5c2197dcee.tar.gz";
-    sha256 = "0zpkw7wppdxl3pznkb39i7svfhg8pc0ly87n89sxsczj1fb17028";
+  holonixPath = builtins.fetchTarball { # main as of Jan 19, 2022
+    url = "https://github.com/holochain/holonix/archive/ca3211a9cf3c7a8bdd9229d5be8af2f5888469b6.tar.gz";
+    sha256 = "1cqq274z7gg4s0bhrf188nbsn46zv6i46xych20afaj636d44llf";
   };
   holonix = import (holonixPath) {
     include = {
@@ -19,8 +19,8 @@ let
     holochainVersionId = "custom";
     holochainVersion = {
       url = "https://github.com/holochain/holochain";
-      rev = "holochain-0.1.0-beta-rc.1"; # Dec 16, 2022 - eb1e637c353190bfdba8b742c6b8bbb1b3f4a669
-      sha256 = "1b619mnwq5nkh35xagzyzall4yzxdl50avdyf48c63gnhdwhka8z";
+      rev = "holochain-0.1.0-beta-rc.3"; # Jan 17, 2023 - 60c042dbc8cc11aef091931c2758bb3e0d816662
+      sha256 = "0j6asm64abymswrylh39xm9c924biccdk3zlcsbjrbz019z3rp0l";
       cargoLock = {
         outputHashes = {
         };

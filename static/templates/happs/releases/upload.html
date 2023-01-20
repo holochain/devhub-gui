@@ -26,49 +26,49 @@
 	</div>
     </div>
 
-    <div v-if="input.hdk_version" class="row mb-4">
-	<div class="col-6">
-	    <div class="input-group mb-3">
-		<input v-model="input.hdk_version" class="form-control" disabled required>
-		<a class="btn btn-outline-secondary"
-		   @click="reset_hdk_version()">
-		    Change HDK Version
-		</a>
-	    </div>
-	</div>
-    </div>
+    <!-- <div v-if="input.hdk_version" class="row mb-4"> -->
+    <!-- 	<div class="col-6"> -->
+    <!-- 	    <div class="input-group mb-3"> -->
+    <!-- 		<input v-model="input.hdk_version" class="form-control" disabled required> -->
+    <!-- 		<a class="btn btn-outline-secondary" -->
+    <!-- 		   @click="reset_hdk_version()"> -->
+    <!-- 		    Change HDK Version -->
+    <!-- 		</a> -->
+    <!-- 	    </div> -->
+    <!-- 	</div> -->
+    <!-- </div> -->
 
     <div v-if="step === 0">
-	<form v-if="!input.hdk_version"
-	      class="row mb-5"
-	      :class="{ 'was-validated': validated }">
-	    <div class="col-6">
-		<div class="row">
-		    <div class="col-6">
-			<label class="form-label fw-6">HDK Version</label>
-			<input-feedback>
-			    <div class="input-group mb-3">
-				<span class="input-group-text" id="basic-addon1">v</span>
-				<input class="form-control" required
-				       @change="input.hdk_version = $event.target.value">
-			    </div>
-			</input-feedback>
-		    </div>
-		    <div class="col-6">
-			<loading :when="!$previous_hdk_versions.current">
-			    <label class="form-label">Versions on DevHub</label>
-			    <select class="form-select"
-				    :disabled="previous_hdk_versions.length === 0"
-				    @change="selectHDKVersion( $event.target.value )">
-				<option selected value="">Choose an HDK version</option>
-				<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
-			    </select>
-			</loading>
-		    </div>
-		</div>
-	    </div>
-	</form>
-	<template v-else>
+	<!-- <form v-if="!input.hdk_version" -->
+	<!--       class="row mb-5" -->
+	<!--       :class="{ 'was-validated': validated }"> -->
+	<!--     <div class="col-6"> -->
+	<!-- 	<div class="row"> -->
+	<!-- 	    <div class="col-6"> -->
+	<!-- 		<label class="form-label fw-6">HDK Version</label> -->
+	<!-- 		<input-feedback> -->
+	<!-- 		    <div class="input-group mb-3"> -->
+	<!-- 			<span class="input-group-text" id="basic-addon1">v</span> -->
+	<!-- 			<input class="form-control" required -->
+	<!-- 			       @change="input.hdk_version = $event.target.value"> -->
+	<!-- 		    </div> -->
+	<!-- 		</input-feedback> -->
+	<!-- 	    </div> -->
+	<!-- 	    <div class="col-6"> -->
+	<!-- 		<loading :when="!$previous_hdk_versions.current"> -->
+	<!-- 		    <label class="form-label">Versions on DevHub</label> -->
+	<!-- 		    <select class="form-select" -->
+	<!-- 			    :disabled="previous_hdk_versions.length === 0" -->
+	<!-- 			    @change="selectHDKVersion( $event.target.value )"> -->
+	<!-- 			<option selected value="">Choose an HDK version</option> -->
+	<!-- 			<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option> -->
+	<!-- 		    </select> -->
+	<!-- 		</loading> -->
+	<!-- 	    </div> -->
+	<!-- 	</div> -->
+	<!--     </div> -->
+	<!-- </form> -->
+	<!-- <template v-else> -->
 	    <h3>Upload</h3>
 	    <div class="row">
 		<div class="col-6">
@@ -81,7 +81,6 @@
 		    </loading>
 		</div>
 	    </div>
-	</template>
     </div>
 
     <div v-if="step === 1">
@@ -695,10 +694,10 @@
 			<input type="number" v-model.number="input.ordering" class="form-control" :disabled="saving" required>
 		    </input-feedback>
 
-		    <label class="form-label fw-6">HDK Version</label>
-		    <input-feedback>
-			<input v-model="input.hdk_version" class="form-control" readonly required>
-		    </input-feedback>
+		    <!-- <label class="form-label fw-6">HDK Version</label> -->
+		    <!-- <input-feedback> -->
+		    <!-- 	<input v-model="input.hdk_version" class="form-control" readonly required> -->
+		    <!-- </input-feedback> -->
 		</div>
 	    </div>
 	    <div class="row mb-5">
@@ -742,11 +741,11 @@
 		    <div class="card entity-card happ-release-card">
 			<div class="entity-card-header">{{ happ.title }}: <strong>{{ input.name }}</strong></div>
 			<div class="card-body">
-			    <div class="row mb-2">
-				<div class="col-auto">
-				    <p class="card-text text-truncate mb-1">HDK {{ input.hdk_version }}</p>
-				</div>
-			    </div>
+			    <!-- <div class="row mb-2"> -->
+			    <!-- 	<div class="col-auto"> -->
+			    <!-- 	    <p class="card-text text-truncate mb-1">HDK {{ input.hdk_version }}</p> -->
+			    <!-- 	</div> -->
+			    <!-- </div> -->
 
 			    <h4 class="fs-6 mt-2">Description</h4>
 			    <div class="bg-light rounded-3 p-4 pb-3 mb-3" v-html="mdHTML( input.description )"></div>

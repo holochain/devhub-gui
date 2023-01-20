@@ -29,7 +29,7 @@ const gui_releases_init			= require('./gui_release_controllers.js');
 const HISTORY_PUSH_STATE		= window.localStorage.getItem("PUSH_STATE");
 
 
-
+window.DEVHUB_GUI_VERSION		= "v" + DEVHUB_GUI_VERSION;
 window.PersistentStorage		= {
     setItem ( key, input ) {
 	const value			= JSON.stringify( input );

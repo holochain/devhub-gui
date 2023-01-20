@@ -666,7 +666,7 @@ module.exports = async function ( client, app ) {
 			"manifest_version": "1",
 			"roles": [],
 		    },
-		    "hdk_version": null,
+		    "hdk_version": "0.1.0-beta",
 		    "dnas": [],
 		};
 	    },
@@ -915,7 +915,7 @@ module.exports = async function ( client, app ) {
 		    "version": null,
 		    "ordering": null,
 		    "changelog": null,
-		    "hdk_version": null,
+		    "hdk_version": "0.1.0-beta",
 		    "origin_time": (new Date()).toISOString(),
 		    "network_seed": null,
 		    "integrity_zomes": [],
@@ -1151,7 +1151,7 @@ module.exports = async function ( client, app ) {
 		    "ordering": null,
 		    "changelog": null,
 		    "zome_bytes": null,
-		    "hdk_version": null,
+		    "hdk_version": "0.1.0-beta",
 		    "source_code_commit_url": null,
 		    "metadata": {},
 		};

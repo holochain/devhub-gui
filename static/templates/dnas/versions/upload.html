@@ -49,29 +49,29 @@
 	      class="row mb-5"
 	      :class="{ 'was-validated': validated }">
 	    <div class="col-6">
-		<div class="row">
-		    <div class="col-6">
-			<label class="form-label fw-6">HDK Version</label>
-			<input-feedback>
-			    <div class="input-group mb-3">
-				<span class="input-group-text" id="basic-addon1">v</span>
-				<input v-model="input.hdk_version" class="form-control" required
-				       :disabled="lock_hdk_version_input">
-			    </div>
-			</input-feedback>
-		    </div>
-		    <div v-if="$previous_hdk_versions.loaded" class="col-6">
-			<loading :when="!$previous_hdk_versions.current">
-			    <label class="form-label">Versions on DevHub</label>
-			    <select class="form-select"
-				    :disabled="previous_hdk_versions.length === 0 || lock_hdk_version_input"
-				    @change="selectHDKVersion( $event.target.value )">
-				<option selected value="">Choose an HDK version</option>
-				<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
-			    </select>
-			</loading>
-		    </div>
-		</div>
+		<!-- <div class="row"> -->
+		<!--     <div class="col-6"> -->
+		<!-- 	<label class="form-label fw-6">HDK Version</label> -->
+		<!-- 	<input-feedback> -->
+		<!-- 	    <div class="input-group mb-3"> -->
+		<!-- 		<span class="input-group-text" id="basic-addon1">v</span> -->
+		<!-- 		<input v-model="input.hdk_version" class="form-control" required -->
+		<!-- 		       :disabled="lock_hdk_version_input"> -->
+		<!-- 	    </div> -->
+		<!-- 	</input-feedback> -->
+		<!--     </div> -->
+		<!--     <div v-if="$previous_hdk_versions.loaded" class="col-6"> -->
+		<!-- 	<loading :when="!$previous_hdk_versions.current"> -->
+		<!-- 	    <label class="form-label">Versions on DevHub</label> -->
+		<!-- 	    <select class="form-select" -->
+		<!-- 		    :disabled="previous_hdk_versions.length === 0 || lock_hdk_version_input" -->
+		<!-- 		    @change="selectHDKVersion( $event.target.value )"> -->
+		<!-- 		<option selected value="">Choose an HDK version</option> -->
+		<!-- 		<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option> -->
+		<!-- 	    </select> -->
+		<!-- 	</loading> -->
+		<!--     </div> -->
+		<!-- </div> -->
 	    </div>
 	</form>
 
@@ -210,7 +210,7 @@
 			    </div>
 
 			    <div v-if="!(input.hdk_version && zome.version )" class="alert alert-warning" role="alert">
-				<p class="m-0">Missing HDK Version or Zome Version</p>
+				<p class="m-0">Missing Zome Version</p>
 			    </div>
 
 			    <div class="d-flex justify-content-end mb-3">
@@ -436,10 +436,10 @@
 			    <textarea v-model="input.changelog" class="form-control" rows="10" required></textarea>
 			</input-feedback>
 
-			<label class="form-label fw-6">HDK Version</label>
-			<input-feedback>
-			    <input v-model="input.hdk_version" class="form-control" readonly required>
-			</input-feedback>
+			<!-- <label class="form-label fw-6">HDK Version</label> -->
+			<!-- <input-feedback> -->
+			<!--     <input v-model="input.hdk_version" class="form-control" readonly required> -->
+			<!-- </input-feedback> -->
 
 			<label class="form-label fw-6">Origin Time</label>
 			<input-feedback>
@@ -505,16 +505,11 @@
 		    <div class="card entity-card dna-version-card">
 			<div class="entity-card-header">Version: <strong>{{ input.version }}</strong></div>
 			<div class="card-body">
-			    <div class="row mb-2">
-				<div class="col-auto">
-				    <p class="card-text text-truncate mb-1">HDK {{ input.hdk_version }}</p>
-				</div>
-			    </div>
-
-			    <h4 class="fs-6 mt-2">Changelog</h4>
-			    <div class="bg-light rounded-3 p-4 pb-3 mb-3">
-				{{ input.changelog }}
-			    </div>
+			    <!-- <div class="row mb-2"> -->
+			    <!-- 	<div class="col-auto"> -->
+			    <!-- 	    <p class="card-text text-truncate mb-1">HDK {{ input.hdk_version }}</p> -->
+			    <!-- 	</div> -->
+			    <!-- </div> -->
 
 			    <dl class="row mb-0">
 				<dt class="col-3">Resource Hash</dt>
@@ -551,6 +546,11 @@
 					</tr>
 				    </tbody>
 				</table>
+			    </div>
+
+			    <h4 class="fs-6 mt-2">Changelog</h4>
+			    <div class="bg-light rounded-3 p-4 pb-3 mb-3">
+				{{ input.changelog }}
 			    </div>
 
 			    <strong>Integrity</strong>

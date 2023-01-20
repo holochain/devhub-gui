@@ -105,6 +105,8 @@ module.exports = async function ( client ) {
 
 		const version		= await this.$openstate.read(`dna/${this.dna_id}/versions/latest`);
 		this.version$.ordering	= version ? version.ordering + 1 : 1;
+
+		this.getZomesByHDKVersion( this.version$.hdk_version );
 	    },
 	    "methods": {
 		nameFilter ( search_text ) {
@@ -359,7 +361,7 @@ module.exports = async function ( client ) {
 			"version": "",
 			"ordering": 1,
 			"changelog": "",
-			"hdk_version": null,
+			"hdk_version": "0.1.0-beta",
 			"properties": null,
 		    },
 		    "initial_step": this.$route.params.step,

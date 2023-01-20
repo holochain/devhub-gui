@@ -387,7 +387,7 @@ module.exports = async function ( client ) {
 			"description": "",
 			"ordering": 1,
 			"manifest": null,
-			"hdk_version": null,
+			"hdk_version": "0.1.0-beta",
 			"dnas": [],
 		    },
 		    "initial_step": this.$route.params.step,
@@ -715,7 +715,7 @@ module.exports = async function ( client ) {
 			"description": "",
 			"ordering": 1,
 			"manifest": null,
-			"hdk_version": null,
+			"hdk_version": "0.1.0-beta",
 			"dnas": [],
 		    };
 

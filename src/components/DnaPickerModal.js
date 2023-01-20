@@ -49,5 +49,8 @@ module.exports = function ( element_local_name, component_name ) {
 		return this.$refs["picker"].modal;
 	    },
 	},
+	async created () {
+	    await this.$openstate.get( this.hdkdnas_datapath );
+	},
     };
 }

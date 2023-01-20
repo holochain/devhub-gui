@@ -38,7 +38,7 @@ copy-zomes-from-local:	zome_wasm
 build:			static-links
 static-links:\
 	static/dependencies\
-	static/dependencies/holochain-client.js\
+	static/dependencies/holochain-client/holochain-client.js\
 	static/dependencies/crux-payload-parser.js\
 	static/dependencies/crux-payload-parser.js.map\
 	static/dependencies/holo-hash.js\
@@ -53,7 +53,7 @@ static-links:\
 static/dependencies:
 	mkdir -p $@
 static/dependencies/holochain-client/holochain-client.js:	node_modules/@whi/holochain-client/dist/holochain-client.js Makefile
-	ln -s ../../node_modules/@whi/holochain-client/dist/ static/dependencies/holochain-client
+	ln -fs ../../node_modules/@whi/holochain-client/dist/ static/dependencies/holochain-client
 
 static/dependencies/crux-payload-parser.js:		node_modules/@whi/crux-payload-parser/dist/crux-payload-parser.js Makefile
 	cp $< $@

@@ -5,29 +5,29 @@
     <hr>
 
     <form :class="{ 'was-validated': $version.failed }">
-	<div v-if="!version$.hdk_version" class="row">
-	    <div class="col-6">
-		<loading :when="!$previous_hdk_versions.current">
-		    <label class="form-label">Versions on DevHub</label>
-		    <select class="form-select"
-			    v-model="version$.hdk_version"
-			    @change="getZomesByHDKVersion( $event.target.value )"
-			    :disabled="previous_hdk_versions.length === 0">
-			<option selected :value="null">Choose an HDK version</option>
-			<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
-		    </select>
-		</loading>
-	    </div>
-	</div>
+	<!-- <div v-if="!version$.hdk_version" class="row"> -->
+	<!--     <div class="col-6"> -->
+	<!-- 	<loading :when="!$previous_hdk_versions.current"> -->
+	<!-- 	    <label class="form-label">Versions on DevHub</label> -->
+	<!-- 	    <select class="form-select" -->
+	<!-- 		    v-model="version$.hdk_version" -->
+	<!-- 		    @change="getZomesByHDKVersion( $event.target.value )" -->
+	<!-- 		    :disabled="previous_hdk_versions.length === 0"> -->
+	<!-- 		<option selected :value="null">Choose an HDK version</option> -->
+	<!-- 		<option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option> -->
+	<!-- 	    </select> -->
+	<!-- 	</loading> -->
+	<!--     </div> -->
+	<!-- </div> -->
 
 	<div v-if="version$.hdk_version" class="row">
-	    <div class="col-12">
-		<a class="btn btn-outline-secondary"
-		   @click="version$.hdk_version = null">
-		    <i class="bi-chevron-left"></i>
-		    Change HDK Version
-		</a>
-	    </div>
+	    <!-- <div class="col-12"> -->
+	    <!-- 	<a class="btn btn-outline-secondary" -->
+	    <!-- 	   @click="version$.hdk_version = null"> -->
+	    <!-- 	    <i class="bi-chevron-left"></i> -->
+	    <!-- 	    Change HDK Version -->
+	    <!-- 	</a> -->
+	    <!-- </div> -->
 	    <div class="col-6">
 		<label class="form-label fw-6">Version Number</label>
 		<input-feedback>

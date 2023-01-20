@@ -24,28 +24,28 @@
 		</div>
 	    </input-feedback>
 
-	    <div class="row">
-		<div class="col-6">
-		    <label class="form-label fw-6">HDK Version</label>
-		    <input-feedback>
-			<div class="input-group mb-3">
-			    <span class="input-group-text" id="basic-addon1">v</span>
-			    <input v-model="version$.hdk_version" class="form-control"
-				   :disabled="$version.writing" required>
-			</div>
-		    </input-feedback>
-		</div>
-		<div v-if="$previous_hdk_versions.present" class="col-6">
-		    <loading :when="!$previous_hdk_versions.current">
-			<label class="form-label">Versions on DevHub</label>
-			<select class="form-select" v-model="version$.hdk_version"
-				:disabled="$version.writing || previous_hdk_versions.length === 0">
-			    <option selected :value="null">Choose an HDK version</option>
-			    <option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option>
-			</select>
-		    </loading>
-		</div>
-	    </div>
+	    <!-- <div class="row"> -->
+	    <!-- 	<div class="col-6"> -->
+	    <!-- 	    <label class="form-label fw-6">HDK Version</label> -->
+	    <!-- 	    <input-feedback> -->
+	    <!-- 		<div class="input-group mb-3"> -->
+	    <!-- 		    <span class="input-group-text" id="basic-addon1">v</span> -->
+	    <!-- 		    <input v-model="version$.hdk_version" class="form-control" -->
+	    <!-- 			   :disabled="$version.writing" required> -->
+	    <!-- 		</div> -->
+	    <!-- 	    </input-feedback> -->
+	    <!-- 	</div> -->
+	    <!-- 	<div v-if="$previous_hdk_versions.present" class="col-6"> -->
+	    <!-- 	    <loading :when="!$previous_hdk_versions.current"> -->
+	    <!-- 		<label class="form-label">Versions on DevHub</label> -->
+	    <!-- 		<select class="form-select" v-model="version$.hdk_version" -->
+	    <!-- 			:disabled="$version.writing || previous_hdk_versions.length === 0"> -->
+	    <!-- 		    <option selected :value="null">Choose an HDK version</option> -->
+	    <!-- 		    <option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option> -->
+	    <!-- 		</select> -->
+	    <!-- 	    </loading> -->
+	    <!-- 	</div> -->
+	    <!-- </div> -->
 
 	    <label class="form-label fw-6">Changelog</label>
 	    <input-feedback>
