@@ -151,6 +151,10 @@ use-local-hcc:
 use-npm-hcc:
 	npm uninstall @whi/holochain-conductor-cli
 	npm install --save-dev @whi/holochain-conductor-cli
+
+use-local:		use-local-client use-local-backdrop
+use-npm:		  use-npm-client   use-npm-backdrop
+
 bundled/DevHub.happ:	../devhub-dnas/DevHub.happ
 	cp $< $@
 bundled/DevHub.webhapp:	web_assets.zip bundled/DevHub.happ
