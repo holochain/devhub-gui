@@ -28,9 +28,9 @@
 	    <!-- 	</a> -->
 	    <!-- </div> -->
 	    <div class="col-6">
-		<label class="form-label fw-6">Release Name</label>
+		<label class="form-label fw-6">Release Version</label>
 		<input-feedback>
-		    <input type="text" v-model="release$.name" class="form-control"
+		    <input type="text" v-model="release$.version" class="form-control"
 			   :disabled="$release.writing" required>
 		</input-feedback>
 
@@ -130,7 +130,7 @@
     </form>
 
     <modal ref="change_version"
-	   :title="'Change version for ' + (change_version_context ? change_version_context[1].name : '...')"
+	   :title="'Change version for ' + (change_version_context ? change_version_context[1].version : '...')"
 	   data-bs-backdrop="static">
 	<loading :when="!$alternative_versions.current">
 	    <div v-for="version in alternative_versions" class="mb-3">

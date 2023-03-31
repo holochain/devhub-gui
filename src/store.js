@@ -659,7 +659,7 @@ module.exports = async function ( client, app ) {
 	    },
 	    defaultMutable () {
 		return {
-		    "name": "",
+		    "version": "",
 		    "description": "",
 		    "ordering": null,
 		    "manifest": {
@@ -687,8 +687,8 @@ module.exports = async function ( client, app ) {
 		return await client.call("happs", "happ_library", "delete_happ_release", { id });
 	    },
 	    validation ( data, rejections ) {
-		if ( data.name === undefined )
-		    rejections.push(`Missing Name`);
+		if ( data.version === undefined )
+		    rejections.push(`Missing Version`);
 		if ( !data.for_happ )
 		    rejections.push(`Missing 'for_happ'`);
 		if ( !Array.isArray( data.dnas ) )
@@ -699,8 +699,8 @@ module.exports = async function ( client, app ) {
 		//     rejections.push(`Missing 'Official GUI'`);
 		if ( !data.hdk_version )
 		    rejections.push(`Missing 'HDK Version'`);
-		if ( data.name === "" )
-		    rejections.push(`Name cannot be empty`);
+		if ( data.version === "" )
+		    rejections.push(`Version cannot be empty`);
 	    },
 	},
 	"Bundle for hApp Release": {
