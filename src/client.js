@@ -59,6 +59,8 @@ module.exports = async function () {
 	return output;
     });
 
+    window.client = client;
+
     crux_config.upgrade( client );
 
     // If we are in development mode, assume an unrestricted capability grant was made
