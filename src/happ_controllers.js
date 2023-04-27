@@ -177,7 +177,7 @@ module.exports = async function ( client ) {
 		    this.$openstate.read( this.releases_datapath );
 		},
 		async deprecate () {
-		    log.normal("Deprecating hApp %s", this.happ.name );
+		    log.normal("Deprecating hApp %s", this.happ.title );
 		    await this.$openstate.write( this.datapath, "deprecation" );
 
 		    this.deprecationModal.hide();

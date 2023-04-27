@@ -86,7 +86,7 @@
 		    <loading :when="!$release.present || $release.reading">
 			<div class="mx-3 my-5">
 			    <a class="btn btn-primary w-100" @click="downloadFile()">
-				<span v-if="$webasset.reading"
+				<span v-if="$download.reading"
 				      class="spinner-border spinner-border-sm me-3"></span>
 				<i v-else class="bi-download"></i>
 				Download File
