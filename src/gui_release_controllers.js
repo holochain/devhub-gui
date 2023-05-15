@@ -280,6 +280,15 @@ module.exports = async function ( client ) {
 		    return this.$openstate.metastate[ this.webasset_datapath ];
 		},
 
+		download_datapath () {
+		    return this.webasset
+			? `web_assets/mere_memory/${this.webasset.mere_memory_addr}`
+			: this.$openstate.DEADEND;
+		},
+		$download () {
+		    return this.$openstate.metastate[ this.download_datapath ];
+		},
+
 		unpublish_error () {
 		    return this.$openstate.errors[ this.datapath ].unpublish;
 		},
@@ -295,7 +304,7 @@ module.exports = async function ( client ) {
 		    this.$openstate.get( this.webasset_datapath );
 		},
 		async downloadFile () {
-		    const bytes		= await this.$openstate.get(`web_assets/mere_memory/${this.webasset.mere_memory_addr}`);
+		    const bytes		= await this.$openstate.get( this.download_datapath );
 
 		    this.download( `${this.gui.name}.zip`, bytes );
 		},

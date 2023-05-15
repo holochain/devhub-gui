@@ -1,1 +1,5 @@
-<img :title="seed" class="identicon" :src="dataURL">
+<img @click="copyToClipboard( seed )"
+     title="Click to copy hash"
+     class="identicon"
+     style="cursor: pointer"
+     :src="dataURL">

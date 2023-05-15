@@ -251,14 +251,14 @@ module.exports = async function ( client ) {
 			return "hApp Package";
 
 		    const filename	= this.happ.title.replace(/[/\\?%*:|"<>]/g, '_');
-		    return `${filename}_${this.release.name}.happ`;
+		    return `${filename}_${this.release.version}.happ`;
 		},
 		package_webhapp_filename () {
 		    if ( !this.happ )
 			return "hApp Package";
 
 		    const filename	= this.happ.title.replace(/[/\\?%*:|"<>]/g, '_');
-		    return `${filename}_${this.release.name}.webhapp`;
+		    return `${filename}_${this.release.version}.webhapp`;
 		},
 	    },
 	    "methods": {
@@ -383,7 +383,7 @@ module.exports = async function ( client ) {
 		    "id": null,
 		    "error": null,
 		    "input": {
-			"name": "",
+			"version": "",
 			"description": "",
 			"ordering": 1,
 			"manifest": null,
@@ -655,7 +655,7 @@ module.exports = async function ( client ) {
 		    }
 
 		    // We will use the last release name as the default value for the next release.
-		    // this.input.name		= this.happ_release.name;
+		    // this.input.version		= this.happ_release.version;
 		    this.input.ordering		= this.happ_release.ordering + 1;
 
 		    log.info("Make reverse-lookup for previous DNAs:", this.happ_release );
@@ -711,7 +711,7 @@ module.exports = async function ( client ) {
 		    }
 
 		    this.input				= {
-			"name": "",
+			"version": "",
 			"description": "",
 			"ordering": 1,
 			"manifest": null,
@@ -1215,11 +1215,11 @@ module.exports = async function ( client ) {
 		    this.saving			= true;
 
 		    try {
-			log.normal("Creating hApp release: %s", this.input.name );
+			log.normal("Creating hApp release: %s", this.input.version );
 
 			console.log( this.bundle );
 			const input			= {
-			    "name":		this.input.name,
+			    "version":		this.input.version,
 			    "description":	this.input.description,
 			    "hdk_version":	this.input.hdk_version,
 			    "ordering":		this.input.ordering,
@@ -1272,7 +1272,7 @@ module.exports = async function ( client ) {
 			    }
 			}
 
-			log.debug("Create hApp release '%s': (%s DNAs):", this.input.name, this.input.dnas.length, this.input );
+			log.debug("Create hApp release '%s': (%s DNAs):", this.input.version, this.input.dnas.length, this.input );
 			const release		= await this.$store.dispatch("createHappRelease", [ this.id, input ] );
 
 			this.reset_file();

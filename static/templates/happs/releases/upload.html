@@ -10,7 +10,7 @@
     <page-header class="mb-3">
 	<template #default>
 	    <div v-if="happ">
-		<h1 class="fs-2">{{ happ.name }}</h1>
+		<h1 class="fs-2">{{ happ.version }}</h1>
 	    </div>
 	</template>
     </page-header>
@@ -684,9 +684,9 @@
 		<div class="col-6">
 		    <h2 class="mt-4">hApp Version Details</h2>
 
-		    <label class="form-label fw-6">Name</label>
+		    <label class="form-label fw-6">Version</label>
 		    <input-feedback>
-			<input type="text" v-model="input.name" class="form-control" required>
+			<input type="text" v-model="input.version" class="form-control" required>
 		    </input-feedback>
 
 		    <label class="form-label fw-6">Ordering</label>
@@ -723,7 +723,7 @@
 			    </a>
 			</div>
 			<div class="col-6 text-end">
-			    <a @click="readyForReview()" class="btn btn-outline-primary" :class="{ 'disabled': !(input.name && input.description) }">
+			    <a @click="readyForReview()" class="btn btn-outline-primary" :class="{ 'disabled': !(input.version && input.description) }">
 				Review
 				<i class="bi-chevron-right"></i>
 			    </a>
@@ -739,7 +739,7 @@
 		    <h2 class="mb-4">Final Review</h2>
 
 		    <div class="card entity-card happ-release-card">
-			<div class="entity-card-header">{{ happ.title }}: <strong>{{ input.name }}</strong></div>
+			<div class="entity-card-header">{{ happ.title }}: <strong>{{ input.version }}</strong></div>
 			<div class="card-body">
 			    <!-- <div class="row mb-2"> -->
 			    <!-- 	<div class="col-auto"> -->

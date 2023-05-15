@@ -1,6 +1,6 @@
 <page-view id="update-happ release-page" class="d-flex flex-column">
     <breadcrumbs v-if="release && happ" :skip-base="true" :path-mapping="breadcrumb_mapping"
-		 :sub-1="happ.title" :sub-3="release.name"></breadcrumbs>
+		 :sub-1="happ.title" :sub-3="release.version"></breadcrumbs>
 
     <hr>
 
@@ -18,7 +18,7 @@
 		<h2 class="fs-5 text-nowrap">
 		    <placeholder :when="!$release.current" size="fill">
 			<input-feedback class="w-auto">
-			    <input type="text" v-model="release$.name"
+			    <input type="text" v-model="release$.version"
 				   class="form-control d-inline-block" style="width: 6em;"
 				   :disabled="$release.updating" required>
 			</input-feedback>

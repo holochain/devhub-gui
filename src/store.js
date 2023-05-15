@@ -659,7 +659,7 @@ module.exports = async function ( client, app ) {
 	    },
 	    defaultMutable () {
 		return {
-		    "name": "",
+		    "version": "",
 		    "description": "",
 		    "ordering": null,
 		    "manifest": {
@@ -687,8 +687,8 @@ module.exports = async function ( client, app ) {
 		return await client.call("happs", "happ_library", "delete_happ_release", { id });
 	    },
 	    validation ( data, rejections ) {
-		if ( data.name === undefined )
-		    rejections.push(`Missing Name`);
+		if ( data.version === undefined )
+		    rejections.push(`Missing Version`);
 		if ( !data.for_happ )
 		    rejections.push(`Missing 'for_happ'`);
 		if ( !Array.isArray( data.dnas ) )
@@ -699,8 +699,8 @@ module.exports = async function ( client, app ) {
 		//     rejections.push(`Missing 'Official GUI'`);
 		if ( !data.hdk_version )
 		    rejections.push(`Missing 'HDK Version'`);
-		if ( data.name === "" )
-		    rejections.push(`Name cannot be empty`);
+		if ( data.version === "" )
+		    rejections.push(`Version cannot be empty`);
 	    },
 	},
 	"Bundle for hApp Release": {
@@ -1578,14 +1578,14 @@ module.exports = async function ( client, app ) {
 	"DNA's Mere Memory": {
 	    "path": ":dna/mere_memory/:addr",
 	    async read ({ dna, addr }) {
-		const bytes		= await client.call( dna, "mere_memory", "retrieve_bytes", new EntryHash( addr ) );
+		const bytes		= await client.call( dna, "mere_memory_api", "retrieve_bytes", new EntryHash( addr ) );
 		return new Uint8Array( bytes );
 	    },
 	    adapter ( bytes ) {
 		return new Uint8Array( bytes );
 	    },
 	    async create ( input ) {
-		const memory		= await client.call("web_assets", "mere_memory", "save_bytes", input );
+		const memory		= await client.call("web_assets", "mere_memory_api", "save_bytes", input );
 
 		this.openstate.state[`webasset/${webasset.$id}`] = webasset;
 
@@ -1601,32 +1601,6 @@ module.exports = async function ( client, app ) {
 		    rejections.push(`Byte length is 0`);
 	    },
 	},
-	// "Web Asset Mere Memory": {
-	//     "path": "webasset/mere_memory/:addr",
-	//     async read ({ addr }) {
-	// 	const bytes		= await client.call("web_assets", "mere_memory", "retrieve_bytes", new EntryHash( addr ) );
-	// 	return new Uint8Array( bytes );
-	//     },
-	//     adapter ( bytes ) {
-	// 	return new Uint8Array( bytes );
-	//     },
-	//     async create ( input ) {
-	// 	const memory		= await client.call("web_assets", "mere_memory", "save_bytes", input );
-
-	// 	this.openstate.state[`webasset/${webasset.$id}`] = webasset;
-
-	// 	return webasset;
-	//     },
-	//     async update () {
-	// 	throw new Error(`Mere Memory records cannot be updated`);
-	//     },
-	//     validation ( data, rejections ) {
-	// 	if ( !data )
-	// 	    rejections.push(`Missing bytes`);
-	// 	else if ( data.length === 0 )
-	// 	    rejections.push(`Byte length is 0`);
-	//     },
-	// },
 	"Known HDK Versions in 'dnarepo'": {
 	    "path": "dnarepo/hdk/versions",
 	    "readonly": true,
@@ -2710,7 +2684,7 @@ module.exports = async function ( client, app ) {
 
 		log.debug("Getting agent info (whoami)");
 		const result		= await dispatch("callClient", [
-		    "dnarepo", "mere_memory", "retrieve_bytes", addr
+		    "dnarepo", "mere_memory_api", "retrieve_bytes", addr
 		]);
 		const wasm_bytes	= new Uint8Array( result );
 

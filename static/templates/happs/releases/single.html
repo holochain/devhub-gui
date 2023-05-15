@@ -1,6 +1,6 @@
 <page-view id="single-happ release-page">
     <breadcrumbs v-if="release && happ" :skip-base="true" :path-mapping="breadcrumb_mapping"
-		 :sub-1="happ.title" :sub-3="release.name">
+		 :sub-1="happ.title" :sub-3="release.version">
 	<a v-if="$release.present" @click="refresh()" class="ms-2 fs-4">
 	    <i class="bi-arrow-repeat" :class="{ 'animate-spin': $release.reading }"></i>
 	</a>
@@ -18,7 +18,7 @@
     <page-header class="mb-2 p-3">
 	<template #default>
             <h2 class="fs-5 text-nowrap">
-		<placeholder :when="!$release.current" size="fill">{{ release.name }}
+		<placeholder :when="!$release.current" size="fill">{{ release.version }}
 		    <span class="fw-3 ms-3">({{ $filters.time( release.published_at, "date" ) }})</span>
 		</placeholder>
 	    </h2>
@@ -140,6 +140,6 @@
 
     <modal v-if="release && happ" title="Unpublish hApp Release" ref="modal"
 	   action-text="Unpublish" :action="unpublish" data-bs-backdrop="static">
-	<p>Are you sure you want to unpublish the {{ happ.title }} hApp Release <strong>{{ release.name }}</strong>?</p>
+	<p>Are you sure you want to unpublish the {{ happ.title }} hApp Release <strong>{{ release.version }}</strong>?</p>
     </modal>
 </page-view>
