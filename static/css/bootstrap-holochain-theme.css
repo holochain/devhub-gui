@@ -65,6 +65,9 @@ a {
 a:hover {
   color: #4820E3;
 }
+.pointer {
+  cursor: pointer !important;
+}
 
 .text-primary {
   color: #4820E3 !important;

@@ -159,6 +159,11 @@ module.exports = async function ( client ) {
 		    },
 		}),
 
+		hrl () {
+		    return `${this.$client._app_schema._dnas.happs._hash}:${this.id}`;
+		    // return `${this.$client._app_schema._dnas.happs._hash}:${this.id}@${this.$root.agent_id}`;
+		},
+
 		focused_release_datapath () {
 		    return this.release ? `happ/release/${this.release.$id}` : this.$openstate.DEADEND;
 		},
