@@ -41,6 +41,14 @@
 
     <div class="mb-5">
 	<p><placeholder :when="!$gui.present || $gui.reading" size="p">{{ gui.description }}</placeholder></p>
+
+	<strong title="Holochain Resource Location">HRL</strong>
+	<p>
+	    <code>{{ hrl }}</code>
+	    <span class="px-2 pointer" @click="copyToClipboard( hrl )" title="Copy HRL">
+		<i class="bi-files"></i>
+	    </span>
+	</p>
     </div>
 
     <!-- <pre>{{ $debug( $gui ) }}</pre> -->
