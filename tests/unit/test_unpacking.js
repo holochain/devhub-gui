@@ -10,9 +10,9 @@ const { expect }			= require('chai');
 const { store_init,
 	common }			= require('./setup.js');
 
-const dna_bundle_bytes			= fs.readFileSync( path.resolve( __dirname, "../../dnas/dnarepo.dna" ) );
-const happ_bundle_bytes			= fs.readFileSync( path.resolve( __dirname, "../../bundled/DevHub.happ" ) );
-const webhapp_bundle_bytes		= fs.readFileSync( path.resolve( __dirname, "../../bundled/DevHub.webhapp" ) );
+const dna_bundle_bytes			= fs.readFileSync( path.resolve( __dirname, "../assets/dnarepo.dna" ) );
+const happ_bundle_bytes			= fs.readFileSync( path.resolve( __dirname, "../assets/devhub.happ" ) );
+const webhapp_bundle_bytes		= fs.readFileSync( path.resolve( __dirname, "../../devhub.webhapp" ) );
 
 // /bundles/dna/<digest>
 // /bundles/happ/<digest>

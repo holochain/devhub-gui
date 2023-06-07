@@ -1,6 +1,7 @@
-
-SHELL		= bash
-PROJECT_NAME	= devhub
+.PHONY:			FORCE
+SHELL			= bash
+PROJECT_NAME		= devhub
+SETUP_DEPS		= node_modules build download-assets-v0.13.0
 
 #
 # Runtime Setup
@@ -12,30 +13,44 @@ reset-holochain:
 reset-lair:
 	rm -rf holochain/lair tests/AGENT*
 reset-all:		reset-holochain reset-lair
-dna_packages:		dnas/dnarepo.dna dnas/happs.dna dnas/webassets.dna
-setup:			dna_packages
+setup:			$(SETUP_DEPS)
 	node tests/setup.js
-setup-%:		dna_packages
+setup-%:		$(SETUP_DEPS)
 	node tests/setup.js $*
 setup-demo:		setup
 	node tests/add_devhub_to_devhub.js
 	make build-watch
 
-dnas:
-	mkdir $@
-zome_wasm:
-	mkdir $@
-dnas/%.dna:		dnas
-	$(error Download missing DNA ($*.dna) into location ./$@)
+copy-dnas-from-local:
+	cp ../devhub-dnas/bundled/*.dna		./tests/assets/
+copy-zomes-from-local:
+	cp ../devhub-dnas/zomes/*.wasm		./tests/assets/
 
-copy-dnas-from-local:	dnas
-	cp ../devhub-dnas/bundled/dnarepo.dna		dnas/dnarepo.dna
-	cp ../devhub-dnas/bundled/happs.dna		dnas/happs.dna
-	cp ../devhub-dnas/bundled/web_assets.dna	dnas/webassets.dna
-copy-zomes-from-local:	zome_wasm
-	cp ../devhub-dnas/zomes/*.wasm			./zome_wasm/
+download-assets-v0.13.0:
+download-assets-v%:				FORCE download-happs-v% download-dnas-v% download-zomes-v%
+	@echo -e "\x1b[0;37mDownloaded assets for version v$*\x1b[0m"
+download-happs-v%:				FORCE
+	VERSION=$* make -C tests/assets	\
+		devhub.happ
+download-dnas-v%:				FORCE
+	VERSION=$* make -C tests/assets	\
+		dnarepo.dna		\
+		happs.dna		\
+		web_assets.dna
+download-zomes-v%:				FORCE
+	VERSION=$* make -C tests/assets	\
+		dnarepo_core.wasm	\
+		dna_library.wasm	\
+		happs_core.wasm		\
+		happ_library.wasm	\
+		reviews.wasm		\
+		web_assets_core.wasm	\
+		web_assets.wasm		\
+		mere_memory.wasm	\
+		mere_memory_api.wasm
 
 build:			static-links
+	WEBPACK_MODE=development npx webpack
 static-links:\
 	static/dependencies\
 	static/dependencies/holochain-client/holochain-client.js\
@@ -155,9 +170,9 @@ use-npm-hcc:
 use-local:		use-local-client use-local-backdrop
 use-npm:		  use-npm-client   use-npm-backdrop
 
-bundled/DevHub.happ:	../devhub-dnas/DevHub.happ
+tests/assets/devhub.happ:	../devhub-dnas/DevHub.happ
 	cp $< $@
-bundled/DevHub.webhapp:	web_assets.zip bundled/DevHub.happ
+devhub.webhapp:			web_assets.zip tests/assets/devhub.happ
 	hc web pack ./bundled
 	cp $@ ~/
 package-lock.json:	package.json
