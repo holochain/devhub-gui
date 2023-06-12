@@ -1,11 +1,11 @@
 node_modules
 holochain
 web_assets.zip
+devhub.webhapp
 scratch
 *.log
 static/dist
 static/dependencies
-bundled/*.webhapp
 tests/AGENT*
 tests/*_HASH
 tests/assets/*.happ

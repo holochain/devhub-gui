@@ -6,7 +6,7 @@ SETUP_DEPS		= node_modules build download-assets-v0.13.0
 #
 # Runtime Setup
 #
-run-holochain:
+run-holochain:		node_modules
 	npx holochain-backdrop --admin-port 35678 --config holochain/config.yaml -v
 reset-holochain:
 	rm -rf holochain/databases holochain/config.yaml tests/*_HASH
@@ -51,7 +51,7 @@ download-zomes-v%:				FORCE
 
 build:			static-links
 	WEBPACK_MODE=development npx webpack
-static-links:\
+static-links:		node_modules\
 	static/dependencies\
 	static/dependencies/holochain-client/holochain-client.js\
 	static/dependencies/crux-payload-parser.js\
@@ -110,14 +110,14 @@ static/dependencies/vue-router.js:			node_modules/vue-router/dist/vue-router.glo
 #
 build-watch:		static-links
 	WEBPACK_MODE=development npx webpack --watch
-test-unit:
+test-unit:			node_modules
 	npx mocha --recursive ./tests/unit
-test-unit-debug:
+test-unit-debug:		node_modules
 	LOG_LEVEL=silly npx mocha --recursive ./tests/unit
 
-test-build-components:
+test-build-components:		node_modules
 	cd tests/components; npx webpack
-test-build-components-watch:
+test-build-components-watch:	node_modules
 	cd tests/components; npx webpack --watch
 test-components-server:
 	python3 -m http.server 8765
@@ -142,38 +142,38 @@ run-simple-http-server:
 #
 # Project
 #
-use-local-crux:
+use-local-crux:		node_modules
 	npm uninstall @whi/crux-payload-parser
 	npm install ../js-crux-payload-parser
-use-npm-crux:
+use-npm-crux:		node_modules
 	npm uninstall @whi/crux-payload-parser
 	npm install @whi/crux-payload-parser
-use-local-backdrop:
+use-local-backdrop:	node_modules
 	npm uninstall @whi/holochain-backdrop
 	npm install --save-dev ../node-holochain-backdrop
-use-npm-backdrop:
+use-npm-backdrop:	node_modules
 	npm uninstall @whi/holochain-backdrop
 	npm install --save-dev @whi/holochain-backdrop
-use-local-client:
+use-local-client:	node_modules
 	npm uninstall @whi/holochain-client
 	npm install --save ../js-holochain-client/whi-holochain-client-0.78.0.tgz
-use-npm-client:
+use-npm-client:		node_modules
 	npm uninstall @whi/holochain-client
 	npm install --save @whi/holochain-client
-use-local-hcc:
+use-local-hcc:		node_modules
 	npm uninstall @whi/holochain-conductor-cli
 	npm install --save-dev ../node-hc-conductor-cli/whi-holochain-conductor-cli-0.1.1.tgz
-use-npm-hcc:
+use-npm-hcc:		node_modules
 	npm uninstall @whi/holochain-conductor-cli
 	npm install --save-dev @whi/holochain-conductor-cli
 
 use-local:		use-local-client use-local-backdrop
 use-npm:		  use-npm-client   use-npm-backdrop
 
-tests/assets/devhub.happ:	../devhub-dnas/DevHub.happ
+tests/assets/devhub.happ:	../devhub-dnas/devhub.happ
 	cp $< $@
 devhub.webhapp:			web_assets.zip tests/assets/devhub.happ
-	hc web pack ./bundled
+	hc web pack -o $@ ./bundled
 	cp $@ ~/
 package-lock.json:	package.json
 	npm install

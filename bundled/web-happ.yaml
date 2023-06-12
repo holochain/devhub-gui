@@ -1,6 +1,6 @@
 ---
 manifest_version: "1"
-name: DevHub
+name: devhub
 ui:
   bundled: "../web_assets.zip"
 happ_manifest:
