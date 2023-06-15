@@ -126,12 +126,11 @@ const common				= {
 
     download ( filename, ...byte_arrays ) {
 	const blob			= new Blob( byte_arrays );
-	log.normal("Downloading bytes (%s bytes) as '%s'", blob.size, filename );
-
 	const link			= document.createElement("a");
 	link.href			= URL.createObjectURL( blob );
 	link.download			= filename;
 
+	log.normal("Downloading bytes (%s bytes) as '%s'", blob.size, filename );
 	link.click();
     },
 
@@ -573,6 +572,75 @@ const common				= {
 	input.file_bytes			= bytes;
 
 	return await this.$openstate.write( datapath );
+    },
+
+    async downloadMemory( client, address, progress_callback ) {
+	let memory				= await client.call( "web_assets", "mere_memory_api", "get_memory", address );
+
+	const bytes				= new Uint8Array( memory.memory_size );
+
+	let index				= 0;
+	for ( let block_addr of memory.block_addresses ) {
+	    const block				= await client.call( "web_assets", "mere_memory_api", "get_memory_block", block_addr );
+	    bytes.set( block.bytes, index );
+
+	    index			       += block.bytes.length;
+	}
+
+	return bytes;
+    },
+
+    async uploadMemory( client, bytes, progress_callback ) {
+	const chunks				= new Chunker( bytes );
+	const block_addresses			= [];
+
+	let position				= 0;
+	for ( let chunk of chunks ) {
+	    log.trace("Chunk %s/%s (%s bytes)", position, chunks.length, chunk.length.toLocaleString() );
+	    let input				= {
+		"sequence": {
+		    "position": ++position,
+		    "length": chunks.length,
+		},
+		"bytes": Array.from( chunk ),
+		// "bytes": chunk,
+	    };
+	    let response			= await client.call( "web_assets", "mere_memory_api", "create_memory_block", input );
+
+	    block_addresses.push( new HoloHash( response ) );
+
+	    if ( typeof progress_callback === "function" ) {
+		try {
+		    progress_callback(
+			Math.floor(position/chunks.length*100),
+			position,
+			chunks.length+1,
+		    );
+		} catch (err) {
+		    console.error( err );
+		}
+	    }
+	}
+
+	const gui_digest			= await common.digest( bytes );
+	let input				= {
+	    "hash": Array.from( gui_digest ),
+	    block_addresses,
+	    "memory_size": bytes.length,
+	};
+	let response				= await client.call( "web_assets", "mere_memory_api", "create_memory", input );
+
+	try {
+	    progress_callback(
+		100,
+		chunks.length+1,
+		chunks.length+1,
+	    );
+	} catch (err) {
+	    console.error( err );
+	}
+
+	return new HoloHash( response );
     },
 };
 

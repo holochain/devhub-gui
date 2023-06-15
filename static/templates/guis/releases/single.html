@@ -77,16 +77,16 @@
 
 			<dt class="col-sm-12">Resource Hash</dt>
 			<dd class="col-sm-12">
-			    <placeholder :when="!$webasset.present || $webasset.reading">
+			    <placeholder :when="!webasset">
 				<code>{{ webasset.mere_memory_hash }}</code>
 			    </placeholder>
 			</dd>
 		    </dl>
 
-		    <loading :when="!$release.present || $release.reading">
+		    <loading :when="!webasset">
 			<div class="mx-3 my-5">
 			    <a class="btn btn-primary w-100" @click="downloadFile()">
-				<span v-if="$download.reading"
+				<span v-if="downloading"
 				      class="spinner-border spinner-border-sm me-3"></span>
 				<i v-else class="bi-download"></i>
 				Download File

@@ -68,10 +68,8 @@ static/dependencies/holo-hash.js.map:			node_modules/@whi/holo-hash/dist/holo-ha
 static/dependencies/sha256.js:				node_modules/js-sha256/src/sha256.js Makefile
 	cp $< $@
 
-static/dependencies/gzip.js:				node_modules/gzip-js/lib/gzip.js Makefile
-	cd src/gzip; FILENAME=../../$@ npx webpack
-	touch $@
-
+static/dependencies/gzip.js:				node_modules/pako/dist/pako.esm.mjs Makefile
+	cp $< $@
 static/dependencies/msgpack.js:				node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.js Makefile
 	cp $< $@
 	cp $<.map $@.map
@@ -157,9 +155,9 @@ use-npm:		  use-npm-client   use-npm-backdrop
 
 bundled/DevHub.happ:	../devhub-dnas/DevHub.happ
 	cp $< $@
-bundled/DevHub.webhapp:	web_assets.zip bundled/DevHub.happ
-	hc web pack ./bundled
-	cp $@ ~/
+devhub.webhapp:		web_assets.zip bundled/DevHub.happ
+	hc web pack -o $@ ./bundled
+	cp $@ ~/devhub.webhapp
 package-lock.json:	package.json
 	npm install
 	touch $@

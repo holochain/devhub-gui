@@ -984,7 +984,7 @@ module.exports = async function ( client, app ) {
 	    "path": "dna/version/:id/bundle",
 	    "readonly": true,
 	    async read ({ id }, opts ) {
-		const pack		=  await client.call( "dnarepo", "dna_library", "get_dna_package", { id });
+		const pack		=  await client.call( "dnarepo", "dna_library", "get_dna_package", { id }, 60_000 );
 		return new Uint8Array( pack.bytes );
 	    },
 	},
@@ -1552,7 +1552,9 @@ module.exports = async function ( client, app ) {
 	"Web Asset": {
 	    "path": "webasset/:id",
 	    async read ({ id }) {
-		return await client.call("web_assets", "web_assets", "get_file", { id });
+		let file = await client.call("web_assets", "web_assets", "get_file", { id }, 30_000 );
+		// delete file.bytes;
+		return file;
 	    },
 	    adapter ( entity ) {
 		entity.author		= new AgentPubKey( entity.author );
@@ -1569,10 +1571,12 @@ module.exports = async function ( client, app ) {
 		throw new Error(`Web assets cannot be updated`);
 	    },
 	    validation ( data, rejections ) {
-		if ( data.file_bytes === undefined )
-		    rejections.push(`Missing bytes`);
-		else if ( data.file_bytes.length === 0 )
-		    rejections.push(`Byte length is 0`);
+		if ( data.mere_memory_addr === undefined ) {
+		    if ( data.file_bytes === undefined )
+			rejections.push(`Missing bytes`);
+		    else if ( data.file_bytes.length === 0 )
+			rejections.push(`Byte length is 0`);
+		}
 	    },
 	},
 	"DNA's Mere Memory": {
@@ -3258,7 +3262,7 @@ module.exports = async function ( client, app ) {
 		await common.delay();
 
 		log.info("Unpacking bundle with %s bytes", file.bytes.length );
-		const msgpack_bytes	= gzip.unzip( file.bytes );
+		const msgpack_bytes	= pako.ungzip( file.bytes );
 		log.debug("Unzipped bundle has %s bytes", msgpack_bytes.length );
 
 		const bundle		= MessagePack.decode( msgpack_bytes );

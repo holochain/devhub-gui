@@ -1,6 +1,7 @@
 const { Logger }			= require('@whi/weblogger');
 const log				= new Logger("gui releases");
 
+const { HoloHash }			= holohash;
 const common				= require('./common.js');
 
 module.exports = async function ( client ) {
@@ -14,7 +15,7 @@ module.exports = async function ( client ) {
 		    "gui_id": null,
 		    "gui_file": null,
 		    "gui_bytes": null,
-		    "gui_bytes_hash": null,
+		    "creating_gui_asset": false,
 		    "error":	null,
 		};
 	    },
@@ -100,7 +101,6 @@ module.exports = async function ( client ) {
 		this.$openstate.read(`happs`);
 
 		this.input.for_gui	= String( this.gui_id );
-		this.input.web_asset_id	= "temporary value";
 	    },
 	    "methods": {
 		async fetchGUI () {
@@ -129,30 +129,43 @@ module.exports = async function ( client ) {
 
 		    this.gui_file		= file;
 		    this.gui_bytes		= await this.load_file( file );
-		    this.gui_bytes_hash		= common.toHex( await common.digest( this.gui_bytes ) );
-
-		    this.webasset$.file_bytes	= [ ...this.gui_bytes ];
 		},
 
 		async create () {
 		    try {
-			if ( !this.$webasset.present ) {
+			if ( !this.webasset$.mere_memory_addr ) {
+			    const mm_addr			= await common.uploadMemory(
+				client,
+				this.gui_bytes,
+				( progress, position, length ) => {
+				    this.creating_gui_asset	= {
+					progress,
+					position,
+					length,
+				    };
+				}
+			    );
+			    this.creating_gui_asset		= false;
+			    this.webasset$.mere_memory_addr	= mm_addr;
+			}
+
+			if ( !this.input.web_asset_id ) {
 			    await this.$openstate.write( this.webasset_datapath );
 
 			    this.input.web_asset_id	= this.webasset.$id;
-
-			    this.$openstate.purge( this.webasset_datapath );
 			}
 
 			await this.$openstate.write( this.release_datapath );
 
 			const release		= this.$openstate.state[ this.release_datapath ];
 			this.$openstate.purge( this.release_datapath );
+			this.$openstate.purge( this.webasset_datapath );
 
 			this.$openstate.read( `gui/${this.gui_id}/releases` );
 			this.$router.push( `/guis/${this.gui_id}/releases/${release.$id}` );
 		    } catch ( err ) {
-			log.error("Failed to create GUI Release:", err );
+			log.error("Failed to create GUI Release:");
+			console.error( err );
 			this.error	= err;
 		    }
 		},
@@ -243,17 +256,15 @@ module.exports = async function ( client ) {
 		return {
 		    id,
 		    gui_id,
+		    "webasset":		null,
 		    "datapath":		`gui/release/${id}`,
 		    "gui_datapath":	`gui/${gui_id}`,
+		    "downloading":	false,
 		};
 	    },
 	    async created () {
 		window.GUIReleaseController = this;
-		this.mustGet(async () => {
-		    await this.$openstate.get( this.datapath );
-		    await this.$openstate.get( this.gui_datapath );
-		    await this.$openstate.get( this.webasset_datapath );
-		});
+		this.mustGet(this.refresh);
 	    },
 	    "computed": {
 		release () {
@@ -273,21 +284,21 @@ module.exports = async function ( client ) {
 		webasset_datapath () {
 		    return this.release ? `webasset/${this.release.web_asset_id}` : this.$openstate.DEADEND;
 		},
-		webasset () {
-		    return this.$openstate.state[ this.webasset_datapath ];
-		},
+		// webasset () {
+		//     return this.$openstate.state[ this.webasset_datapath ];
+		// },
 		$webasset () {
 		    return this.$openstate.metastate[ this.webasset_datapath ];
 		},
 
-		download_datapath () {
-		    return this.webasset
-			? `web_assets/mere_memory/${this.webasset.mere_memory_addr}`
-			: this.$openstate.DEADEND;
-		},
-		$download () {
-		    return this.$openstate.metastate[ this.download_datapath ];
-		},
+		// download_datapath () {
+		//     return this.webasset
+		// 	? `web_assets/mere_memory/${this.webasset.mere_memory_addr}`
+		// 	: this.$openstate.DEADEND;
+		// },
+		// $download () {
+		//     return this.$openstate.metastate[ this.download_datapath ];
+		// },
 
 		unpublish_error () {
 		    return this.$openstate.errors[ this.datapath ].unpublish;
@@ -301,12 +312,24 @@ module.exports = async function ( client ) {
 		async refresh () {
 		    this.$openstate.read( this.gui_datapath );
 		    await this.$openstate.read( this.datapath );
-		    this.$openstate.get( this.webasset_datapath );
+
+		    if ( !this.webasset ) {
+			this.webasset	= await this.$openstate.get( this.webasset_datapath, {
+			    "rememberState": false,
+			});
+		    }
 		},
 		async downloadFile () {
-		    const bytes		= await this.$openstate.get( this.download_datapath );
+		    this.downloading		= true;
 
-		    this.download( `${this.gui.name}.zip`, bytes );
+		    await this.delay();
+		    // const bytes		= await this.$openstate.get( this.download_datapath, {
+		    // 	"rememberState": false,
+		    // });
+
+		    this.download( `${this.gui.name}.zip`, this.webasset.bytes );
+
+		    this.downloading		= false;
 		},
 		async unpublish () {
 		    await this.$openstate.delete( this.datapath, "unpublish" );

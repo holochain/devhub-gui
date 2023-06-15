@@ -34,6 +34,16 @@
 		<input type="file" accept="application/zip" @change="file_selected" class="form-control form-input-file" :disabled="$writing" required>
 	    </input-feedback>
 
+	    <div v-if="creating_gui_asset !== false">
+		<div class="progress">
+		    <div class="progress-bar" role="progressbar"
+			 :style="{ 'width': creating_gui_asset.progress + '%' }"
+			 aria-valuemin="0"
+			 :aria-valuemax="creating_gui_asset.length"
+			 :aria-valuenow="creating_gui_asset.position">{{ creating_gui_asset.progress }}%</div>
+		</div>
+	    </div>
+
 	    <div v-if="$rejections.length && ($input.failed || $webasset.failed)"
 		 class="alert alert-danger d-flex align-items-center mt-5" role="alert">
 		<i class="bi-exclamation-triangle-fill me-3"></i>
@@ -87,7 +97,7 @@
 				    <input type="checkbox" name="happ_releases"
 					   v-model="input.for_happ_releases"
 					   :value="String(release.$id)">
-				    {{ release.name }}
+				    {{ release.version }}
 				</li>
 			    </ul>
 			</loading>

@@ -584,8 +584,16 @@
 	<div class="row mb-4">
 	    <div class="col-6">
 		<h2>Web UI</h2>
-
-		<div v-if="gui_bytes" class="mt-3">
+		<div v-if="gui_bytes?.length >= 10_000_000"
+		     class="alert alert-danger" role="alert">
+		    <p class="m-0">
+			Webhapp UI is too large for the bundle upload to handle.  You can continue
+			to upload the zomes/DNAs and hApp, but you will need to use the GUI
+			interfaces to upload the UI package.  Afterwards, you can update this hApp
+			release to use the GUI you uploaded.
+		    </p>
+		</div>
+		<div v-else-if="gui_bytes" class="mt-3">
 		    <div v-if="input.official_gui">
 			<div class="alert alert-info" role="alert">
 			    <p class="m-0">Bundle UI is the same as previous hApp Release</p>

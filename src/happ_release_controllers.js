@@ -220,6 +220,7 @@ module.exports = async function ( client ) {
 
 		    "download_error":		null,
 		    "download_webhapp_error":	null,
+		    "downloading_webhapp":	false,
 		};
 	    },
 	    async created () {
@@ -274,12 +275,49 @@ module.exports = async function ( client ) {
 		    this.download( this.package_filename, bytes );
 		},
 		async downloadWebhappPackageBytes () {
-		    log.normal("Download Webhapp package:", this.happ, this.release );
-		    const bytes		= await this.$openstate.get( this.webhapp_bundle_datapath, {
-			"rememberState": false,
-		    });
+		    this.downloading_webhapp		= true;
+		    // await this.delay();
+		    try {
+			log.normal("Get Webhapp (official) GUI release: %s", this.release.official_gui );
+			const gui_release		= await this.$openstate.get(`gui/release/${this.release.official_gui}`);
 
-		    this.download( this.package_webhapp_filename, bytes );
+			log.normal("Get UI webasset zip: %s", gui_release.web_asset_id );
+			const file			= await this.$openstate.get(`webasset/${gui_release.web_asset_id}`, {
+			    "rememberState": false,
+			});
+			const ui_bytes			= new Uint8Array( file.bytes );
+
+			log.normal("Get hApp package: %s", this.bundle_datapath );
+			const happ_bytes		= await this.$openstate.get( this.bundle_datapath, {
+			    "rememberState": false,
+			});
+
+			const webhapp_config		= {
+			    "manifest": {
+				"manifest_version": "1",
+				"name": "Something",
+				"ui": {
+				    "bundled": "ui.zip"
+				},
+				"happ_manifest": {
+				    "bundled": "bundled.happ"
+				}
+			    },
+			    "resources": {
+				"ui.zip":		ui_bytes,
+				"bundled.happ":	happ_bytes,
+			    },
+			};
+			const msgpacked_bytes		= MessagePack.encode( webhapp_config );
+			const gzipped_bytes		= pako.gzip( msgpacked_bytes );
+
+			log.normal("Download Webhapp package:", this.happ, this.release );
+			this.download( this.package_webhapp_filename, gzipped_bytes );
+		    } catch (err) {
+			alert(`${err}`);
+		    } finally {
+			this.downloading_webhapp	= false;
+		    }
 		},
 		async unpublish () {
 		    await this.$openstate.delete( this.datapath );
@@ -644,7 +682,9 @@ module.exports = async function ( client ) {
 			this.$openstate.get(`gui/release/${this.happ_release.official_gui}`)
 			    .then( async gui_release => {
 				console.log("Previous GUI release:", gui_release );
-				this.$openstate.get(`webasset/${gui_release.web_asset_id}`)
+				this.$openstate.get(`webasset/${gui_release.web_asset_id}`, {
+				    "rememberState": false
+				})
 				    .then( webasset => {
 					console.log("Previous GUI web asset:", webasset );
 					this.previous_gui_hash	= webasset.mere_memory_hash;
@@ -784,6 +824,9 @@ module.exports = async function ( client ) {
 				"name": this.bundle.ui.name,
 				"size": ui_file.bytes.length,
 			    }, ui_file.bytes );
+
+			    if ( ui_file.bytes.length >= 10_000_000 )
+				this.skip_gui		= true;
 
 			    const happ_file		= await this.bundle.happ.source();
 			    await this.bundle.happ.bundle();
@@ -1110,7 +1153,7 @@ module.exports = async function ( client ) {
 				    "display_name": zome_info.display_name,
 				    "description": zome_info.description || "",
 				    zome_type,
-				}
+				}, 30_000
 			    );
 			    this.$store.dispatch("fetchZomesByName", zome_info.name );
 			}
@@ -1123,7 +1166,7 @@ module.exports = async function ( client ) {
 				"ordering":	zome_info.ordering,
 				"zome_bytes":	zome_info.bytes,
 				"hdk_version":	this.input.hdk_version,
-			    }
+			    }, 30_000
 			);
 			this.$store.dispatch("fetchZomeVersionsByHash", zome_info.hash );
 			this.$store.dispatch("fetchVersionsForZome", zome_info.selected_zome.$id );
@@ -1162,7 +1205,7 @@ module.exports = async function ( client ) {
 				    "name": role.bundle.name,
 				    "display_name": role.display_name,
 				    "description": role.description || "",
-				}
+				}, 30_000
 			    );
 			    this.$store.dispatch("fetchDnasByName", role.name );
 			}
@@ -1196,7 +1239,7 @@ module.exports = async function ( client ) {
 					"dependencies":		Object.values( zome_info.dependencies ).map( ref => ref.name ),
 				    };
 				}),
-			    }
+			    }, 30_000
 			);
 			this.$store.dispatch("fetchDnaVersionsByHash", role.hash );
 			this.$store.dispatch("fetchVersionsForDna", role.selected_dna.$id );
