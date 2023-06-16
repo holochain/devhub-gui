@@ -107,7 +107,8 @@
 		    <loading :when="!$release.current">
 			<div class="mt-5">
 			    <a class="btn btn-primary w-100" @click="downloadPackageBytes()">
-				<span v-if="$package_bytes.reading"
+				<!-- <span v-if="$package_bytes.reading" -->
+				<span v-if="downloading_happ"
 				      class="spinner-border spinner-border-sm me-3"></span>
 				<i v-else class="bi-download"></i>
 				Download {{ package_filename }}

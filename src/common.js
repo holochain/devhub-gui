@@ -642,6 +642,132 @@ const common				= {
 
 	return new HoloHash( response );
     },
+
+    async assembleHapp ( client, release ) {
+	const happ_manifest			= JSON.parse( JSON.stringify( release.manifest ) )
+	const dna_resources			= {};
+
+	log.normal("Assemble hApp release package:", release );
+	for ( let i in release.dnas ) {
+	    const dna_ref			= release.dnas[i];
+
+	    log.normal("Assemble DNA release package:", dna_ref );
+	    const dna_version			= await client.call("dnarepo", "dna_library", "get_dna_version", {
+		"id": dna_ref.version,
+	    });
+	    console.log( dna_version );
+
+	    const resources			= {};
+	    const integrity_zomes		= [];
+	    const coordinator_zomes		= [];
+
+	    for ( let zome_ref of dna_version.integrity_zomes ) {
+		const rpath			= `${zome_ref.name}.wasm`;
+		const wasm_bytes		= await common.downloadMemory( client, zome_ref.resource, "dnarepo" );
+		console.log("Zome %s wasm bytes: %s", zome_ref.name, wasm_bytes.length );
+		integrity_zomes.push({
+		    "name": zome_ref.name,
+		    "bundled": rpath,
+		    "hash": null,
+		});
+		resources[ rpath ]		= wasm_bytes;
+	    }
+
+	    for ( let zome_ref of dna_version.zomes ) {
+		const rpath			= `${zome_ref.name}.wasm`;
+		const wasm_bytes		= await common.downloadMemory( client, zome_ref.resource, "dnarepo" );
+		console.log("Zome %s wasm bytes: %s", zome_ref.name, wasm_bytes.length );
+		coordinator_zomes.push({
+		    "name": zome_ref.name,
+		    "bundled": rpath,
+		    "hash": null,
+		    "dependencies": zome_ref.dependencies.map( name => {
+			return { name };
+		    }),
+		});
+		resources[ rpath ]		= wasm_bytes;
+	    }
+
+	    const dna_config			= {
+		"manifest": {
+		    "manifest_version": "1",
+		    "name": dna_ref.role_name,
+		    "integrity": {
+			"origin_time": dna_version.origin_time,
+			"network_seed": dna_version.network_seed,
+			"properties": dna_version.properties,
+			"zomes": integrity_zomes,
+		    },
+		    "coordinator": {
+			"zomes": coordinator_zomes,
+		    },
+		},
+		resources,
+	    };
+	    console.log( dna_ref.role_name, dna_config );
+	    const msgpacked_bytes		= MessagePack.encode( dna_config );
+	    const gzipped_bytes			= pako.gzip( msgpacked_bytes );
+
+	    const rpath				= `${dna_ref.role_name}.dna`;
+	    dna_resources[ rpath ]		= gzipped_bytes;
+	    happ_manifest.roles[i].dna.bundled = rpath;
+	    log.normal("Finished packing DNA: %s", dna_ref.role_name );
+	}
+
+	console.log( happ_manifest );
+	const happ_config			= {
+	    "manifest": happ_manifest,
+	    "resources": dna_resources,
+	};
+	const happ_bytes			= pako.gzip( MessagePack.encode( happ_config ) );
+	log.normal("Finished packing hApp");
+	return happ_bytes;
+    },
+
+    async assembleWebhapp ( client, name, release ) {
+	log.normal("Get Webhapp (official) GUI release: %s", release.official_gui );
+	const gui_release			= await client.call("happs", "happ_library", "get_gui_release", {
+	    "id": release.official_gui,
+	});
+	console.log( gui_release );
+
+	log.normal("Get UI webasset zip: %s", gui_release.web_asset_id );
+	const file				= await client.call("web_assets", "web_assets", "get_file", {
+	    "id": gui_release.web_asset_id,
+	});
+	console.log( file );
+
+	const ui_bytes				= await common.downloadMemory(
+	    client,
+	    file.mere_memory_addr
+	);
+	console.log( ui_bytes );
+
+	const happ_bytes			= await common.assembleHapp( client, release );
+
+	const webhapp_config			= {
+	    "manifest": {
+		"manifest_version": "1",
+		"name": name,
+		"ui": {
+		    "bundled": "ui.zip"
+		},
+		"happ_manifest": {
+		    "bundled": "bundled.happ"
+		}
+	    },
+	    "resources": {
+		"ui.zip":		ui_bytes,
+		"bundled.happ":		happ_bytes,
+	    },
+	};
+	console.log( webhapp_config );
+	const msgpacked_bytes			= MessagePack.encode( webhapp_config );
+	const gzipped_bytes			= pako.gzip( msgpacked_bytes );
+
+	log.normal("Finished packing Webhapp");
+	return gzipped_bytes;
+    },
 };
 
 module.exports = common;
