@@ -224,6 +224,7 @@ module.exports = async function ( client ) {
 		};
 	    },
 	    async created () {
+		window.Controller	= this;
 		this.mustGet(async () => {
 		    await Promise.all([
 			this.$openstate.get( this.datapath ),
@@ -274,28 +275,117 @@ module.exports = async function ( client ) {
 
 		    this.download( this.package_filename, bytes );
 		},
+		async oldDownloadWebhappPackageBytes () {
+		    log.normal("Download Webhapp package:", this.happ, this.release );
+		    const bytes         = await this.$openstate.get( this.webhapp_bundle_datapath, {
+			"rememberState": false,
+		    });
+		    this.download( "old_"+this.package_webhapp_filename, bytes );
+		},
 		async downloadWebhappPackageBytes () {
 		    this.downloading_webhapp		= true;
-		    // await this.delay();
+		    await this.delay();
 		    try {
 			log.normal("Get Webhapp (official) GUI release: %s", this.release.official_gui );
-			const gui_release		= await this.$openstate.get(`gui/release/${this.release.official_gui}`);
+			const gui_release		= await client.call("happs", "happ_library", "get_gui_release", {
+			    "id": this.release.official_gui,
+			});
+			console.log( gui_release );
 
 			log.normal("Get UI webasset zip: %s", gui_release.web_asset_id );
-			const file			= await this.$openstate.get(`webasset/${gui_release.web_asset_id}`, {
-			    "rememberState": false,
+			const file			= await client.call("web_assets", "web_assets", "get_file", {
+			    "id": gui_release.web_asset_id,
 			});
-			const ui_bytes			= new Uint8Array( file.bytes );
+			console.log( file );
 
-			log.normal("Get hApp package: %s", this.bundle_datapath );
-			const happ_bytes		= await this.$openstate.get( this.bundle_datapath, {
-			    "rememberState": false,
-			});
+			const ui_bytes			= await common.downloadMemory(
+			    client,
+			    file.mere_memory_addr
+			);
+			console.log( ui_bytes );
+
+			const happ_manifest		= JSON.parse( JSON.stringify( this.release.manifest ) )
+			const dna_resources		= {};
+
+			log.normal("Assemble hApp release package:", this.release );
+			for ( let i in this.release.dnas ) {
+			    const dna_ref		= this.release.dnas[i];
+
+			    log.normal("Assemble DNA release package:", dna_ref );
+			    const dna_version		= await client.call("dnarepo", "dna_library", "get_dna_version", {
+				"id": dna_ref.version,
+			    });
+			    console.log( dna_version );
+
+			    const resources		= {};
+			    const integrity_zomes	= [];
+			    const coordinator_zomes	= [];
+
+			    for ( let zome_ref of dna_version.integrity_zomes ) {
+				const rpath		= `${zome_ref.name}.wasm`;
+				const wasm_bytes	= await common.downloadMemory( client, zome_ref.resource, "dnarepo" );
+				console.log("Zome %s wasm bytes: %s", zome_ref.name, wasm_bytes.length );
+				integrity_zomes.push({
+				    "name": zome_ref.name,
+				    "bundled": rpath,
+				    "hash": null,
+				});
+				resources[ rpath ]	= wasm_bytes;
+			    }
+
+			    for ( let zome_ref of dna_version.zomes ) {
+				const rpath		= `${zome_ref.name}.wasm`;
+				const wasm_bytes	= await common.downloadMemory( client, zome_ref.resource, "dnarepo" );
+				console.log("Zome %s wasm bytes: %s", zome_ref.name, wasm_bytes.length );
+				coordinator_zomes.push({
+				    "name": zome_ref.name,
+				    "bundled": rpath,
+				    "hash": null,
+				    "dependencies": zome_ref.dependencies.map( name => {
+					return { name };
+				    }),
+				});
+				resources[ rpath ]	= wasm_bytes;
+			    }
+
+			    const dna_config		= {
+				"manifest": {
+				    "manifest_version": "1",
+				    "name": dna_ref.role_name,
+				    "integrity": {
+					"origin_time": dna_version.origin_time,
+					"network_seed": dna_version.network_seed,
+					"properties": dna_version.properties,
+					"zomes": integrity_zomes,
+				    },
+				    "coordinator": {
+					"zomes": coordinator_zomes,
+				    },
+				},
+				resources,
+			    };
+			    console.log( dna_ref.role_name, dna_config );
+			    const msgpacked_bytes	= MessagePack.encode( dna_config );
+			    const gzipped_bytes		= pako.gzip( msgpacked_bytes );
+
+			    const rpath			= `${dna_ref.role_name}.dna`;
+			    dna_resources[ rpath ]	= gzipped_bytes;
+			    happ_manifest.roles[i].dna.bundled = rpath;
+			    log.normal("Finished packing DNA: %s", dna_ref.role_name );
+			}
+
+			console.log( happ_manifest );
+			const happ_config		= {
+			    "manifest": happ_manifest,
+			    "resources": dna_resources,
+			};
+			const happ_bytes		= pako.gzip( MessagePack.encode( happ_config ) );
+			log.normal("Finished packing hApp");
 
 			const webhapp_config		= {
 			    "manifest": {
 				"manifest_version": "1",
-				"name": "Something",
+				"name": this.happ.title,
 				"ui": {
 				    "bundled": "ui.zip"
 				},
@@ -305,15 +395,17 @@ module.exports = async function ( client ) {
 			    },
 			    "resources": {
 				"ui.zip":		ui_bytes,
-				"bundled.happ":	happ_bytes,
+				"bundled.happ":		happ_bytes,
 			    },
 			};
+			console.log( webhapp_config );
 			const msgpacked_bytes		= MessagePack.encode( webhapp_config );
 			const gzipped_bytes		= pako.gzip( msgpacked_bytes );
 
 			log.normal("Download Webhapp package:", this.happ, this.release );
 			this.download( this.package_webhapp_filename, gzipped_bytes );
 		    } catch (err) {
+			console.log( err );
 			alert(`${err}`);
 		    } finally {
 			this.downloading_webhapp	= false;

@@ -119,11 +119,18 @@
 
 			<div v-if="release.official_gui" class="mt-5">
 			    <a class="btn btn-primary w-100" @click="downloadWebhappPackageBytes()">
-				<span v-if="$webhapp_package_bytes.reading || downloading_webhapp"
+				<span v-if="downloading_webhapp"
 				      class="spinner-border spinner-border-sm me-3"></span>
 				<i v-else class="bi-download"></i>
 				Download {{ package_webhapp_filename }}
 			    </a>
+
+			    <!-- <a class="btn btn-primary w-100" @click="oldDownloadWebhappPackageBytes()"> -->
+			    <!-- 	<span v-if="$webhapp_package_bytes.reading" -->
+			    <!-- 	      class="spinner-border spinner-border-sm me-3"></span> -->
+			    <!-- 	<i v-else class="bi-download"></i> -->
+			    <!-- 	Download Old {{ package_webhapp_filename }} -->
+			    <!-- </a> -->
 
 			    <display-error class="mt-3" :error="webhapp_package_bytes_errors.read"></display-error>
 			</div>

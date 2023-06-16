@@ -64,7 +64,7 @@
 		</div>
 		<div class="col-3">
 		    <a @click="create()" class="btn btn-primary w-100"
-		       :class="{ 'disabled': $writing }">
+		       :class="{ 'disabled': $writing || uploading }">
 			<span v-if="$writing"
 			      class="spinner-border spinner-border-sm me-3"></span>
 			Save

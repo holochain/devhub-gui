@@ -13,7 +13,7 @@ const { AdminClient,
 if ( process.env.LOG_LEVEL )
     hc_client.logging();
 
-const HAPP_PATH				= path.resolve( __dirname, "../bundled/DevHub.happ" );
+const HAPP_PATH				= path.resolve( __dirname, "../bundled/devhub.happ" );
 const PORT				= 35678;
 
 const admin				= new AdminClient( PORT );

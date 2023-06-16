@@ -574,14 +574,14 @@ const common				= {
 	return await this.$openstate.write( datapath );
     },
 
-    async downloadMemory( client, address, progress_callback ) {
-	let memory				= await client.call( "web_assets", "mere_memory_api", "get_memory", address );
+    async downloadMemory( client, address, dna_name = "web_assets" ) {
+	let memory				= await client.call( dna_name, "mere_memory_api", "get_memory", address );
 
 	const bytes				= new Uint8Array( memory.memory_size );
 
 	let index				= 0;
 	for ( let block_addr of memory.block_addresses ) {
-	    const block				= await client.call( "web_assets", "mere_memory_api", "get_memory_block", block_addr );
+	    const block				= await client.call( dna_name, "mere_memory_api", "get_memory_block", block_addr );
 	    bytes.set( block.bytes, index );
 
 	    index			       += block.bytes.length;

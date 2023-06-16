@@ -17,6 +17,7 @@ module.exports = async function ( client ) {
 		    "gui_bytes": null,
 		    "creating_gui_asset": false,
 		    "error":	null,
+		    "uploading": false,
 		};
 	    },
 	    "computed": {
@@ -133,6 +134,9 @@ module.exports = async function ( client ) {
 
 		async create () {
 		    try {
+			this.uploading		= true;
+			await this.delay();
+
 			if ( !this.webasset$.mere_memory_addr ) {
 			    const mm_addr			= await common.uploadMemory(
 				client,
@@ -167,6 +171,8 @@ module.exports = async function ( client ) {
 			log.error("Failed to create GUI Release:");
 			console.error( err );
 			this.error	= err;
+		    } finally {
+			this.uploading		= false;
 		    }
 		},
 	    },
@@ -256,7 +262,6 @@ module.exports = async function ( client ) {
 		return {
 		    id,
 		    gui_id,
-		    "webasset":		null,
 		    "datapath":		`gui/release/${id}`,
 		    "gui_datapath":	`gui/${gui_id}`,
 		    "downloading":	false,
@@ -284,21 +289,21 @@ module.exports = async function ( client ) {
 		webasset_datapath () {
 		    return this.release ? `webasset/${this.release.web_asset_id}` : this.$openstate.DEADEND;
 		},
-		// webasset () {
-		//     return this.$openstate.state[ this.webasset_datapath ];
-		// },
+		webasset () {
+		    return this.$openstate.state[ this.webasset_datapath ];
+		},
 		$webasset () {
 		    return this.$openstate.metastate[ this.webasset_datapath ];
 		},
 
-		// download_datapath () {
-		//     return this.webasset
-		// 	? `web_assets/mere_memory/${this.webasset.mere_memory_addr}`
-		// 	: this.$openstate.DEADEND;
-		// },
-		// $download () {
-		//     return this.$openstate.metastate[ this.download_datapath ];
-		// },
+		download_datapath () {
+		    return this.webasset
+			? `web_assets/mere_memory/${this.webasset.mere_memory_addr}`
+			: this.$openstate.DEADEND;
+		},
+		$download () {
+		    return this.$openstate.metastate[ this.download_datapath ];
+		},
 
 		unpublish_error () {
 		    return this.$openstate.errors[ this.datapath ].unpublish;
@@ -312,22 +317,17 @@ module.exports = async function ( client ) {
 		async refresh () {
 		    this.$openstate.read( this.gui_datapath );
 		    await this.$openstate.read( this.datapath );
-
-		    if ( !this.webasset ) {
-			this.webasset	= await this.$openstate.get( this.webasset_datapath, {
-			    "rememberState": false,
-			});
-		    }
+		    this.$openstate.get( this.webasset_datapath );
 		},
 		async downloadFile () {
 		    this.downloading		= true;
-
 		    await this.delay();
-		    // const bytes		= await this.$openstate.get( this.download_datapath, {
-		    // 	"rememberState": false,
-		    // });
 
-		    this.download( `${this.gui.name}.zip`, this.webasset.bytes );
+		    const bytes		= await this.$openstate.get( this.download_datapath, {
+			"rememberState": false,
+		    });
+
+		    this.download( `${this.gui.name}.zip`, bytes );
 
 		    this.downloading		= false;
 		},

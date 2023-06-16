@@ -4,4 +4,4 @@ name: DevHub
 ui:
   bundled: "../web_assets.zip"
 happ_manifest:
-  bundled: "DevHub.happ"
+  bundled: "devhub.happ"

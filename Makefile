@@ -13,7 +13,7 @@ reset-lair:
 	rm -rf holochain/lair tests/AGENT*
 reset-all:		reset-holochain reset-lair
 dna_packages:		dnas/dnarepo.dna dnas/happs.dna dnas/webassets.dna
-setup:			dna_packages
+setup:			dna_packages bundled/devhub.happ
 	node tests/setup.js
 setup-%:		dna_packages
 	node tests/setup.js $*
@@ -153,9 +153,9 @@ use-npm-hcc:
 use-local:		use-local-client use-local-backdrop
 use-npm:		  use-npm-client   use-npm-backdrop
 
-bundled/DevHub.happ:	../devhub-dnas/DevHub.happ
+bundled/devhub.happ:	../devhub-dnas/devhub.happ
 	cp $< $@
-devhub.webhapp:		web_assets.zip bundled/DevHub.happ
+devhub.webhapp:		web_assets.zip bundled/devhub.happ
 	hc web pack -o $@ ./bundled
 	cp $@ ~/devhub.webhapp
 package-lock.json:	package.json
