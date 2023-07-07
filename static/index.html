@@ -21,7 +21,14 @@
 	<script src="/dependencies/showdown.js"></script>
 	<script src="/dependencies/msgpack.js"></script>
 	<script src="/dependencies/sha256.js"></script>
-	<script src="/dependencies/gzip.js"></script>
+	<script type="module">
+	    import assets from './dependencies/mere-memory-sdk.js';
+	    console.log("Assigning mere memory assets to window:", assets );
+	    Object.assign( window, assets );
+
+	    import pako from './dependencies/gzip.js';
+	    Object.assign( window, { pako });
+	</script>
 
 	<!-- Responsive mobile-first framework -->
 	<link rel="stylesheet" href="/bootstrap-v5/bootstrap-v5.1.0.min.css">

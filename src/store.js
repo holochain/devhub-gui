@@ -707,25 +707,80 @@ module.exports = async function ( client, app ) {
 	    "path": "happ/release/:id/bundle",
 	    "readonly": true,
 	    async read ({ id }, opts ) {
-		return new Uint8Array(
-		    await client.call( "happs", "happ_library", "get_release_package", { id }, 300_000 )
-		);
-	    },
-	},
-	"Webhapp Bundle for hApp Release": {
-	    "path": "happ/release/:id/webhapp/:gui/bundle",
-	    "readonly": true,
-	    async read ({ id, gui }, opts ) {
+		const start_time	= Date.now();
 		const release		= await this.openstate.get(`happ/release/${id}`);
 		const happ		= await this.openstate.get(`happ/${release.for_happ}`);
 
-		return new Uint8Array(
-		    await client.call( "happs", "happ_library", "get_webhapp_package", {
-			"name": happ.title,
-			"happ_release_id": new EntryHash( id ),
-			"gui_release_id": new EntryHash( gui ),
-		    }, 300_000 )
+		const manifest		= JSON.parse( JSON.stringify( release.manifest ) )
+		const resources		= {};
+
+		await Promise.all(
+		    release.dnas.map( async (dna_ref, i) => {
+			const role		= manifest.roles[i];
+			const dna_bytes		= await this.openstate.read(`dna/version/${dna_ref.version}/bundle`, { rememberState: false });
+			const rpath		= `${dna_ref.role_name}.dna`;
+
+			resources[ rpath ]	= dna_bytes;
+			role.dna.bundled	= rpath;
+		    })
 		);
+
+		const happ_config	= {
+		    manifest,
+		    resources,
+		};
+		const happ_bytes	= pako.gzip( MessagePack.encode( happ_config ) );
+
+		const duration		= Date.now() - start_time;
+		log.debug("%ss to fetch hApp bundle %s", duration/1000, id );
+		return happ_bytes;
+	    },
+	},
+	"Webhapp Bundle for hApp Release": {
+	    "path": "happ/release/:id/webhapp/:gui_id/bundle",
+	    "readonly": true,
+	    async read ({ id, gui_id }, opts ) {
+		const start_time	= Date.now();
+		const release		= await this.openstate.get(`happ/release/${id}`);
+		const happ		= await this.openstate.get(`happ/${release.for_happ}`);
+		const happ_bundle_p	= this.openstate.read(`happ/release/${id}/bundle`, { rememberState: false })
+
+		// Get GUI file
+		const gui_release	= await this.openstate.get(`gui/release/${gui_id}`);
+		const gui		= await this.openstate.get(`gui/${gui_release.for_gui}`);
+		const file		= await this.openstate.get(`webasset/${gui_release.web_asset_id}`);
+		const ui_bytes_p	= common.downloadMemory( client, file.mere_memory_addr, "web_assets" );
+
+		const [ui_bytes, happ_bytes] = await Promise.all([
+		    // Get GUI file
+		    ui_bytes_p,
+		    // Get hApp bundle
+		    happ_bundle_p,
+		]);
+
+		const webhapp_config		= {
+		    "manifest": {
+			"manifest_version": "1",
+			"name": `${happ.title} with ${gui.name}`,
+			"ui": {
+			    "bundled": "ui.zip"
+			},
+			"happ_manifest": {
+			    "bundled": "bundled.happ"
+			}
+		    },
+		    "resources": {
+			"ui.zip":		ui_bytes,
+			"bundled.happ":		happ_bytes,
+		    },
+		};
+
+		const msgpacked_bytes	= MessagePack.encode( webhapp_config );
+		const webhapp_bytes	= pako.gzip( msgpacked_bytes );
+
+		const duration		= Date.now() - start_time;
+		log.debug("%ss to fetch Webhapp %s WASM", duration/1000, id );
+		return webhapp_bytes;
 	    },
 	},
 	"Releases for hApp": {
@@ -984,8 +1039,66 @@ module.exports = async function ( client, app ) {
 	    "path": "dna/version/:id/bundle",
 	    "readonly": true,
 	    async read ({ id }, opts ) {
-		const pack		=  await client.call( "dnarepo", "dna_library", "get_dna_package", { id });
-		return new Uint8Array( pack.bytes );
+		const start_time		= Date.now();
+		const resources			= {};
+		const integrity_zomes		= [];
+		const coordinator_zomes		= [];
+		const dna_version		= await this.openstate.read(`dna/version/${id}`);
+		const dna			= await this.openstate.read(`dna/${dna_version.for_dna}`);
+
+		await Promise.all([
+		    ...dna_version.integrity_zomes.map( async zome_ref => {
+			const rpath		= `${zome_ref.name}.wasm`;
+			const wasm_bytes	= await this.openstate.read(`zome/version/${zome_ref.version}/wasm`, { rememberState: false });
+			log.info("Zome %s wasm bytes: %s", zome_ref.name, wasm_bytes.length );
+
+			integrity_zomes.push({
+			    "name": zome_ref.name,
+			    "bundled": rpath,
+			    "hash": null,
+			});
+			resources[ rpath ]	= wasm_bytes;
+		    }),
+		    ...dna_version.zomes.map( async zome_ref => {
+			const rpath		= `${zome_ref.name}.wasm`;
+			const wasm_bytes	= await this.openstate.read(`zome/version/${zome_ref.version}/wasm`, { rememberState: false });
+			log.info("Zome %s wasm bytes: %s", zome_ref.name, wasm_bytes.length );
+
+			coordinator_zomes.push({
+			    "name": zome_ref.name,
+			    "bundled": rpath,
+			    "hash": null,
+			    "dependencies": zome_ref.dependencies.map( name => {
+				return { name };
+			    }),
+			});
+			resources[ rpath ]	= wasm_bytes;
+		    }),
+		]);
+
+		const dna_config		= {
+		    "manifest": {
+			"manifest_version": "1",
+			"name": dna.name,
+			"integrity": {
+			    "origin_time": dna_version.origin_time,
+			    "network_seed": dna_version.network_seed,
+			    "properties": dna_version.properties,
+			    "zomes": integrity_zomes,
+			},
+			"coordinator": {
+			    "zomes": coordinator_zomes,
+			},
+		    },
+		    resources,
+		};
+
+		const msgpacked_bytes		= MessagePack.encode( dna_config );
+		const gzipped_bytes		= pako.gzip( msgpacked_bytes );
+
+		const duration			= Date.now() - start_time;
+		log.debug("%ss to fetch DNA bundle %s", duration/1000, id );
+		return gzipped_bytes;
 	    },
 	},
 	"All Zomes": {
@@ -1217,8 +1330,14 @@ module.exports = async function ( client, app ) {
 	    "path": "zome/version/:id/wasm",
 	    "readonly": true,
 	    async read ({ id }, opts ) {
+		const start_time	= Date.now();
 		const version		= await this.openstate.get(`zome/version/${id}`);
-		return await this.openstate.get(`dnarepo/mere_memory/${version.mere_memory_addr}`, opts );
+		const wasm_bytes	= await common.downloadMemory( client, version.mere_memory_addr, "dnarepo" );
+
+		const duration		= Date.now() - start_time;
+		log.debug("%ss to fetch Zome %s WASM", duration/1000, id );
+
+		return wasm_bytes;
 	    },
 	},
 	"Reviews for Zome Version": {

@@ -574,6 +574,80 @@ const common				= {
 
 	return await this.$openstate.write( datapath );
     },
+
+    async downloadMemory( client, address, dna_name = "web_assets" ) {
+	let memory				= await client.call( dna_name, "mere_memory_api", "get_memory", address );
+
+	const bytes				= new Uint8Array( memory.memory_size );
+
+	const blocks				= await Promise.all(
+	    memory.block_addresses.map( async block_addr => {
+		return await client.call( dna_name, "mere_memory_api", "get_memory_block", block_addr );
+	    })
+	);
+
+	let index				= 0;
+	for ( let block of blocks ) {
+	    bytes.set( block.bytes, index );
+	    index			       += block.bytes.length;
+	}
+
+	return bytes;
+    },
+
+    async uploadMemory( client, bytes, progress_callback ) {
+	const chunks				= new Chunker( bytes );
+	const block_addresses			= [];
+
+	let position				= 0;
+	for ( let chunk of chunks ) {
+	    log.trace("Chunk %s/%s (%s bytes)", position, chunks.length, chunk.length.toLocaleString() );
+	    let input				= {
+		"sequence": {
+		    "position": ++position,
+		    "length": chunks.length,
+		},
+		"bytes": Array.from( chunk ),
+		// "bytes": chunk,
+	    };
+	    let response			= await client.call( "web_assets", "mere_memory_api", "create_memory_block", input );
+
+	    block_addresses.push( new HoloHash( response ) );
+
+	    if ( typeof progress_callback === "function" ) {
+		try {
+		    progress_callback(
+			Math.floor(position/chunks.length*100),
+			position,
+			chunks.length+1,
+		    );
+		} catch (err) {
+		    console.error( err );
+		}
+	    }
+	}
+
+	const gui_digest			= await common.digest( bytes );
+	let input				= {
+	    "hash": Array.from( gui_digest ),
+	    block_addresses,
+	    "memory_size": bytes.length,
+	};
+	let response				= await client.call( "web_assets", "mere_memory_api", "create_memory", input );
+
+	try {
+	    progress_callback(
+		100,
+		chunks.length+1,
+		chunks.length+1,
+	    );
+	} catch (err) {
+	    console.error( err );
+	}
+
+	return new HoloHash( response );
+    },
+
 };
 
 module.exports = common;
