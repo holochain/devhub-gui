@@ -595,7 +595,7 @@ const common				= {
 	return bytes;
     },
 
-    async uploadMemory( client, bytes, progress_callback ) {
+    async uploadMemory( client, dna_name, bytes, progress_callback ) {
 	const chunks				= new Chunker( bytes );
 	const block_addresses			= [];
 
@@ -610,7 +610,7 @@ const common				= {
 		"bytes": Array.from( chunk ),
 		// "bytes": chunk,
 	    };
-	    let response			= await client.call( "web_assets", "mere_memory_api", "create_memory_block", input );
+	    let response			= await client.call( dna_name, "mere_memory_api", "create_memory_block", input );
 
 	    block_addresses.push( new HoloHash( response ) );
 
@@ -633,7 +633,7 @@ const common				= {
 	    block_addresses,
 	    "memory_size": bytes.length,
 	};
-	let response				= await client.call( "web_assets", "mere_memory_api", "create_memory", input );
+	let response				= await client.call( dna_name, "mere_memory_api", "create_memory", input );
 
 	try {
 	    progress_callback(

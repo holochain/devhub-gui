@@ -24,29 +24,6 @@
 		</div>
 	    </input-feedback>
 
-	    <!-- <div class="row"> -->
-	    <!-- 	<div class="col-6"> -->
-	    <!-- 	    <label class="form-label fw-6">HDK Version</label> -->
-	    <!-- 	    <input-feedback> -->
-	    <!-- 		<div class="input-group mb-3"> -->
-	    <!-- 		    <span class="input-group-text" id="basic-addon1">v</span> -->
-	    <!-- 		    <input v-model="version$.hdk_version" class="form-control" -->
-	    <!-- 			   :disabled="$version.writing" required> -->
-	    <!-- 		</div> -->
-	    <!-- 	    </input-feedback> -->
-	    <!-- 	</div> -->
-	    <!-- 	<div v-if="$previous_hdk_versions.present" class="col-6"> -->
-	    <!-- 	    <loading :when="!$previous_hdk_versions.current"> -->
-	    <!-- 		<label class="form-label">Versions on DevHub</label> -->
-	    <!-- 		<select class="form-select" v-model="version$.hdk_version" -->
-	    <!-- 			:disabled="$version.writing || previous_hdk_versions.length === 0"> -->
-	    <!-- 		    <option selected :value="null">Choose an HDK version</option> -->
-	    <!-- 		    <option v-for="hdkv in previous_hdk_versions">{{ hdkv }}</option> -->
-	    <!-- 		</select> -->
-	    <!-- 	    </loading> -->
-	    <!-- 	</div> -->
-	    <!-- </div> -->
-
 	    <label class="form-label fw-6">Changelog</label>
 	    <input-feedback>
 		<textarea v-model="version$.changelog" class="form-control font-monospace" rows="10"
@@ -64,52 +41,14 @@
 		<input v-model="version$.source_code_commit_url" class="form-control">
 	    </input-feedback>
 
-	    <loading :when="$sc_url_preview.reading">
-		<!-- Is there a preview? -->
-		<div v-if="version$.metadata.source_code_url_preview || (version$.metadata && version$.metadata.source_code_url_preview)">
-		    <!-- Preview is changing -->
-		    <template v-if="version$.metadata && version$.metadata.source_code_url_preview">
-			<h4>New Preview</h4>
-			<link-preview :url="version$.source_code_commit_url"></link-preview>
-			<!-- version$.metadata.source_code_url_preview -->
-		    </template>
-
-		    <!-- Display current preview -->
-		    <template v-else>
-			<h4>Preview</h4>
-			<link-preview :url="version$.source_code_commit_url"></link-preview>
-			<link-preview :url-image="version$.metadata.source_code_url_preview.image"
-				      :url-title="version$.metadata.source_code_url_preview.title"
-				      :url-description="version$.metadata.source_code_url_preview.description"></link-preview>
-		    </template>
-
-		    <!-- Update or Remove preview info -->
-		    <div class="row mt-3">
-			<div class="col-6">
-			    <a @click="createSourceCodeUrlPreview( version$.source_code_commit_url )"
-			       class="btn btn-outline-primary w-100"
-			       :class="{ 'disabled': $version.writing }">
-				Update URL Preview
-			    </a>
-			</div>
-			<div class="col-6">
-			    <a @click="createSourceCodeUrlPreview( null )"
-			       class="btn btn-outline-secondary w-100">
-				Remove Preview
-			    </a>
-			</div>
+	    <div v-if="$version.writing">
+		<div class="progress">
+		    <div class="progress-bar" role="progressbar"
+			 :style="{ 'width': ($version.$writing*100) + '%' }">
+			{{ Math.ceil( $version.$writing*100 ) }}%
 		    </div>
 		</div>
-		<!-- No preview yet -->
-		<div v-else>
-		    <a @click="createSourceCodeUrlPreview( version$.source_code_commit_url )"
-		       class="btn btn-outline-primary w-100">
-			Create URL Preview
-		    </a>
-		</div>
-
-		<!-- <pre>{{ $debug(input) }}</pre> -->
-	    </loading>
+	    </div>
 
 	    <input-rejections v-if="$version.failed" class="mt-5"
 			      :rejections="version_rejections"></input-rejections>

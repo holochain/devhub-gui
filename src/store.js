@@ -156,7 +156,8 @@ function handle_mr_bundle_location ( target, reject ) {
 
 
 module.exports = async function ( client, app ) {
-    const { reactive }			= Vue;
+    const { reactive,
+	    watchEffect }		= Vue;
 
     const openstate			= new OpenState.create({
 	reactive,
@@ -506,6 +507,21 @@ module.exports = async function ( client, app ) {
 		};
 	    },
 	    async create ( input ) {
+		if ( input.file_bytes ) {
+		    const $webasset		= this.openstate.metastate[`webasset/new`];
+		    watchEffect(() => {
+			this.progress( $webasset.$writing );
+		    });
+
+		    const webasset$		= this.openstate.mutable[`webasset/new`];
+		    webasset$.file_bytes	= input.file_bytes;
+		    const webasset		= await this.openstate.write(`webasset/new`);
+		    this.openstate.purge(`webasset/new`);
+
+		    input.web_asset_id		= webasset.$id;
+		    delete input.file_bytes;
+		}
+
 		return await client.call("happs", "happ_library", "create_gui_release", input );
 	    },
 	    async update ({ id }, changed ) {
@@ -547,14 +563,14 @@ module.exports = async function ( client, app ) {
 		//     rejections.push(`'${hr_names.for_happ_releases}' cannot be empty`);
 
 		if ( data.file_bytes ) {
-		    if ( !Array.isArray(data.file_bytes) )
-			rejections.push(`'File Bytes' must be an array; not type '${typeof data.file_bytes}'`);
+		    if ( !(data.file_bytes instanceof Uint8Array) )
+			rejections.push(`'File Bytes' must be a Uint7Array; not type '${typeof data.file_bytes}'`);
 
 		    if ( data.file_bytes.length === 0 )
 			rejections.push(`'File Bytes' must contain bytes`);
 		}
 		else if ( !data.web_asset_id )
-		    rejections.push(`'Web Asset ID' or 'File Bytes' is required`);
+		    rejections.push(`'Web Ass or 'File Bytes'et ID' is required`);
 	    },
 	},
 	"All hApps": {
@@ -1270,6 +1286,13 @@ module.exports = async function ( client, app ) {
 		};
 	    },
 	    async create ( input ) {
+		input.mere_memory_addr		= await common.uploadMemory(
+		    client,
+		    "dnarepo",
+		    input.zome_bytes,
+		    percentage => this.progress( percentage/100 )
+		);
+		delete input.zome_bytes;
 		return await client.call("dnarepo", "dna_library", "create_zome_version", input );
 	    },
 	    async update ({ id }, changed ) {
@@ -1678,6 +1701,14 @@ module.exports = async function ( client, app ) {
 		entity.mere_memory_addr	= new EntryHash( entity.mere_memory_addr );
 	    },
 	    async create ( input ) {
+		input.mere_memory_addr	= await common.uploadMemory(
+		    client,
+		    "web_assets",
+		    input.file_bytes,
+		    percentage => this.progress( percentage/100 )
+		);
+		delete input.file_bytes;
+
 		const webasset		= await client.call("web_assets", "web_assets", "create_file", input );
 
 		this.openstate.state[`webasset/${webasset.$id}`] = webasset;

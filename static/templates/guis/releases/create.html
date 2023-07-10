@@ -34,6 +34,15 @@
 		<input type="file" accept="application/zip" @change="file_selected" class="form-control form-input-file" :disabled="$writing" required>
 	    </input-feedback>
 
+	    <div v-if="$input.writing">
+		<div class="progress">
+		    <div class="progress-bar" role="progressbar"
+			 :style="{ 'width': ($input.$writing*100) + '%' }">
+			{{ Math.ceil( $input.$writing*100 ) }}%
+		    </div>
+		</div>
+	    </div>
+
 	    <div v-if="$rejections.length && ($input.failed || $webasset.failed)"
 		 class="alert alert-danger d-flex align-items-center mt-5" role="alert">
 		<i class="bi-exclamation-triangle-fill me-3"></i>

@@ -24,13 +24,6 @@ module.exports = async function ( client ) {
 		...common.scopedPathComputed( c => c.zome_version_datapath,	"version" ),
 		...common.scopedPathComputed( `dnarepo/hdk/versions`,		"previous_hdk_versions", { "get": true }),
 
-		sc_url_datapath () {
-		    return this.version$.source_code_commit_url
-			? `url/info/${this.version$.source_code_commit_url.replaceAll("/", "|")}`
-			: this.$openstate.DEADEND;
-		},
-		...common.scopedPathComputed( c => c.sc_url_datapath,		"sc_url_preview" ),
-
 		file_valid_feedback () {
 		    const file		= this.zome_file;
 
@@ -63,25 +56,6 @@ module.exports = async function ( client ) {
 		    this.version$.zome_bytes	= await this.load_file( file );
 
 		    console.log(`File selected done`, this.version$ );
-		},
-		async createSourceCodeUrlPreview ( url ) {
-		    if ( !url ) {
-			delete this.version$.metadata.source_code_url_preview;
-			return;
-		    }
-
-		    const url_info		= await this.$openstate.read( this.sc_url_datapath );
-
-		    Object.assign( this.version$.metadata, {
-			"source_code_url_preview": {
-			    "title":		url_info.title,
-			    "description":	url_info.description,
-			    "image":		url_info.image,
-			},
-		    });
-		    log.debug("Updated preview metadata:", this.version$ );
-
-		    return url_info;
 		},
 		async write () {
 		    try {
@@ -317,13 +291,6 @@ module.exports = async function ( client ) {
 		...common.scopedPathComputed( c => c.zomepath,			"zome", { "get": true } ),
 		...common.scopedPathComputed( c => c.versionpath,		"version", { "get": true } ),
 
-		sc_url_datapath () {
-		    return this.version$.source_code_commit_url
-			? `url/info/${this.version$.source_code_commit_url.replaceAll("/", "|")}`
-			: this.$openstate.DEADEND;
-		},
-		...common.scopedPathComputed( c => c.sc_url_datapath,		"sc_url_preview" ),
-
 		preview_toggle_text () {
 		    return this.show_changelog_preview ? "editor" : "preview";
 		}
@@ -343,25 +310,6 @@ module.exports = async function ( client ) {
 		},
 		updateChangelogMarkdown () {
 		    this.version$.changelog_html = common.mdHTML( this.version$.changelog );
-		},
-		async createSourceCodeUrlPreview ( url ) {
-		    if ( !url ) {
-			delete this.version$.metadata.source_code_url_preview;
-			return;
-		    }
-
-		    const url_info		= await this.$openstate.read( this.sc_url_datapath );
-
-		    Object.assign( this.version$.metadata, {
-			"source_code_url_preview": {
-			    "title":		url_info.title,
-			    "description":	url_info.description,
-			    "image":		url_info.image,
-			},
-		    });
-		    log.debug("Updated preview metadata:", this.version$ );
-
-		    return url_info;
 		},
 		async update () {
 		    try {

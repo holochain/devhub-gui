@@ -97,10 +97,8 @@
 		</div>
 	    </div>
 
-	    <div class="mt-4" v-if="version && version.source_code_commit_url">
-		<link-preview v-if="version.metadata.source_code_url_preview"
-			      :info="version.metadata.source_code_url_preview"></link-preview>
-		<div v-else class="card">
+	    <div class="mt-4" v-if="version?.source_code_commit_url">
+		<div class="card">
 		    <div class="card-header">
 			Source Code
 		    </div>

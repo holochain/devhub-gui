@@ -55,9 +55,6 @@ module.exports = async function ( client ) {
 		webasset () {
 		    return this.$openstate.state[ this.webasset_datapath ];
 		},
-		webasset$ () {
-		    return this.$openstate.mutable[ this.webasset_datapath ];
-		},
 		$webasset () {
 		    return this.$openstate.metastate[ this.webasset_datapath ];
 		},
@@ -70,7 +67,7 @@ module.exports = async function ( client ) {
 		},
 
 		$writing () {
-		    return this.$input.writing || this.$webasset.writing;
+		    return this.$input.writing;
 		},
 		$rejections () {
 		    return [
@@ -100,7 +97,6 @@ module.exports = async function ( client ) {
 		this.$openstate.read(`happs`);
 
 		this.input.for_gui	= String( this.gui_id );
-		this.input.web_asset_id	= "temporary value";
 	    },
 	    "methods": {
 		async fetchGUI () {
@@ -131,19 +127,11 @@ module.exports = async function ( client ) {
 		    this.gui_bytes		= await this.load_file( file );
 		    this.gui_bytes_hash		= common.toHex( await common.digest( this.gui_bytes ) );
 
-		    this.webasset$.file_bytes	= [ ...this.gui_bytes ];
+		    this.input.file_bytes	= this.gui_bytes;
 		},
 
 		async create () {
 		    try {
-			if ( !this.$webasset.present ) {
-			    await this.$openstate.write( this.webasset_datapath );
-
-			    this.input.web_asset_id	= this.webasset.$id;
-
-			    this.$openstate.purge( this.webasset_datapath );
-			}
-
 			await this.$openstate.write( this.release_datapath );
 
 			const release		= this.$openstate.state[ this.release_datapath ];
