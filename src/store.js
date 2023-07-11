@@ -3408,7 +3408,7 @@ module.exports = async function ( client, app ) {
 		await common.delay();
 
 		log.info("Unpacking bundle with %s bytes", file.bytes.length );
-		const msgpack_bytes	= gzip.unzip( file.bytes );
+		const msgpack_bytes	= pako.ungzip( file.bytes );
 		log.debug("Unzipped bundle has %s bytes", msgpack_bytes.length );
 
 		const bundle		= MessagePack.decode( msgpack_bytes );
