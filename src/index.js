@@ -74,6 +74,13 @@ window.PersistentStorage		= {
     const client			= await client_init();
     log.normal("Connecting client for Agent %s to '%s' (mode: %s)", String(client._agent), client._conn._uri, WEBPACK_MODE );
 
+    log.warn("Pre-load WASMs with 30s timeout");
+    document.body.append( "Holochain is loading the app..." );
+    await client.call("dnarepo", "dna_library", "whoami", null, 30_000 );
+    await client.call("happs", "happ_library", "whoami", null, 30_000 );
+    await client.call("web_assets", "web_assets", "whoami", null, 30_000 );
+
+
     const zome_controllers		= await zomes_init( client );
     const zome_version_controllers	= await zome_versions_init( client );
     const dna_controllers		= await dnas_init( client );
