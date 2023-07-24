@@ -2,7 +2,7 @@
 const repr				= require('@whi/repr');
 const { faker }				= require('@faker-js/faker');
 const { AgentPubKey,
-	EntryHash }			= require('@whi/holo-hash');
+	ActionHash, EntryHash }		= require('@whi/holo-hash');
 
 
 if ( !crypto.randomBytes ) {
@@ -38,7 +38,7 @@ function ZomeEntry ( cell_state = {}, opts = {} ) {
 	"deprecation":		opts.deprecated ? null : {
 	    "message":		faker.lorem.sentence(),
 	    "recommended_alternatives": [
-		new EntryHash( crypto.randomBytes(32) ),
+		new ActionHash( crypto.randomBytes(32) ),
 	    ],
 	},
     };
@@ -79,7 +79,7 @@ function DnaEntry ( cell_state = {}, opts = {} ) {
 	"deprecation":		opts.deprecated ? null : {
 	    "message":		faker.lorem.sentence(),
 	    "recommended_alternatives": [
-		new EntryHash( crypto.randomBytes(32) ),
+		new ActionHash( crypto.randomBytes(32) ),
 	    ],
 	},
     };
@@ -88,8 +88,8 @@ function DnaEntry ( cell_state = {}, opts = {} ) {
 function RandomZomeRef () {
     return {
 	"name":			faker.commerce.product(),
-	"zome":			new EntryHash( crypto.randomBytes(32) ),
-	"version":		new EntryHash( crypto.randomBytes(32) ),
+	"zome":			new ActionHash( crypto.randomBytes(32) ),
+	"version":		new ActionHash( crypto.randomBytes(32) ),
 	"resource":		new EntryHash( crypto.randomBytes(32) ),
 	"resource_hash":	faker.datatype.hexadecimal( 64 ).slice( 2 ).toLowerCase(),
     };
@@ -138,7 +138,7 @@ function HappEntry ( cell_state = {}, opts = {} ) {
 	"deprecation":		opts.deprecated ? null : {
 	    "message":		faker.lorem.sentence(),
 	    "recommended_alternatives": [
-		new EntryHash( crypto.randomBytes(32) ),
+		new ActionHash( crypto.randomBytes(32) ),
 	    ],
 	},
     };
@@ -147,8 +147,8 @@ function HappEntry ( cell_state = {}, opts = {} ) {
 function RandomDnaRef () {
     return {
 	"role_name":		faker.lorem.word().toLowerCase(),
-	"dna":			new EntryHash( crypto.randomBytes(32) ),
-	"version":		new EntryHash( crypto.randomBytes(32) ),
+	"dna":			new ActionHash( crypto.randomBytes(32) ),
+	"version":		new ActionHash( crypto.randomBytes(32) ),
 	"wasm_hash":		faker.datatype.hexadecimal( 64 ).slice(2).toLowerCase(),
     };
 }
@@ -202,7 +202,7 @@ function HappReleaseEntry ( cell_state = {}, opts = {} ) {
 	"hdk_version":		"v0.0.132",
 	"dnas":			dnas,
 	"gui": {
-	    "asset_group_id":	new EntryHash( crypto.randomBytes(32) ),
+	    "asset_group_id":	new ActionHash( crypto.randomBytes(32) ),
 	    "holo_hosting_settings": {
 		"uses_web_sdk":	false,
 	    },
@@ -213,7 +213,7 @@ function HappReleaseEntry ( cell_state = {}, opts = {} ) {
 	"deprecation":		opts.deprecated ? null : {
 	    "message":		faker.lorem.sentence(),
 	    "recommended_alternatives": [
-		new EntryHash( crypto.randomBytes(32) ),
+		new ActionHash( crypto.randomBytes(32) ),
 	    ],
 	},
     };

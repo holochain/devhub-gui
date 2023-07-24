@@ -12,21 +12,22 @@ module.exports = {
 	content.designer		= new AgentPubKey( content.designer );
 
 	if ( content.gui )
-	    content.gui.asset_group_id	= new EntryHash( content.gui.asset_group_id );
+	    content.gui.asset_group_id	= new ActionHash( content.gui.asset_group_id );
 
 	return content;
     },
-    "happ_release": function ( content ) {
-	content.for_happ		= new EntryHash( content.for_happ );
+    "happrelease": function ( content ) {
+	content.for_happ		= new ActionHash( content.for_happ );
 	content.published_at		= new Date( content.published_at );
 	content.last_updated		= new Date( content.last_updated );
 
+	console.log("Converting official gui Uint8Array")
 	if ( content.official_gui )
-	    content.official_gui	= new EntryHash( content.official_gui );
+	    content.official_gui	= new ActionHash( content.official_gui );
 
 	content.dnas.forEach( (dna_ref, i) => {
-	    content.dnas[i].dna		= new EntryHash( dna_ref.dna );
-	    content.dnas[i].version	= new EntryHash( dna_ref.version );
+	    content.dnas[i].dna		= new ActionHash( dna_ref.dna );
+	    content.dnas[i].version	= new ActionHash( dna_ref.version );
 	});
 
 	return content;
@@ -38,23 +39,23 @@ module.exports = {
 	content.developer		= new AgentPubKey( content.developer );
 	return content;
     },
-    "dna_version": function ( content ) {
-	content.for_dna			= new EntryHash( content.for_dna );
+    "dnaversion": function ( content ) {
+	content.for_dna			= new ActionHash( content.for_dna );
 	content.published_at		= new Date( content.published_at );
 	content.last_updated		= new Date( content.last_updated );
 
 	if ( content.integrity_zomes ) {
 	    content.integrity_zomes.forEach( (zome_ref, i) => {
-		content.integrity_zomes[i].zome		= new EntryHash( zome_ref.zome );
-		content.integrity_zomes[i].version	= new EntryHash( zome_ref.version );
+		content.integrity_zomes[i].zome		= new ActionHash( zome_ref.zome );
+		content.integrity_zomes[i].version	= new ActionHash( zome_ref.version );
 		content.integrity_zomes[i].resource	= new EntryHash( zome_ref.resource );
 	    });
 	}
 
 	if ( content.zomes ) {
 	    content.zomes.forEach( (zome_ref, i) => {
-		content.zomes[i].zome		= new EntryHash( zome_ref.zome );
-		content.zomes[i].version	= new EntryHash( zome_ref.version );
+		content.zomes[i].zome		= new ActionHash( zome_ref.zome );
+		content.zomes[i].version	= new ActionHash( zome_ref.version );
 		content.zomes[i].resource	= new EntryHash( zome_ref.resource );
 	    });
 	}
@@ -71,14 +72,14 @@ module.exports = {
 	content.developer		= new AgentPubKey( content.developer );
 	return content;
     },
-    "zome_version": function ( content ) {
-	content.for_zome		= new EntryHash( content.for_zome );
+    "zomeversion": function ( content ) {
+	content.for_zome		= new ActionHash( content.for_zome );
 	content.published_at		= new Date( content.published_at );
 	content.last_updated		= new Date( content.last_updated );
 	content.mere_memory_addr	= new EntryHash( content.mere_memory_addr );
 
 	if ( content.review_summary )
-	    content.review_summary	= new EntryHash( content.review_summary );
+	    content.review_summary	= new ActionHash( content.review_summary );
 
 	return content;
     },
@@ -90,14 +91,14 @@ module.exports = {
 
 	return content;
     },
-    "gui_release": function ( content ) {
-	content.for_gui			= new EntryHash( content.for_gui );
+    "guirelease": function ( content ) {
+	content.for_gui			= new ActionHash( content.for_gui );
 	content.published_at		= new Date( content.published_at );
 	content.last_updated		= new Date( content.last_updated );
-	content.web_asset_id		= new EntryHash( content.web_asset_id );
+	content.web_asset_id		= new ActionHash( content.web_asset_id );
 
 	content.for_happ_releases.forEach( (happ_id, i) => {
-	    content.for_happ_releases[i]	= new EntryHash( happ_id );
+	    content.for_happ_releases[i]	= new ActionHash( happ_id );
 	});
 
 	return content;
@@ -109,10 +110,10 @@ module.exports = {
 	content.author			= new AgentPubKey( content.author );
 
 	if ( content.reaction_summary )
-	    content.reaction_summary	= new EntryHash( content.reaction_summary );
+	    content.reaction_summary	= new ActionHash( content.reaction_summary );
 
 	content.subject_ids.forEach( ([id, action], i) => {
-	    content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
+	    content.subject_ids[i]	= [ new ActionHash( id ), new ActionHash( action ) ];
 	});
 
 	return content;
@@ -125,13 +126,13 @@ module.exports = {
 	content.type_name		= content.reaction_type === 1 ? "like" : "dislike";
 
 	content.subject_ids.forEach( ([id, action], i) => {
-	    content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
+	    content.subject_ids[i]	= [ new ActionHash( id ), new ActionHash( action ) ];
 	});
 
 	return content;
     },
-    "reaction_summary": function ( content ) {
-	content.subject_id		= new EntryHash( content.subject_id );
+    "reactionsummary": function ( content ) {
+	content.subject_id		= new ActionHash( content.subject_id );
 
 	content.subject_history.forEach( (id, i) => {
 	    content.subject_history[i]	= new ActionHash( id );

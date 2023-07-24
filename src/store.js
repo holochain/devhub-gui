@@ -479,12 +479,12 @@ module.exports = async function ( client, app ) {
 		return await client.call("happs", "happ_library", "get_gui_release", { id });
 	    },
 	    adapter ( content ) {
-		content.for_gui			= new EntryHash( content.for_gui );
-		content.web_asset_id		= new EntryHash( content.web_asset_id );
+		content.for_gui			= new ActionHash( content.for_gui );
+		content.web_asset_id		= new ActionHash( content.web_asset_id );
 		content.changelog_html		= common.mdHTML( content.changelog );
 
 		content.for_happ_releases.forEach( (release_id, i) => {
-		    content.for_happ_releases[i] = new EntryHash( release_id );
+		    content.for_happ_releases[i] = new ActionHash( release_id );
 		});
 
 		if ( content.screenshots ) {
@@ -978,7 +978,7 @@ module.exports = async function ( client, app ) {
 		return await client.call("dnarepo", "dna_library", "get_dna_version", { id });
 	    },
 	    adapter ( content ) {
-		content.for_dna			= new EntryHash( content.for_dna );
+		content.for_dna			= new ActionHash( content.for_dna );
 		content.changelog_html		= common.mdHTML( content.changelog );
 	    },
 	    defaultMutable () {
@@ -1267,12 +1267,12 @@ module.exports = async function ( client, app ) {
 		return await client.call("dnarepo", "dna_library", "get_zome_version", { id });
 	    },
 	    adapter ( content ) {
-		content.for_zome		= new EntryHash( content.for_zome );
+		content.for_zome		= new ActionHash( content.for_zome );
 		content.mere_memory_addr	= new EntryHash( content.mere_memory_addr );
 		content.changelog_html		= common.mdHTML( content.changelog );
 
 		if ( content.review_summary )
-		    content.review_summary	= new EntryHash( content.review_summary );
+		    content.review_summary	= new ActionHash( content.review_summary );
 	    },
 	    defaultMutable () {
 		return {
@@ -1415,7 +1415,7 @@ module.exports = async function ( client, app ) {
 		const breakdown		= {};
 
 		for ( let review_id in summary.review_refs ) {
-		    // (EntryHash, ActionHash, AgentPubKey, u64, BTreeMap<String,u8>, Option<(ActionHash, u64, BTreeMap<u64,u64>)>)
+		    // (ActionHash, ActionHash, AgentPubKey, u64, BTreeMap<String,u8>, Option<(ActionHash, u64, BTreeMap<u64,u64>)>)
 		    const [
 			_,
 			latest_action,
@@ -1507,10 +1507,10 @@ module.exports = async function ( client, app ) {
 		content.author			= new AgentPubKey( content.author );
 
 		if ( content.reaction_summary )
-		    content.reaction_summary	= new EntryHash( content.reaction_summary );
+		    content.reaction_summary	= new ActionHash( content.reaction_summary );
 
 		content.subject_ids.forEach( ([id, action], i) => {
-		    content.subject_ids[i]	= [ new EntryHash( id ), new ActionHash( action ) ];
+		    content.subject_ids[i]	= [ new ActionHash( id ), new ActionHash( action ) ];
 		});
 	    },
 	    defaultMutable () {

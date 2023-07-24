@@ -301,7 +301,7 @@ window.PersistentStorage		= {
 		const path_id		= this.$route.params[key];
 
 		try {
-		    return new holohash.EntryHash( path_id );
+		    return new holohash.ActionHash( path_id );
 		} catch (err) {
 		    if ( err instanceof holohash.HoloHashError ) {
 			this.showStatusView( 400, {
