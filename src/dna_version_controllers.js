@@ -638,7 +638,7 @@ module.exports = async function ( client ) {
 
 		    console.log( this.bundle );
 
-		    this.input.origin_time	= this.bundle.integrity.origin_time;
+		    this.input.origin_time	= this.bundle.manifest.integrity.origin_time;
 
 		    if ( this.bundle.integrity.network_seed )
 			this.input.network_seed	= this.bundle.integrity.network_seed;
