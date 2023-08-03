@@ -834,7 +834,7 @@ module.exports = async function ( client ) {
 				    "version":		version.$id,
 				    "resource":		version.mere_memory_addr,
 				    "resource_hash":	version.mere_memory_hash,
-				    "dependencies":	Object.values( info.dependencies ).map( ref => ref.name ),
+				    "dependencies":	info.dependencies ? Object.values( info.dependencies ).map( ref => ref.name ) : [],
 				};
 			    }),
 			};
