@@ -84,7 +84,7 @@ static/dependencies/holo-hash.js.map:			node_modules/@whi/holo-hash/dist/holo-ha
 static/dependencies/sha256.js:				node_modules/js-sha256/src/sha256.js Makefile
 	cp $< $@
 
-static/dependencies/mere-memory-sdk.js:			node_modules/@whi/mere-memory-sdk/dist/mere-memory-sdk.js Makefile
+static/dependencies/mere-memory-sdk.js:			node_modules/@spartan-hc/mere-memory-sdk/dist/mere-memory-sdk.js Makefile
 	cp $< $@
 static/dependencies/gzip.js:				node_modules/pako/dist/pako.esm.mjs Makefile
 	cp $< $@

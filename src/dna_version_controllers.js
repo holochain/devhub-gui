@@ -597,7 +597,7 @@ module.exports = async function ( client ) {
 		    }
 
 		    this.input.changelog		= "";
-		    this.input.hdk_version		= null;
+		    this.input.hdk_version		= "?";
 		    this.input.properties		= null;
 
 		    this.validated			= false;
