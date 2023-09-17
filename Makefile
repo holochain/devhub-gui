@@ -44,6 +44,7 @@ static-links:\
 	static/dependencies/holo-hash.js\
 	static/dependencies/holo-hash.js.map\
 	static/dependencies/sha256.js\
+	static/dependencies/mere-memory-sdk.js\
 	static/dependencies/gzip.js\
 	static/dependencies/msgpack.js\
 	static/dependencies/showdown.js\
@@ -68,6 +69,8 @@ static/dependencies/holo-hash.js.map:			node_modules/@whi/holo-hash/dist/holo-ha
 static/dependencies/sha256.js:				node_modules/js-sha256/src/sha256.js Makefile
 	cp $< $@
 
+static/dependencies/mere-memory-sdk.js:			node_modules/@spartan-hc/mere-memory-sdk/dist/mere-memory-sdk.js Makefile
+	cp $< $@
 static/dependencies/gzip.js:				node_modules/pako/dist/pako.esm.mjs Makefile
 	cp $< $@
 static/dependencies/msgpack.js:				node_modules/@msgpack/msgpack/dist.es5+umd/msgpack.js Makefile
